@@ -19,9 +19,20 @@ export interface SttOptions {
   normalize?: (text: string) => string; // 받아쓰기 보정 (예: "페이사이삼" → "PAY-423", capture/normalize.ts)
 }
 
-/** 기본 언어: URL ?lang=en-US 로 바꿀 수 있다. 시드 문서가 한국어라 ko-KR. */
+/** 음성 인식 언어. Chrome Web Speech는 고른 언어로만 알아듣는다(한국어로 두면 영어 말을 못 받음). */
+export const STT_LANGS = [{ code: "en-US", label: "EN" }, { code: "ko-KR", label: "한국어" }] as const;
+const LANG_KEY = "moai.sttLang";
+
+/** 언어 고르는 순서: URL ?lang=ko-KR → 이 브라우저에 저장한 선택 → 영어(기본). gitgutgit: 기본을 ko-KR에서 en-US로 바꿈. */
 export function defaultLang(): string {
-  return new URLSearchParams(location.search).get("lang") ?? "ko-KR";
+  const url = new URLSearchParams(location.search).get("lang");
+  if (url) return url;
+  try { return localStorage.getItem(LANG_KEY) || "en-US"; } catch { return "en-US"; }
+}
+
+/** 고른 언어를 이 브라우저에 저장한다(다음에 마이크를 켤 때부터 적용). */
+export function setSttLang(code: string): void {
+  try { localStorage.setItem(LANG_KEY, code); } catch { /* 사생활 모드 등: 이번 화면에서만 */ }
 }
 
 const INTERIM_MIN_GAP_MS = 250;
