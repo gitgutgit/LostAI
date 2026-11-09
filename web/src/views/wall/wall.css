@@ -274,3 +274,7 @@ html.livewall,html.livewall body{height:100%;overflow:hidden;background:var(--wa
 #stage.live #mark em{font-style:normal;margin-left:14px;color:var(--ink2)}
 #stage.live #mark em.paid{color:var(--red)}
 #stage.live #mark.on em{color:#fff}
+/* hs: 제스처 토글 버튼 — "No Questions Yet"과 "Now" 사이 */
+#stage.live #gesture-toggle{font:700 28px/34px var(--text);color:var(--ink2);background:none;border:2px solid transparent;padding:4px 12px;position:absolute;top:16px;left:850px;border-radius:2px;cursor:pointer}
+#stage.live #gesture-toggle:hover{border-color:var(--ink2)}
+#stage.live #gesture-toggle.on{background:var(--ink);border-color:var(--ink);color:#fff}

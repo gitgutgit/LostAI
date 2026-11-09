@@ -313,7 +313,7 @@ const GL: Record<string, ReactNode> = {
 // ------------------------------------------------------------------ 무대
 
 // 실화면 조작: 마이크 표지, 임시 채팅(발화 줄 자리에 입력칸, 마이크 없이 시험용)
-export interface LiveCtl { mic: boolean; onMic: () => void; connected: boolean; typing: boolean; onType: () => void; onSay: (text: string) => void; onTypeEnd: () => void;
+export interface LiveCtl { mic: boolean; onMic: () => void; gesture: boolean; onGesture: () => void; /* hs: 제스처 토글 */ connected: boolean; typing: boolean; onType: () => void; onSay: (text: string) => void; onTypeEnd: () => void;
   /** 입력칸 안내 문구, 서버 모드(MOCK, LIVE: 비용 여부 표시) */ hint?: string; mode?: string }
 
 export function Wall({ w, band, animate, onOpenMinutes, live }: { w: WallState; band: boolean; animate: boolean; onOpenMinutes?: () => void; live?: LiveCtl }) {
@@ -335,9 +335,15 @@ export function Wall({ w, band, animate, onOpenMinutes, live }: { w: WallState; 
         <div className="head" style={{ left: 430 }} id="prog">{w.progText ?? `${w.decided} of ${w.total} decided`}</div>
         <div className="head" style={{ left: 1270 }}>Now<span className="n" id="hNow">{w.now}</span></div>
         {live
-          ? <button id="mark" className={live.mic ? "on" : ""} onClick={live.onMic} title="마이크 (M)">
-              {!live.connected ? "Offline" : live.mic ? <><i />Listening</> : "Mic off"}{live.mode && <em className={live.mode === "LIVE" ? "paid" : ""}>{live.mode}</em>}
-            </button>
+          ? <>
+              {/* hs: 제스처 토글 버튼 — mic 버튼 바로 왼쪽 */}
+              <button id="gesture-toggle" className={live.gesture ? "on" : ""} onClick={live.onGesture} title="손 제스처 제어">
+                {live.gesture ? "✋ Gesture on" : "✋ Gesture off"}
+              </button>
+              <button id="mark" className={live.mic ? "on" : ""} onClick={live.onMic} title="마이크 (M)">
+                {!live.connected ? "Offline" : live.mic ? <><i />Listening</> : "Mic off"}{live.mode && <em className={live.mode === "LIVE" ? "paid" : ""}>{live.mode}</em>}
+              </button>
+            </>
           : <div id="mark">{w.mark}</div>}
 
         <Doc w={w} band={band} animate={animate} />
