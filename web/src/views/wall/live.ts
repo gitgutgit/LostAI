@@ -56,9 +56,12 @@ export function liveWall(v: RoomView, me?: string): WallState {
   const fresh = lastApplied ? v.changes[(lastApplied.payload as Change).change_id] : undefined;
 
   // ---------------------------------------------------------------- 문서
-  // ep: 문서 칸은 마지막으로 고친 문서를 따라간다. 노트 문서(결정, 리스크, 액션)를 고치면 그 문서를 같은 표 모양으로 보인다.
+  // ep: 문서 칸의 주인은 시트(보드)다. 노트 문서(결정, 리스크, 액션, 메모)는 이번 회의에서 고친 항목만 보드 아래에 덧붙인다.
+  // 시트가 없는 방이면 마지막으로 고친 노트 문서(없으면 첫 노트 문서)를 통째로 보인다.
   const freshKey = fresh?.targets[0]?.split("/")[0];
-  const notesEntry: [string, Doc] | undefined = s && freshKey && s.docs[freshKey]?.kind === "doc" ? [freshKey, s.docs[freshKey] as Doc] : undefined;
+  const notesEntry: [string, Doc] | undefined = !s ? undefined
+    : freshKey && s.docs[freshKey]?.kind === "doc" ? [freshKey, s.docs[freshKey] as Doc]
+    : (Object.entries(s.docs).find(([, d]) => d.kind === "doc") as [string, Doc] | undefined);
   const sheetEntry = s ? Object.entries(s.docs).find(([, d]) => d.kind === "sheet") : undefined;
   const sheetKey = sheetEntry?.[0] ?? "";
   const sheet = sheetEntry?.[1] as Sheet | undefined;
@@ -106,32 +109,57 @@ export function liveWall(v: RoomView, me?: string): WallState {
     if (row) { row.src.unshift({ t: `${qOf(c)} open`, cls: "tag" }); row.tall = true; }
   }
 
-  // 시트에 없는 열은 숨기고, 번호 열은 가장 긴 번호에 맞춘다(시안의 64px는 WBS 번호 기준).
-  const hide = cols ? (["o", "s", "e", "d", "st"] as const).filter((k) => !cols[k]) : [];
-  const WIDTH: Record<string, string> = { o: "150px", s: "100px", e: "100px", d: "90px", st: "180px" };
-  const wPx = Math.min(180, Math.max(64, 20 + 16 * Math.max(3, ...rows.map((r) => r.w.length))));
-  const grid = cols ? [`${wPx}px`, "minmax(240px, 1fr)", ...(["o", "s", "e", "d", "st"] as const).filter((k) => cols[k]).map((k) => WIDTH[k]), "300px"].join(" ") : undefined;
-
-  // ep: 노트 문서 표: 첫 칸 = 섹션 종류, 둘째 = 항목 문장, 셋째 = 담당. 나머지 열은 숨긴다.
-  let docTitle = sheet?.title ?? "Doc", docSub = "", docCols = cols ? KEYS.map((k) => cols[k] ?? HEAD[k]) : undefined, docHide: CellKey[] = [...hide], docGrid = grid, docRows = rows;
-  if (notesEntry && s) {
-    const [nk, nd] = notesEntry;
+  // ep: 노트 문서 항목 → 표 행: 첫 칸 = 섹션 종류, 둘째 = 항목 문장, 셋째 = 담당. onlyEdited면 이번 회의에서 고친 항목만.
+  const noteRows = (nk: string, nd: Doc, onlyEdited: boolean): DocRow[] => {
     const KIND: Record<string, string> = { decisions: "Decision", risks: "Risk", actions: "Action" };
-    const nrows: DocRow[] = [];
+    const out: DocRow[] = [];
+    if (!s) return out;
     for (const sec of nd.sections) for (const it of sec.items) {
       const anchor = `${nk}/${sec.section_id}/${it.item_id}`;
+      const cid = s.provenance[anchor];
+      if (onlyEdited && !cid) continue;
       const blank = { v: "" };
       const row: DocRow = { w: (sec.binding && KIND[sec.binding]) || sec.heading, t: it.text, o: { v: str(it.meta?.owner) }, s: blank, e: blank, d: blank, st: blank, src: [], fresh: {}, memo: null };
-      const cid = s.provenance[anchor];
       const ch = cid ? v.changes[cid] : undefined;
       if (ch) row.src.push({ t: `${ch.requested_by}${L(ch) ? " " + L(ch) : ""}`, r: L(ch) || undefined });
       for (const d of fresh?.diff ?? []) if (d.anchor === anchor) { if (d.before === null) row.newrow = true; row.rowfresh = true; }
-      nrows.push(row);
+      out.push(row);
     }
-    const wN = Math.min(180, Math.max(64, 20 + 16 * Math.max(4, ...nrows.map((r) => r.w.length))));
-    docTitle = nd.title; docSub = sheet ? `  Board: ${sheet.title}` : "";
+    return out;
+  };
+
+  // ep: 열 폭은 글자에 맞춘다(28px 글꼴에서 한글 같은 넓은 글자 약 28px, 나머지 약 16px, 좌우 여백 16px). 넘는 글자는 칸 안에서 말줄임.
+  const textPx = (t: string) => [...t].reduce((a, c) => a + (/[ᄀ-ᇿ⺀-鿿가-힯＀-￯]/.test(c) ? 28 : 16), 0) + 16;
+  const fitPx = (texts: string[], min: number, max: number) => Math.min(max, Math.max(min, ...texts.map(textPx)));
+  const fit = (texts: string[], min: number, max: number) => `${fitPx(texts, min, max)}px`;
+  const LIMIT: Record<"o" | "s" | "e" | "d" | "st", [number, number]> = { o: [100, 220], s: [90, 170], e: [90, 170], d: [70, 120], st: [100, 220] };
+  // 종이 안쪽 폭 1174px(1222 - 좌우 24). 항목 열에 최소 360px를 남기고, 고정 열(첫 번호 열 제외)이 넘치면 가장 넓은 열부터 같은 상한까지 깎는다.
+  const gridOf = (fixed: number[], itemAt: number) => {
+    const room = 1174 - 360 - fixed[0];
+    const rest = fixed.slice(1);
+    let cap = Math.max(...rest, 0);
+    while (rest.reduce((a, w) => a + Math.min(w, cap), 0) > room && cap > 60) cap -= 2;
+    const px = [fixed[0], ...rest.map((w) => Math.min(w, cap))].map((w) => `${w}px`);
+    px.splice(itemAt, 0, "minmax(360px, 1fr)");
+    return px.join(" ");
+  };
+
+  let docTitle = sheet?.title ?? "Doc", docSub = "", docCols = cols ? KEYS.map((k) => cols[k] ?? HEAD[k]) : undefined;
+  let docHide: CellKey[] = cols ? (["o", "s", "e", "d", "st"] as const).filter((k) => !cols[k]) : [];
+  let docRows = rows, docGrid: string | undefined;
+  if (sheet && cols) {
+    // 보드 아래: 노트 문서마다 이번 회의에서 고친 항목
+    if (s) for (const [nk, nd] of Object.entries(s.docs)) if (nd.kind === "doc") docRows = [...docRows, ...noteRows(nk, nd as Doc, true)];
+    const colText = (k: (typeof KEYS)[number]) => [cols[k] ?? HEAD[k], ...docRows.map((r) => (k === "w" ? r.w : str((r[k as CellKey] as CellVal).v)))];
+    const srcPx = fitPx(docRows.map((r) => r.src.map((c) => c.t).join("  ")), 160, 300);
+    docGrid = gridOf([fitPx(colText("w"), 64, 200), ...(["o", "s", "e", "d", "st"] as const).filter((k) => cols[k]).map((k) => fitPx(colText(k), ...LIMIT[k])), srcPx], 1);
+  } else if (notesEntry) {
+    const [nk, nd] = notesEntry;
+    docRows = noteRows(nk, nd, false);
+    docTitle = nd.title;
     docCols = ["Section", "Item", "Owner", "Start", "End", "Days", "State"];
-    docHide = ["s", "e", "d", "st"]; docGrid = `${wN}px minmax(240px, 1fr) 150px 300px`; docRows = nrows;
+    docHide = ["s", "e", "d", "st"];
+    docGrid = `${fit(["Section", ...docRows.map((r) => r.w)], 64, 200)} minmax(240px, 1fr) ${fit(["Owner", ...docRows.map((r) => r.o.v)], ...LIMIT.o)} 300px`;
   }
 
   const lastLine = fresh ? L(fresh) : "";

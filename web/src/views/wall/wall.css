@@ -274,3 +274,19 @@ html.livewall,html.livewall body{height:100%;overflow:hidden;background:var(--wa
 #stage.live #mark em{font-style:normal;margin-left:14px;color:var(--ink2)}
 #stage.live #mark em.paid{color:var(--red)}
 #stage.live #mark.on em{color:#fff}
+/* ep: 실화면 넘침 막기. 실제 문서의 긴 제목, Last 줄, 칸 글자, 선택지, 참가자 이름이 칸을 뚫지 않고 칸 안에서 말줄임(…)으로 끝난다. 장면 모드 화소는 건드리지 않는다 */
+#stage.live #sheet{overflow:hidden}
+#stage.live .dh{gap:16px}
+#stage.live .dh b{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#stage.live #count{flex-shrink:0}
+#stage.live #dnote{overflow:hidden;text-overflow:ellipsis}
+#stage.live .g>*{text-overflow:ellipsis}
+#stage.live .g:not(.colh)>span:nth-child(2){white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:30px}
+#stage.live .oleft{flex:1;min-width:0}
+#stage.live .oside:empty{display:none}
+#stage.live .oname,#stage.live .osrc{overflow:hidden;text-overflow:ellipsis}
+#stage.live .pp{min-width:0}
+#stage.live .pp .nm{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#stage.live .pp .st{flex-shrink:0}
+#stage.live #idle{overflow:hidden}
+#stage.live #people{column-gap:16px}
