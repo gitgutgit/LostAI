@@ -4,6 +4,7 @@ TODO(P1): 라우터와 에디터 동시 시작, interim 텍스트로 미리 라�
 """
 from __future__ import annotations
 
+import re
 import time
 from typing import TYPE_CHECKING
 
@@ -11,9 +12,21 @@ from server.agent.asker import ask
 from server.agent.editor import edit
 from server.agent.router import route
 from server.events import Event
+from server.gestures.votes import votes
 
 if TYPE_CHECKING:
     from server.room import Room
+
+
+# ep: 말로 하는 표결. 표결 부르기('투표하죠')는 열린 질문이 있으면 LLM 없이 바로 표결을 열고,
+# 없으면 라우터, 에디터가 질문(open_conflict)부터 만든 뒤 연다. 표결 중 '2번' 같은 한마디는 한 표로 센다.
+VOTE_CALL = re.compile(r"(투표|표결|다수결|손 ?들어|\bvote\b|voting)", re.IGNORECASE)
+VOTE_PICK = re.compile(r"^\s*(?:[^:]{1,12}:\s*)?([1-4])\s*(번|표|번이요|번요|번이에요)?\s*[.!]?\s*$")
+
+
+def _open_question(room: "Room") -> str | None:
+    q = next((c for c in room.state.conflicts if not c.resolved), None)
+    return q.topic if q else None
 
 
 def _ms(t0: float) -> int:
@@ -34,6 +47,15 @@ async def handle_utterance(room: "Room", ev: Event) -> None:
     async def done(label: str) -> None:
         await room.emit("agent.progress", "agent", refs,
                         {"stage": "done", "label": label, "ms": int((room.now() - ev.ts) * 1000)})
+
+    if votes.vote_id is not None and (m := VOTE_PICK.match(text)):
+        await votes.cast_by_voice(room, speaker, int(m.group(1)))
+        await done("vote")
+        return
+    if VOTE_CALL.search(text) and (q := _open_question(room)) is not None:
+        await votes.open_by_voice(room, speaker, q)
+        await done("vote")
+        return
 
     await room.emit("agent.progress", "agent", refs, {"stage": "routing"})
     t0 = time.perf_counter()
@@ -61,4 +83,6 @@ async def handle_utterance(room: "Room", ev: Event) -> None:
         await room.changes.propose(ops, requested_by=speaker, utt_id=utt_id, via="voice",
                                    reason=f"{speaker}: {text[:60]}",
                                    latency_ms={"route": route_ms, "edit": edit_ms})
+        if VOTE_CALL.search(text) and (q := _open_question(room)) is not None:
+            await votes.open_by_voice(room, speaker, q)
     await done(label)
