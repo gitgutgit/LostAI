@@ -23,6 +23,11 @@
 | 말 → Google Sheet | p50 440ms / p95 518ms (n=2) | — | 11-09 11:31 · MOCK, 팀 공용 Sheet | 같은 파일 |
 
 ## 진행 중
+- [ ] (P2 표결) 표결 때 카메라 자동 켜기 + 손가락 1·2개 인식 (브랜치 Mal-Mi-Jal/vote-camera, 태우 요청 · 다른 파트 파일: useGesture.ts=77SONNY77, LiveWallView.tsx=ProfessionalSeaweedDevourer → PR에서 확인 요청)
+  - 원인: 결정 벽은 제스처 기본 꺼짐 → 말로 연 표결에 카메라 없음 / 손가락 1·2개는 MediaPipe가 Pointing_Up·Victory로 먼저 잡아 Fingers_1·2가 서버로 안 감
+  - [x] 표결 열리면 자동 켜기(자동으로 켠 것만 끝나면 끔), 표결 중 이름→손가락 수, 주먹 2초 꺼짐은 표결 중 막음, 카메라 실패 시 토글 끔
+  - [x] 서버 확인(로컬 MOCK): 말로 열기 → Fingers_1·Fingers_2 → vote.cast 1·2. 빌드 OK
+  - [ ] 실제 카메라로 1·2·3 손가락 표 확인
 - [ ] (P0 시연) Railway 배포 — 2시까지 (시작: 13:05, 브랜치 Mal-Mi-Jal/railway)
   - 의도와 검증: 회의 서버 하나를 https로 → 팀원·다른 노트북이 같은 회의·원본 문서·마이크. 문턱: /health OK, 원본 로그, 다른 노트북에서 말 → 원본 반영
   - 결정(태우): Railway만 원본(SEED=google), 내 PC 서버는 sprint로 / LIVE

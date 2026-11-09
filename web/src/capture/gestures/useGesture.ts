@@ -8,13 +8,20 @@ import { send } from "../../core/ws";
 
 const FIST_OFF_MS = 2000; // hs: Closed_Fist 2초 유지 → Gesture Off
 
+// 표결 중에는 MediaPipe 기본 동작 이름을 손가락 수로 읽는다 (Mal-Mi-Jal).
+// 손가락 1개는 Pointing_Up, 2개는 Victory로 먼저 잡혀서 Fingers_1·Fingers_2가 서버로 안 가던 문제 (3·2·1 표결의 1·2).
+const VOTE_ALIAS: Partial<Record<string, string>> = {
+  Pointing_Up: "Fingers_1", Victory: "Fingers_2", ILoveYou: "Fingers_3", Open_Palm: "Fingers_5",
+};
+
 /**
  * hs: 제스처 제어 훅. enabled가 true일 때만 카메라+엔진+포인터+줌이 동작한다.
  * @param getEl 줌 대상 HTMLElement를 반환하는 함수 (없으면 null)
  * @param enabled 제스처 활성화 여부 (기본 true)
  * @param onDisable Thumb_Down 3초로 제스처 끌 때 호출되는 콜백
+ * @param voting 표결이 열려 있으면 true: 기본 동작 이름을 손가락 수로 바꿔 보내고, 주먹 2초로 꺼지지 않게 한다
  */
-export function useGesture(getEl: () => HTMLElement | null, enabled = true, onDisable?: () => void) {
+export function useGesture(getEl: () => HTMLElement | null, enabled = true, onDisable?: () => void, voting = false) {
   const viewport = useMemo(() => new Viewport(getEl), []);
 
   // hs: enabled가 true일 때만 카메라+엔진 시작, false면 정리
@@ -35,9 +42,17 @@ export function useGesture(getEl: () => HTMLElement | null, enabled = true, onDi
       vid.style.cssText = "position:fixed;bottom:8px;right:8px;width:160px;border-radius:12px;transform:scaleX(-1);z-index:50;border:2px solid #333;";
       document.body.appendChild(vid);
 
-      stream = await navigator.mediaDevices.getUserMedia(
-        { video: { width: 640, height: 480, facingMode: "user" } }
-      );
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(
+          { video: { width: 640, height: 480, facingMode: "user" } }
+        );
+      } catch (e) {
+        // 권한 거부·카메라 없음: 조용히 멈추지 않고 토글을 끈다 (화면에 Gesture off로 보임)
+        console.warn("camera unavailable:", e);
+        if (vid?.parentNode) vid.parentNode.removeChild(vid);
+        onDisable?.();
+        return;
+      }
       if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
       vid.srcObject = stream;
       await new Promise<void>(r => vid!.addEventListener("loadeddata", () => r(), { once: true }));
@@ -91,7 +106,7 @@ export function useGesture(getEl: () => HTMLElement | null, enabled = true, onDi
       }
 
       // hs: Closed_Fist 2초 유지 → Gesture Off + 화면 디폴트 사이즈
-      if (f.gesture === "Closed_Fist" && f.hold_ms >= FIST_OFF_MS && onDisable) {
+      if (!voting && f.gesture === "Closed_Fist" && f.hold_ms >= FIST_OFF_MS && onDisable) {
         viewport.resetScale();
         viewport.showCursor(false);
         onDisable();
@@ -99,12 +114,13 @@ export function useGesture(getEl: () => HTMLElement | null, enabled = true, onDi
       }
 
       if (!f.gesture || f.hold_ms < HOLD_MS) { lastSent = ""; return; }
-      if (isShared(engine.mode, f.gesture) && lastSent !== f.gesture) {
-        lastSent = f.gesture;
-        send({ kind: "gesture", payload: { kind: f.gesture, confidence: f.confidence, hold_ms: f.hold_ms } });
+      const g = (voting ? VOTE_ALIAS[f.gesture] ?? f.gesture : f.gesture) as typeof f.gesture;
+      if (isShared(engine.mode, g) && lastSent !== g) {
+        lastSent = g;
+        send({ kind: "gesture", payload: { kind: g, confidence: f.confidence, hold_ms: f.hold_ms } });
       }
     });
-  }, [viewport, enabled, onDisable]);
+  }, [viewport, enabled, onDisable, voting]);
 
   return viewport;
 }

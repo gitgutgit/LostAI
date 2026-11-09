@@ -112,8 +112,18 @@ export function LiveWallView({ me }: { me?: string }) {
   // gitgutgit: 언어를 바꾸면 켜져 있는 마이크를 그 언어로 다시 켠다
   const onLang = () => { if (stopMic.current) { stopMic.current(); stopMic.current = startStt(); } };
 
+  // 표결이 열리면 카메라(제스처)를 자동으로 켠다: 말로 연 표결도 손가락 표를 받게 (Mal-Mi-Jal).
+  // 자동으로 켠 경우만 표결이 끝나면 다시 끈다. 사람이 직접 켜 둔 건 그대로.
+  const lastVote = [...v.events].reverse().find((e) => e.type === "vote.opened" || e.type === "vote.closed");
+  const voting = lastVote?.type === "vote.opened";
+  const autoOn = useRef(false);
+  useEffect(() => {
+    if (voting && !gesture) { autoOn.current = true; setGesture(true); }
+    if (!voting && autoOn.current) { autoOn.current = false; setGesture(false); }
+  }, [voting]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // hs: 제스처 커스텀 훅 — 버튼으로 활성화, Thumb_Down 3초로 끄기
-  useGesture(() => document.getElementById("livewrap"), gesture, () => setGesture(false));
+  useGesture(() => document.getElementById("livewrap"), gesture, () => { autoOn.current = false; setGesture(false); }, voting);
 
   // 키: M 마이크, F 전체 화면 (입력칸에 쓰는 중이면 무시)
   useEffect(() => {
