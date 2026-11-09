@@ -11,6 +11,7 @@ import random
 import secrets
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 
 CHALLENGE_TTL_SEC = 60
 STEPS = 3
@@ -23,7 +24,30 @@ CANDIDATES = ["Thumb_Up", "Thumb_Down", "Pointing_Up", "Victory", "Open_Palm", "
 # 같은 도전에 같이 넣지 않는 헷갈리는 쌍
 CONFUSABLE: list[set[str]] = []  # hs: 기본 제스처만 쓰므로 헷갈리는 쌍 없음 (Fingers_* 제거됨)
 
-_SECRET = (os.getenv("JOIN_SECRET") or secrets.token_hex(16)).encode()
+
+def load_secret(configured: str, path: Path) -> bytes:
+    """토큰 서명 키. JOIN_SECRET이 비어 있으면 무작위 키를 만들어 파일(0600)에 두고 다음 실행에도 쓴다.
+
+    키가 실행마다 바뀌면 `--reload`나 재시작 한 번에 모든 화면의 토큰이 무효가 된다.
+    """
+    if configured:
+        return configured.encode()
+    if path.exists():
+        key = path.read_bytes().strip()
+        if key:
+            return key
+    key = secrets.token_hex(16).encode()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "wb") as f:
+        f.write(key)
+    os.chmod(path, 0o600)  # 이미 있던 빈 파일이면 O_CREAT 권한이 적용되지 않는다
+    return key
+
+
+# results/는 .gitignore 대상이라 키 파일이 커밋되지 않는다
+_SECRET = load_secret(os.getenv("JOIN_SECRET", ""),
+                      Path(os.getenv("EVENT_LOG_DIR", "results")) / ".join_secret")
 
 
 @dataclass

@@ -16,6 +16,7 @@
         {"section_id": "s_dec", "heading": "결정 사항", "binding": "decisions", "items": []},
         {"section_id": "s_risk", "heading": "리스크", "binding": "risks", "items": []},
         {"section_id": "s_act", "heading": "액션", "binding": "actions", "items": []},
+        {"section_id": "s_note", "heading": "메모", "binding": "notes", "items": []},
         {"section_id": "s_free1", "heading": "범위", "binding": null,
          "items": [{"item_id": "i_7", "text": "Public App Store / Play Store release"}]}
       ]
