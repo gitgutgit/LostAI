@@ -6,4 +6,8 @@ __pycache__/
 wall_judge/ref*/
 wall_judge/app*/
 wall_judge/out*/
-wall_judge/.v04diff-chrome-profile/
+wall_judge/.v04diff-*-profile/
+wall_judge/existing/
+wall_judge/nofont/
+wall_judge/coldfont/
+wall_judge/.tmp_*

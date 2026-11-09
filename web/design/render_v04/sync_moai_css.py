@@ -10,6 +10,8 @@ from pathlib import Path
 HERE = Path(__file__).parent
 css_path = Path(sys.argv[1]) if len(sys.argv) > 1 else HERE.parents[1] / "src" / "views" / "brand" / "moai.css"
 page = HERE / "index.html"
+if not css_path.is_file():
+    sys.exit(f"moai.css not found at {css_path} (it lands with the MOAI brand PR); pass a path")
 css = css_path.read_text()
 s = page.read_text()
 marker = "Change it there and here together. */\n"
