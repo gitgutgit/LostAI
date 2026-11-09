@@ -1,5 +1,5 @@
 // B 화면: 캔버스 하나 (보드·노트 탭) + 타임라인 (ARCHITECTURE 7절).
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react"; // hs: useEffect, useMemo 제거 (useGesture로 이동)
 import { AgentStatus } from "../../components/AgentStatus";
 import { ChangeCard } from "../../components/ChangeCard";
 import { DocLinks } from "../../components/DocLinks";
@@ -7,10 +7,7 @@ import { DocView } from "../../components/DocView";
 import { SheetView } from "../../components/SheetView";
 import { cellIndex, docTabCounts, timeline } from "../../core/viewmodels";
 import { useRoom } from "../../core/store";
-import { send } from "../../core/ws";
-import { engine } from "../../capture/gestures/engine";
-import { isShared, HOLD_MS } from "../../capture/gestures/modes"; // hs: ZOOM_AUTO_OFF_MS, ZOOM_TOGGLE 제거 (PoC 방식은 모드 토글 안 씀)
-import { Viewport } from "../../capture/gestures/viewport";
+import { useGesture } from "../../capture/gestures/useGesture"; // hs: 제스처 커스텀 훅
 import { startStt, sttStatusText, type SttStatus } from "../../capture/stt";
 
 /** 마이크 없이 발화를 넣는 입력창. 팀 테스트용이자 시연 때 STT 백업. */
@@ -40,85 +37,10 @@ export function CanvasView() {
   const [mic, setMic] = useState<null | (() => void)>(null);
   const [stt, setStt] = useState<SttStatus>({ kind: "off" });
   const [interim, setInterim] = useState("");
-  // hs: zoom 상태 제거 — PoC 방식은 항상 제스처 활성, 모드 토글 없음
   const canvasRef = useRef<HTMLDivElement>(null);
-  const viewport = useMemo(() => new Viewport(() => canvasRef.current), []);
+  useGesture(() => canvasRef.current); // hs: 제스처 커스텀 훅 (카메라+포인터+줌 전부)
   const cells = cellIndex(v);
   const counts = docTabCounts(v, seen);
-
-  // hs: PoC pa_hs_gesture_api.js start() 방식 — video는 숨김(화면에 안 보임)
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    let vid: HTMLVideoElement | null = null;
-    let cancelled = false; // hs: StrictMode 이중 실행 방어
-    (async () => {
-      vid = document.createElement("video");
-      vid.autoplay = true;
-      vid.playsInline = true;
-      vid.muted = true;
-      vid.style.cssText = "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;"; // hs: 숨김
-      document.body.appendChild(vid);
-
-      stream = await navigator.mediaDevices.getUserMedia(
-        { video: { width: 640, height: 480, facingMode: "user" } }
-      );
-      if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
-      vid.srcObject = stream;
-      await new Promise<void>(r => vid!.addEventListener("loadeddata", () => r(), { once: true }));
-      if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
-
-      engine.mode = "default";
-      await engine.start(vid);
-    })();
-    return () => {
-      cancelled = true;
-      engine.stop();
-      stream?.getTracks().forEach(t => t.stop());
-      if (vid?.parentNode) vid.parentNode.removeChild(vid);
-    };
-  }, []);
-
-  // hs: PoC pa_hs_gesture_api 모드 로직 그대로:
-  // hs: Pointing_Up → 커서 이동 (줌 크기 유지)
-  // hs: Closed_Fist → 커서 고정, 최소(1x)
-  // hs: Open_Palm → 커서 고정, 최대(2x)
-  // hs: 그 외(손가락 벌림) → 커서 고정(마지막 위치), 연속 줌
-  useEffect(() => {
-    let lastSent = "";
-    let lastSeen = performance.now();
-    return engine.subscribe((f) => {
-      const now = performance.now();
-      if (f.pointer) lastSeen = now;
-
-      if (!f.pointer) {
-        viewport.showCursor(false); // hs: 손 안 보이면 커서 숨김
-      } else if (f.gesture === "Pointing_Up" && f.confidence > 0.5) {
-        // hs: 검지 = 커서 이동, 줌 크기 유지
-        viewport.moveCursor(f.pointer);
-        viewport.showCursor(true);
-        viewport.setPointer(f.pointer, now); // hs: 줌 기준점 저장
-      } else if (f.gesture === "Closed_Fist" && f.confidence > 0.6) {
-        // hs: 주먹 = 커서 고정, 최소(1x)
-        viewport.showCursor(true);
-        viewport.snapMin();
-      } else if (f.gesture === "Open_Palm" && f.confidence > 0.6) {
-        // hs: 손바닥 = 커서 고정, 최대(2x)
-        viewport.showCursor(true);
-        viewport.snapMax();
-      } else if (f.openness != null) {
-        // hs: 손가락 벌림/오므림 = 커서 고정(마지막 위치), 연속 줌
-        viewport.showCursor(true);
-        viewport.setOpenness(f.openness);
-      }
-
-      // 기존 공유 신호 (엄지 등 → 서버)
-      if (!f.gesture || f.hold_ms < HOLD_MS) { lastSent = ""; return; }
-      if (isShared(engine.mode, f.gesture) && lastSent !== f.gesture) {
-        lastSent = f.gesture;
-        send({ kind: "gesture", payload: { kind: f.gesture, confidence: f.confidence, hold_ms: f.hold_ms } });
-      }
-    });
-  }, [viewport]);
 
   if (!v.state) return <div className="loading">연결 중…</div>;
   const doc = v.state.docs[tab];

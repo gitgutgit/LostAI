@@ -17,7 +17,11 @@
 | `server/auth/challenge.py` | CANDIDATES를 기본 제스처 7개로 축소, CONFUSABLE 비움 | `# hs:` 코멘트 |
 | `web/src/capture/gestures/engine.ts` | `stop()`에서 `rec = null` 처리 (재시작 허용) | `// hs:` 코멘트 |
 | `web/src/capture/gestures/viewport.ts` | 포인터 커서 DOM, 줌 스무딩, snapMax/snapMin, moveCursor/showCursor | `// hs:` 코멘트 |
-| `web/src/views/canvas/CanvasView.tsx` | PoC 방식 카메라 재초기화, 검지 커서+줌 항상 동작 | `// hs:` 코멘트 |
+| `web/src/capture/gestures/useGesture.ts` | **신규** — 제스처 커스텀 훅 (카메라+포인터+줌+공유신호 통합) | `// hs:` 코멘트 |
+| `web/src/views/canvas/CanvasView.tsx` | 제스처 로직을 useGesture 훅으로 교체 | `// hs:` 코멘트 |
+| `web/src/views/wall/LiveWallView.tsx` | 기존 카메라+신호 useEffect를 useGesture 훅으로 교체, gesture 토글 상태 추가 | `// hs:` 코멘트 |
+| `web/src/views/wall/Wall.tsx` | LiveCtl에 gesture/onGesture 추가, 제스처 토글 버튼 렌더 | `// hs:` 코멘트 |
+| `web/src/views/wall/wall.css` | `#gesture-toggle` 스타일 (#mark과 동일, Now 왼쪽 배치) | `/* hs: */` 코멘트 |
 
 ### 아직 수정 안 한 파일 (예정)
 
@@ -97,6 +101,26 @@
 - 그 외 → `setOpenness()` (손 벌림/오므림 → 연속 줌)
 - 줌 기준점은 항상 커서 위치 (`setPointer()`)
 - 기존 공유 신호(엄지 등 → 서버) 로직 유지
+
+### 2026-11-09 — useGesture 훅 분리 + 토글 버튼 + LiveWallView 적용
+
+**`web/src/capture/gestures/useGesture.ts`**
+- 제스처 로직을 커스텀 훅으로 분리 (CanvasView, LiveWallView 공유)
+- `enabled` 파라미터 추가: false면 카메라 해제 + 커서 숨김 + 줌 리셋, true면 시작
+
+**`web/src/views/canvas/CanvasView.tsx`**
+- 제스처 관련 useEffect 2개 + import 정리 → `useGesture(() => canvasRef.current)` 한 줄로 교체
+
+**`web/src/views/wall/LiveWallView.tsx`**
+- 기존 ep의 카메라 useEffect + 신호 useEffect → `useGesture(..., gesture)` 한 줄로 교체
+- `gesture` 상태 추가, `onGesture` 토글 함수를 Wall에 전달
+
+**`web/src/views/wall/Wall.tsx`**
+- `LiveCtl` interface에 `gesture: boolean`, `onGesture: () => void` 추가
+- mic 버튼 왼쪽에 `#gesture-toggle` 버튼 렌더: "✋ Gesture on/off"
+
+**`web/src/views/wall/wall.css`**
+- `#gesture-toggle` 스타일: #mark과 동일 (font, border, hover, .on 상태), "No Questions Yet"과 "Now" 사이 배치 (`left:850px`)
 
 ## 메모
 

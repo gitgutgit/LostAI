@@ -8,8 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRoom } from "../../core/store";
 import { send } from "../../core/ws";
 import { startStt } from "../../capture/stt";
-import { engine } from "../../capture/gestures/engine";
-import { HOLD_MS, isShared } from "../../capture/gestures/modes";
+import { useGesture } from "../../capture/gestures/useGesture"; // hs: 제스처 커스텀 훅
 import { changeHeadline } from "../../lib/changeText";
 import { Wall } from "./Wall";
 import { liveWall } from "./live";
@@ -52,6 +51,7 @@ export function LiveWallView({ me }: { me?: string }) {
   const stopMic = useRef<null | (() => void)>(null);
   const [minutes, setMinutes] = useState(false);
   const [typing, setTyping] = useState(false);
+  const [gesture, setGesture] = useState(false); // hs: 제스처 토글 상태
   // ep: 서버 모드(MOCK, LIVE)를 벽 표지에 보인다. LIVE면 한 줄마다 모델 비용이 든다.
   const [mode, setMode] = useState<string>();
   useEffect(() => { fetch("/api/stats").then((r) => r.json()).then((h) => setMode(h.mode)).catch(() => {}); }, [v.connected]);
@@ -61,45 +61,8 @@ export function LiveWallView({ me }: { me?: string }) {
   };
   useEffect(() => () => stopMic.current?.(), []);
 
-  // ep: 입장 화면은 닫힐 때 엔진과 카메라를 끈다(#10). 회의 화면도 캔버스 화면처럼 숨긴 카메라로 엔진을 다시 켠다.
-  // 카메라가 없거나 거부되면 넘어간다(채팅과 '/1' 같은 명령으로 시험 가능).
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    let cancelled = false;
-    const vid = document.createElement("video");
-    vid.autoplay = true; vid.playsInline = true; vid.muted = true;
-    vid.style.cssText = "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;";
-    document.body.appendChild(vid);
-    (async () => {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: "user" } });
-        if (cancelled) return;
-        vid.srcObject = stream;
-        await new Promise<void>((r) => vid.addEventListener("loadeddata", () => r(), { once: true }));
-        if (cancelled) return;
-        engine.mode = "default";
-        await engine.start(vid);
-      } catch { /* 카메라 없음: 손 신호 없이 진행 */ }
-    })();
-    return () => {
-      cancelled = true;
-      engine.stop();
-      stream?.getTracks().forEach((t) => t.stop());
-      vid.remove();
-    };
-  }, []);
-
-  // ep: 손 신호(공유 신호만: 엄지, 손가락 표결, T자)를 서버로. 캔버스 화면과 같은 규칙, 같은 신호를 연달아 보내지 않는다.
-  useEffect(() => {
-    let lastSent = "";
-    return engine.subscribe((f) => {
-      if (!f.gesture || f.hold_ms < HOLD_MS) { lastSent = ""; return; }
-      if (isShared(engine.mode, f.gesture) && lastSent !== f.gesture) {
-        lastSent = f.gesture;
-        send({ kind: "gesture", payload: { kind: f.gesture, confidence: f.confidence, hold_ms: f.hold_ms } });
-      }
-    });
-  }, []);
+  // hs: 제스처 커스텀 훅 — 버튼으로 활성화할 때만 동작
+  useGesture(() => document.getElementById("livewrap"), gesture);
 
   // 키: M 마이크, F 전체 화면 (입력칸에 쓰는 중이면 무시)
   useEffect(() => {
@@ -125,7 +88,7 @@ export function LiveWallView({ me }: { me?: string }) {
       {v.notice && <div id="notice">{v.notice}</div>}
     </>}>
       <Wall w={w} band={band} animate onOpenMinutes={() => setMinutes(true)}
-        live={{ mic, onMic: toggleMic, connected: v.connected, typing, onType: () => setTyping(true), onTypeEnd: () => setTyping(false),
+        live={{ mic, onMic: toggleMic, gesture, onGesture: () => setGesture(!gesture), connected: v.connected, typing, onType: () => setTyping(true), onTypeEnd: () => setTyping(false), // hs: gesture 토글 전달
           mode, hint: import.meta.env.DEV ? "Ines: line speaks as Ines.  /up /down /1 /2 /t for hands" : undefined,
           // 개발 서버: 'Ines: 줄'은 Ines로, '/2'는 손 신호로(1인 시험, puppets.ts). 운영 빌드는 내 발화만.
           onSay: (text) => { if (import.meta.env.DEV) sayAs(text, me ?? "").catch(() => {}); else send({ kind: "utterance.final", payload: { text } }); } }} />
