@@ -117,6 +117,24 @@ function Doc({ w, band, animate }: { w: WallState; band: boolean; animate: boole
   const d = w.doc;
   const ghost = !!d.ghost;
   const bump = useChanged(d.edits) && animate;
+  // ep: 실화면에서 행이 종이보다 길면 행 목록만 스크롤된다(wall.css). 편집이 들어오면 방금 고친 행이 보이도록 목록을 옮긴다.
+  // 같은 편집으로는 한 번만 옮겨서, 사람이 손으로 넘겨 본 자리를 발화마다 되돌리지 않는다.
+  const rowsRef = useRef<HTMLDivElement>(null);
+  const scrolledFor = useRef("");
+  useEffect(() => {
+    const box = rowsRef.current;
+    if (!box || box.scrollHeight <= box.clientHeight) return;
+    const row = box.querySelector<HTMLElement>(".g.fresh, .g .fresh")?.closest<HTMLElement>(".g");
+    if (!row) return;
+    const key = `${d.edits}/${d.undone}/${[...box.children].indexOf(row)}`;
+    if (scrolledFor.current === key) return;
+    scrolledFor.current = key;
+    const k = box.getBoundingClientRect().height / box.offsetHeight || 1; // FitStage 축소 비율
+    const head = box.querySelector<HTMLElement>(".g.colh")?.offsetHeight ?? 0;
+    const top = (row.getBoundingClientRect().top - box.getBoundingClientRect().top) / k + box.scrollTop;
+    if (top >= box.scrollTop + head && top + row.offsetHeight <= box.scrollTop + box.clientHeight) return;
+    box.scrollTo({ top: Math.max(0, top - head - (box.clientHeight - head - row.offsetHeight) / 2), behavior: "smooth" });
+  });
   return (
     <div id="doc" className={ghost ? "ghost" : ""}>
       <div className="sh" id="sh1" /><div className="sh" id="sh2" />
@@ -127,7 +145,7 @@ function Doc({ w, band, animate }: { w: WallState; band: boolean; animate: boole
           <span id="count" className={bump ? "bump" : ""}><i />{`Live  ${d.edits} edits written, ${d.undone} undone`}</span>
         </div>
         <div id="dnote"><RichEl rich={d.note} /></div>
-        <div id="rows">
+        <div id="rows" ref={rowsRef}>
           {ghost
             ? <div className="g colh"><span>WBS</span><span>Task</span><span>Start</span><span>End</span><span>Days</span><span>{d.ghost!.cols[0]}</span><span>{d.ghost!.cols[1]}</span><span>Source</span></div>
             : <div className="g colh" style={d.grid ? { gridTemplateColumns: d.grid } : undefined}>
