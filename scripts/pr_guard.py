@@ -29,7 +29,8 @@ import sys
 MAIN = "origin/main"
 TRIGGER = re.compile(r"\b(git\s+push|gh\s+pr\s+(create|ready|merge))\b")
 # 훅은 권한 확인 전에 돈다. 저장소 설정이 git 안에서 다른 프로그램을 부르지 못하게 막는다.
-GIT_SAFE = ["-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "-c", "protocol.ext.allow=never"]
+GIT_SAFE = ["-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "-c", "protocol.ext.allow=never",
+            "-c", "protocol.file.allow=never"]
 # 공개 저장소라 누구나 포크 PR을 열 수 있다. PR 제목과 브랜치 이름은 Claude에게 보이는 데이터라 글자를 제한한다.
 SAFE_TEXT = re.compile(r"[^0-9A-Za-z가-힣 _.,:/#()\[\]+-]")
 
@@ -92,6 +93,13 @@ def clean(text: str, n: int) -> str:
     return SAFE_TEXT.sub("", str(text))[:n]
 
 
+def files_text(pr: dict, paths: list[str]) -> str:
+    """파일 이름도 상대가 만든 글일 수 있다. 포크 PR은 개수만, 아니면 안전한 글자로 거른다."""
+    if pr.get("isCrossRepository"):
+        return f"{len(paths)}개"
+    return ", ".join(clean(x, 80) for x in paths[:10]) + (f" 외 {len(paths) - 10}개" if len(paths) > 10 else "")
+
+
 def label(pr: dict) -> str:
     """PR 한 줄. 포크 PR은 제목을 빼고 번호와 아이디만 쓴다."""
     who = clean(pr["author"]["login"], 40)
@@ -114,7 +122,7 @@ def main_report(cwd: str | None, head: str, name: str) -> tuple[list[str], list[
         info.append("main 충돌 검사 불가: git 2.38 이상이 필요하다 (git --version).")
     elif c:
         block.append(
-            f"{name}이(가) 최신 main과 충돌한다: {', '.join(c)}\n"
+            f"{name}이(가) 최신 main과 충돌한다: {files_text({}, c)}\n"
             f"  고치는 법 (내 브랜치에서):\n"
             f"    git fetch origin && git merge origin/main     # 충돌을 풀고 커밋\n"
             f"    (PR을 아직 안 열었으면 git rebase origin/main 도 된다)\n"
@@ -136,8 +144,8 @@ def overlap_report(cwd: str | None, head: str, mine: set[str], skip: int | None,
             continue
         ref = pr_ref(cwd, pr["number"])
         c = conflicts(cwd, ref, head) if ref else None
-        tag = ("서로 충돌: " + ", ".join(c)) if c else ("합치면 충돌 없음" if c == [] else "충돌 검사 불가")
-        lines.append(f"  {label(pr)}\n    같은 파일: {', '.join(both)}\n    {tag}")
+        tag = ("서로 충돌: " + files_text(pr, c)) if c else ("합치면 충돌 없음" if c == [] else "충돌 검사 불가")
+        lines.append(f"  {label(pr)}\n    같은 파일: {files_text(pr, both)}\n    {tag}")
     if lines:
         lines.insert(0, DATA_NOTE)
         lines.insert(0, "열린 PR 중 같은 파일을 고치는 것이 있다. 먼저 머지되는 쪽 뒤에 다른 쪽이 main을 받아야 한다. "
@@ -154,7 +162,7 @@ def after_merge_report(cwd: str | None, merged: int | None) -> list[str]:
         ref = pr_ref(cwd, pr["number"])
         c = conflicts(cwd, MAIN, ref) if ref else None
         if c:
-            lines.append(f"  {label(pr)}\n    충돌: {', '.join(c)}\n    "
+            lines.append(f"  {label(pr)}\n    충돌: {files_text(pr, c)}\n    "
                          f"https://github.com/gitgutgit/LostAI/pull/{int(pr['number'])}")
     if lines:
         lines.insert(0, DATA_NOTE)
@@ -175,8 +183,10 @@ def trusted_roots() -> list[str]:
     return [os.path.realpath(r) for r in roots or [proj]]
 
 
-def inside(path: str, roots: list[str]) -> bool:
-    return any(path == r or path.startswith(r.rstrip(os.sep) + os.sep) for r in roots)
+def root_of(path: str, roots: list[str]) -> str | None:
+    """path를 담은 작업 폴더의 맨 위. git은 하위 폴더(다른 저장소일 수 있다)가 아니라 이 자리에서만 돈다."""
+    hits = [r for r in roots if path == r or path.startswith(r.rstrip(os.sep) + os.sep)]
+    return max(hits, key=len) if hits else None
 
 
 def hook_target(cmd: str, cwd: str | None) -> tuple[str, str | None, int | None]:
@@ -185,8 +195,7 @@ def hook_target(cmd: str, cwd: str | None) -> tuple[str, str | None, int | None]
     m = re.match(r"\s*cd\s+(\"[^\"]+\"|'[^']+'|\S+)\s*&&", cmd)
     if m:  # 'cd <폴더> && git push' 꼴. 프로젝트 밖 폴더면 그 폴더의 git 설정을 믿지 않는다
         cwd = os.path.realpath(os.path.join(cwd or os.getcwd(), shlex.split(m.group(1))[0]))
-    if cwd is None or not inside(os.path.realpath(cwd), roots):
-        cwd = None
+    cwd = root_of(os.path.realpath(cwd), roots) if cwd else None
     act = TRIGGER.search(cmd).group(0).split()[-1]  # push / create / ready / merge
     num = None
     n = re.search(r"gh\s+pr\s+(?:merge|ready)\s+(?:\S*/pull/)?(\d+)", cmd)
