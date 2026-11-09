@@ -38,3 +38,4 @@
 - 11-09 10:40 Mal-Mi-Jal: Google 의존성 3개 추가(`pyproject.toml`·`uv.lock`) → `uv sync` 해 주세요. Google 로그인 안내 `server/sync/GOOGLE_SETUP.md`, 확인 `uv run python -m server.sync.google_auth`
 - 11-09 12:20 Mal-Mi-Jal: PR #1(Google Sheets 동기화) main에 merge됨 → `uv sync` 필요. Windows Smart App Control 켜진 PC는 `pytest.exe`·rollup 네이티브가 막힘 → `uv run python -m pytest`, web은 Mal-Mi-Jal에게 문의
 - 11-09 11:49 gitgutgit: 다들 점심먹고들와요!
+- 11-09 14:05 Mal-Mi-Jal: **회의 서버 = Railway 하나** (원본 Sheet/Doc을 쓰는 유일한 서버, 주소는 태우 DM). 각자 PC 서버는 `.env`의 `GOOGLE_SHEET_ID`·`GOOGLE_DOC_ID`를 **비우고** `SEED=sprint`로 개발 → 안 비우면 팀 문서에 예시 탭이 생기고(지금 Sprint 24 board·debrief·Line 4 탭), `SEED=google`이면 같은 원본을 두 서버가 고쳐 위치가 꼬임. Google 동기화 시험은 본인 테스트 문서 ID로. 시연·재배포 전에는 화면에서 리셋 (`server/deploy/RAILWAY.md`)
