@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AgentStatus } from "../../components/AgentStatus";
 import { ChangeCard } from "../../components/ChangeCard";
+import { DocLinks } from "../../components/DocLinks";
 import { DocView } from "../../components/DocView";
 import { SheetView } from "../../components/SheetView";
 import { cellIndex, docTabCounts, timeline } from "../../core/viewmodels";
@@ -83,6 +84,7 @@ export function CanvasView() {
           else setMic(() => startStt({ onStatus: setStt, onInterim: setInterim }));
         }}>{mic ? "🎙 끄기" : "🎙 켜기"}</button>
         <span className={`stt ${stt.kind}`}>{sttStatusText(stt)}</span>
+        <DocLinks />
         <button onClick={() => { engine.mode = zoom ? "default" : "zoom"; setZoom(!zoom); if (zoom) viewport.resetScale(); }}>
           {zoom ? "확대 모드 끄기" : "확대 모드"}
         </button>

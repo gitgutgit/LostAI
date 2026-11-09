@@ -1,11 +1,11 @@
 # Note — 태우 (Mal-Mi-Jal) · 서버·UI 메인
 
-> 마지막 업데이트: 2026-11-09 13:05
-> 한 줄 상태: 🟢 진행 중 — 텍스트 발화 입력창 + STT 상태 표시 (`Mal-Mi-Jal/canvas-view`)
+> 마지막 업데이트: 2026-11-09 13:30
+> 한 줄 상태: 🟢 진행 중 — 화면에 Google Sheet 바로가기 추가 완료, 다음: Google Docs 동기화
 > 실행: `uv run python -m server.sync.google_auth` · `uv run uvicorn server.app:app --reload --port 8000`  ·  모드: MOCK
 
 ## 현재 목표
-- 텍스트 발화 입력창 + STT 상태 표시 → 터널로 확인 → PR. 그다음 지연 측정(리플레이 → `/api/stats`)
+- (P1→시연 필수) Google Docs 동기화 `server/sync/google_docs.py` push 구현 → 화면 📝 버튼 활성화. 그다음 PR
 
 ## 최근 결과
 | 지표 | 값 | 목표 | 언제 · 모드 | 결과 파일 |
@@ -19,7 +19,8 @@
   - [x] `web/src/capture/stt.ts` 상태 콜백(듣는 중/권한 거부/미지원/오류), 언어 ko-KR 기본
   - [x] `web/src/views/canvas/CanvasView.tsx` 입력창 (Enter 전송, 연결 끊김 안내) + `core/ws.ts` `send()`가 성공 여부 반환 + `styles.css`
   - [x] typecheck · build 통과 (13:00)
-  - [ ] 브라우저에서 입력창으로 발화 → 화면·Sheet 확인 (사용자 확인 대기)
+  - [x] 브라우저에서 입력창으로 발화 → 추가 확인 (사용자, 13:10)
+- [x] (P0) 화면 상단 Google Sheet/Doc 바로가기 — `/api/links`(입장 토큰 필요, Google 새 호출 없음), `web/src/components/DocLinks.tsx`. Sheet는 보드 탭(gid)으로 열림. Doc은 동기화 구현 전이라 '준비 중'
 - [ ] (P0) Google 인증 세팅 (시작: 10:30)
   - [x] PoC OAuth 클라이언트 `credentials.json` 루트로 복사 (PoC `token.json`은 계정 불명이라 안 가져옴)
   - [x] 의존성 추가: google-api-python-client, google-auth-oauthlib, google-auth-httplib2 (`pyproject.toml`, `uv.lock`)
@@ -36,6 +37,7 @@
 - [ ] (P0) 회의방+WS / Op 엔진 / 리플레이 — 실제 흐름에서 점검
 
 ## 다른 영역 관련
+- [ ] `server/agent/editor.py` `_mock_edit` — MOCK에서 '캐시 티켓 추가해줘'가 add_row 제목에 발화 원문 그대로 들어감 → 77SONNY77 (상태: 요청 전. LIVE 에디터면 제목을 뽑아 줄 것으로 예상, 확인 필요)
 - [x] `tests/test_google_sheets.py`, `tests/conftest.py` 새 파일 추가 (tests/는 소유 표에 없음, 새 파일만) → gitgutgit 알림 (상태: PR #1 설명에 적음)
 - [x] `pyproject.toml`, `uv.lock` — Google 의존성 3개 **추가** (init-collab §2: 추가는 알리기만) → gitgutgit 알림 (상태: PR #1 설명에 적음)
 
@@ -61,3 +63,5 @@
 odejs`
 - 터널 띄우기: 서버 `uv run python -m uvicorn server.app:app --port 8000` → web `npx vite --host 0.0.0.0` → `"C:/Program Files (x86)/cloudflared/cloudflared.exe" tunnel --url http://localhost:5173`. quick tunnel은 재시작마다 주소 바뀜
 - STT 기본 언어 en-US → ko-KR로 바꿈 (시드가 한국어). `?lang=en-US`로 변경 가능. 영어 시연이면 URL에 붙일 것
+- 고친 버그: Room/Outbox 워커가 첫 이벤트 루프에 묶여 TestClient를 두 번 띄우면 두 번째 발화가 멈춤 → `start()`에서 루프가 다르면 다시 만듦 (실서버 영향 없음)
+- JOIN_SECRET이 비어 있으면 서버 프로세스마다 토큰 키가 달라짐 → 서버 재시작하면 기존 화면은 다시 입장해야 함

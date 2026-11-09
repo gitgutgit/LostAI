@@ -3,8 +3,15 @@ import { dispatch } from "./store";
 import type { ClientMessage, ServerMessage } from "./types";
 
 let socket: WebSocket | null = null;
+let currentToken: string | null = null;
+
+/** 입장 토큰 (REST 호출용, 예: /api/links). */
+export function getToken(): string | null {
+  return currentToken;
+}
 
 export function connect(token: string) {
+  currentToken = token;
   const proto = location.protocol === "https:" ? "wss" : "ws";
   socket = new WebSocket(`${proto}://${location.host}/ws?token=${encodeURIComponent(token)}`);
   socket.onmessage = (e) => dispatch(JSON.parse(e.data) as ServerMessage);
