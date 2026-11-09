@@ -23,8 +23,10 @@ from server.sync.outbox import outbox  # noqa: E402
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    get_room().start()
+    room = get_room()
+    room.start()
     outbox.start()
+    outbox.enqueue_full_sync(room)  # 외부 문서를 시드 상태로 맞추고 Google 연결도 미리 데움
     yield
 
 
@@ -132,6 +134,7 @@ async def reset():
     new = get_room()
     new.start()
     await new.emit("room.reset", "server", {}, {})
+    outbox.enqueue_full_sync(new)
     return {"ok": True}
 
 
