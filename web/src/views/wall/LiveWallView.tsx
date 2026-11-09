@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRoom } from "../../core/store";
 import { send } from "../../core/ws";
 import { startStt } from "../../capture/stt";
+import { LangToggle } from "../../components/LangToggle";
 import { useGesture } from "../../capture/gestures/useGesture"; // hs: 제스처 커스텀 훅
 import { changeHeadline } from "../../lib/changeText";
 import { Wall } from "./Wall";
@@ -108,6 +109,8 @@ export function LiveWallView({ me }: { me?: string }) {
     else { stopMic.current = startStt(); setMic(true); }
   };
   useEffect(() => () => stopMic.current?.(), []);
+  // gitgutgit: 언어를 바꾸면 켜져 있는 마이크를 그 언어로 다시 켠다
+  const onLang = () => { if (stopMic.current) { stopMic.current(); stopMic.current = startStt(); } };
 
   // hs: 제스처 커스텀 훅 — 버튼으로 활성화, Thumb_Down 3초로 끄기
   useGesture(() => document.getElementById("livewrap"), gesture, () => setGesture(false));
@@ -144,7 +147,7 @@ export function LiveWallView({ me }: { me?: string }) {
       {minutes && <Minutes onClose={() => setMinutes(false)} />}
       {v.notice && <div id="notice">{v.notice}</div>}
       {/* ep: Google Sheet, Doc 바로가기 + 테스트 대본 선택(임시). 무대(1920x1080) 배치는 건드리지 않게 창 왼쪽 아래 층에 둔다. 문서가 바뀌면(제목) 다시 받는다 */}
-      <div id="wall-tools"><DocLinks refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} /><TestSeedPicker /><DemoPlayer refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} /></div>
+      <div id="wall-tools"><DocLinks refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} /><LangToggle onChange={onLang} /><TestSeedPicker /><DemoPlayer refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} /></div>
     </>}>
       <SceneWall w={w} band={band} animate onOpenMinutes={() => setMinutes(true)}
         live={{ mic, onMic: toggleMic, gesture, onGesture: () => setGesture(!gesture), connected: v.connected, status: <Moai v={v} mic={mic} size={56} word={false} />, typing, onType: () => setTyping(true), onTypeEnd: () => setTyping(false), // hs: gesture 토글 전달
