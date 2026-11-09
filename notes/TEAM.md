@@ -1,6 +1,6 @@
 # 공용 노트 — 팀 전체
 
-> 관리: 지원 (gitgutgit) · 마지막 업데이트: 2026-11-09 10:20
+> 관리: 지원 (gitgutgit) · 마지막 업데이트: 2026-11-09 11:49
 > 개인 진행은 각자 `notes/<GitHub>.md`. 여기는 **팀 전체가 같이 봐야 하는 것**만 적는다.
 > 수정 규칙: `결정 사항` · `계약 변경 기록` · `P0 현황`은 팀장만 고친다. 나머지 팀원은 `공지 · 요청`에 **맨 아래 한 줄 추가**만 한다 (git 충돌 방지, 남의 줄 수정 금지).
 
@@ -37,3 +37,4 @@
 - 11-09 10:20 gitgutgit: 뼈대 올라감. `CLAUDE.md` 읽고 시작, 자기 note 만들어 주세요.
 - 11-09 10:40 Mal-Mi-Jal: Google 의존성 3개 추가(`pyproject.toml`·`uv.lock`) → `uv sync` 해 주세요. Google 로그인 안내 `server/sync/GOOGLE_SETUP.md`, 확인 `uv run python -m server.sync.google_auth`
 - 11-09 12:20 Mal-Mi-Jal: PR #1(Google Sheets 동기화) main에 merge됨 → `uv sync` 필요. Windows Smart App Control 켜진 PC는 `pytest.exe`·rollup 네이티브가 막힘 → `uv run python -m pytest`, web은 Mal-Mi-Jal에게 문의
+- 11-09 11:49 gitgutgit: 다들 점심먹고들와요!
