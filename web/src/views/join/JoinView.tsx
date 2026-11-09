@@ -30,6 +30,7 @@ export function JoinView({ onJoined }: { onJoined: (name: string, token: string)
   const [timeLeft, setTimeLeft] = useState(STEP_TIMEOUT_MS); // hs: 남은 시간
   const busy = useRef(false);
   const timerRef = useRef<number>(0); // hs: 타이머 ref
+  const streamRef = useRef<MediaStream | null>(null); // hs: 카메라 스트림 ref (cleanup용)
 
   // hs: 타이머 시작/리셋 함수
   function startTimer() {
@@ -52,6 +53,7 @@ export function JoinView({ onJoined }: { onJoined: (name: string, token: string)
   async function begin() {
     setMsg(""); // hs: 메시지 초기화
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    streamRef.current = stream; // hs: 스트림 저장 (unmount 시 정리)
     video.current!.srcObject = stream;
     await video.current!.play();
     const r = await (await fetch("/api/join", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) })).json();
@@ -81,8 +83,13 @@ export function JoinView({ onJoined }: { onJoined: (name: string, token: string)
     });
   }, [ch, step, name, onJoined]);
 
-  // hs: 컴포넌트 언마운트 시 타이머 정리
-  useEffect(() => () => clearInterval(timerRef.current), []);
+  // hs: 컴포넌트 언마운트 시 타이머 + 엔진 + 카메라 스트림 정리
+  useEffect(() => () => {
+    clearInterval(timerRef.current);
+    engine.stop();
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+  }, []);
 
   async function manualJoin() {
     const r = await (await fetch("/api/join/manual", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, host: "host" }) })).json();
