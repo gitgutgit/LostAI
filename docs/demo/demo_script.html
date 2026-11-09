@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LostAI 120초 데모 대본</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>/* Layout: one reading column, script cards are the centre; tokens follow the team kickoff page */
+:root{
+  --bg:#f5f7f6; --panel:#ffffff; --ink:#1c1f22; --muted:#5b6670; --line:#cfd6d4;
+  --blue:#1f4e9c; --green:#2c7a4b; --amber:#9a6a00; --violet:#6b3fa0; --red:#c3362b;
+  --tint:#e8eef7; --tint-green:#e4f1e8; --tint-amber:#f6eedb; --tint-violet:#efe8f7; --tint-red:#f8e7e5;
+  --sans:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15191c; --panel:#1d2226; --ink:#e7ecea; --muted:#9aa6ad; --line:#36404a;
+  --blue:#7fa8ec; --green:#6cc38f; --amber:#e0b04a; --violet:#b99be6; --red:#ef7a6f;
+  --tint:#1f2a3a; --tint-green:#1d3226; --tint-amber:#33291a; --tint-violet:#2a2236; --tint-red:#3a2220; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15191c; --panel:#1d2226; --ink:#e7ecea; --muted:#9aa6ad; --line:#36404a;
+  --blue:#7fa8ec; --green:#6cc38f; --amber:#e0b04a; --violet:#b99be6; --red:#ef7a6f;
+  --tint:#1f2a3a; --tint-green:#1d3226; --tint-amber:#33291a; --tint-violet:#2a2236; --tint-red:#3a2220; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+.wrap>*,section>*{min-width:0}
+.tbl:has(table.narrow){max-width:520px}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 var(--sans);word-break:keep-all;overflow-wrap:anywhere}
+.wrap{max-width:980px;margin:0 auto;padding-block:28px 96px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:36px}
+h1{font-size:30px;line-height:1.25;margin:4px 0 8px;text-wrap:balance}
+h2{font-size:20px;margin:0 0 12px;text-wrap:balance}
+h3{font-size:15px;margin:20px 0 8px;color:var(--muted)}
+a{color:var(--blue)}
+code,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+code{font-size:13px}
+.eyebrow{margin:0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.meta{margin:0;color:var(--muted);font-size:13px}
+.pill{display:inline-block;padding:1px 10px;border-radius:999px;background:var(--tint-amber);color:var(--amber);font-weight:600}
+blockquote{margin:16px 0 0;padding:14px 18px;border-left:4px solid var(--blue);background:var(--panel);font-size:19px;line-height:1.45}
+.toc{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:16px;font-size:14px}
+.lead,.note{color:var(--muted);margin:0 0 12px;max-width:68ch}
+.note{font-size:13px}
+.bluf ul{margin:0;padding-left:20px;display:grid;gap:6px;max-width:72ch}
+.stat{margin:14px 0 0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
+.stat b{font-size:22px;color:var(--blue)}
+.sep{width:1px;height:14px;background:var(--line);margin:0 8px}
+/* timeline */
+.tl-wrap{overflow-x:auto;position:relative;padding-bottom:26px}
+.tl{display:flex;min-width:760px;height:64px;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.tl-seg{position:relative;display:flex;flex-direction:column;justify-content:center;padding:4px 6px;border-right:1px solid var(--line);text-decoration:none;color:var(--ink);font-size:11px;line-height:1.25;min-width:0}
+.tl-seg:last-child{border-right:0}
+.tl-seg:hover,.tl-seg:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+.tl-t{font-family:var(--mono);color:var(--muted)}
+.tl-n{overflow:hidden;text-overflow:ellipsis}
+.doc-yes{background:var(--tint)}
+.doc-partial{background:repeating-linear-gradient(135deg,var(--tint) 0 6px,var(--panel) 6px 12px)}
+.doc-no{background:var(--panel)}
+.tl-dot{position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:50%;background:var(--amber)}
+.tl-dot.static{position:static;display:inline-block;margin:0 4px 0 12px}
+.tl-take{position:absolute;bottom:0;min-width:0;font-size:11px;color:var(--muted);border-top:2px solid var(--ink);padding-top:2px}
+.tl-wrap .tl-take{min-width:auto}
+.legend{font-size:12px;color:var(--muted);margin:4px 0 0}
+.lg{display:inline-block;width:14px;height:10px;border:1px solid var(--line);margin:0 4px 0 10px;vertical-align:middle}
+.lg:first-child{margin-left:0}
+/* cast and filters */
+.cast{list-style:none;padding:0;margin:0 0 6px;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted)}
+.spk{display:inline-flex;align-items:baseline;gap:4px;padding:1px 9px;border-radius:999px;font-weight:600;font-size:13px}
+.spk small{font-weight:400;font-size:11px}
+.c-blue{background:var(--tint);color:var(--blue)}
+.c-green{background:var(--tint-green);color:var(--green)}
+.c-amber{background:var(--tint-amber);color:var(--amber)}
+.c-violet{background:var(--tint-violet);color:var(--violet)}
+.c-ink{background:var(--line);color:var(--ink)}
+.filters{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 14px}
+button{font:inherit;color:inherit;cursor:pointer}
+.f{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:4px 12px;font-size:13px}
+.f.on{border-color:var(--ink);font-weight:600}
+button:focus-visible,a:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+/* script cards */
+.lines{display:grid;gap:10px}
+.line{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;min-width:0;transition:opacity .15s}
+.line.dim{opacity:.38}
+.line header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.tid{font-family:var(--mono);font-size:13px;min-width:30px}
+.scene-ref{font-size:12px;color:var(--muted);text-decoration:none}
+.read-here{margin-left:auto;border:0;background:none;color:var(--blue);font-size:12px;padding:2px 0}
+.say{font-size:22px;line-height:1.4;margin:10px 0 4px;font-weight:600}
+.cue{margin:0 0 6px;color:var(--amber);font-size:14px}
+.line dl{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:8px 0 0;font-size:13px;color:var(--muted)}
+.line dt{font-weight:600}
+.line dd{margin:0;min-width:0}
+.src-ko{color:var(--muted);opacity:.85}
+/* tables */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+table.narrow{max-width:520px}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+th{font-size:12px;color:var(--muted);font-weight:600;background:var(--bg)}
+#board table{min-width:820px}
+#board td:first-child{white-space:nowrap}
+.cap{font-style:italic}
+.tag{display:inline-block;margin:0 4px 4px 0;padding:0 7px;border:1px solid var(--line);border-radius:4px;font-size:11px;white-space:nowrap}
+.pend{display:inline-block;margin-left:4px;padding:0 7px;border-radius:4px;background:var(--tint-amber);color:var(--amber);font-size:11px;font-weight:600;text-decoration:none}
+tr:target{background:var(--tint)}
+/* judgments */
+.judg{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.judg li{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px}
+.judg li:target{border-color:var(--amber)}
+.judg b{font-family:var(--mono);color:var(--amber);font-size:16px}
+.judg p{margin:0}
+.judg .def{color:var(--muted);font-size:13px;margin-top:2px}
+/* references */
+.refs{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+.refs li{display:grid;grid-template-columns:64px 1fr;gap:10px;align-items:start}
+.refs li div{min-width:0}
+.refs p{margin:0;font-size:13px;color:var(--muted)}
+.path{font-size:12px;word-break:break-all}
+.st{font-size:11px;padding:1px 0;text-align:center;border-radius:4px;border:1px solid var(--line)}
+.st-ok{background:var(--tint-green);color:var(--green);border-color:transparent}
+.st-mid{background:var(--tint-amber);color:var(--amber);border-color:transparent}
+.st-old{color:var(--muted);text-decoration:line-through}
+.foot{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+/* reader */
+.fab{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));padding:10px 18px;border-radius:999px;border:0;background:var(--ink);color:var(--bg);font-weight:600;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.reader{position:fixed;inset:0;z-index:20;background:var(--bg);display:grid;grid-template-rows:auto 1fr auto auto;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.r-top{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);font-size:14px}
+#r-clock{font-size:16px}
+#r-clock.late{color:var(--red)}
+#r-scene{color:var(--muted)}
+#r-close{margin-left:auto}
+.r-top button,.r-bot button{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:8px 16px}
+.r-bot button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.r-body{display:flex;flex-direction:column;justify-content:center;gap:24px;max-width:1100px;width:100%;margin:0 auto;min-height:0;overflow:auto}
+.r-side{margin:0;color:var(--muted);font-size:17px}
+#r-cur .spk{font-size:16px}
+#r-cur .r-say{font-size:clamp(28px,5.2vw,58px);line-height:1.25;font-weight:600;margin:12px 0}
+#r-cur .r-cue{color:var(--amber);font-size:clamp(16px,2vw,22px);margin:0}
+#r-cur .r-res{color:var(--muted);font-size:15px;margin:8px 0 0}
+#r-cur.cue-only .r-say{opacity:.4;font-size:clamp(22px,3.4vw,36px)}
+.r-bot{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;padding:12px 0}
+.r-log{margin:0;padding:0 0 12px 20px;font-size:12px;color:var(--muted);columns:3 220px;max-height:22vh;overflow:auto}
+.r-log:empty{display:none}
+.r-log .late{color:var(--red)}
+@media (max-width:560px){.say{font-size:19px}h1{font-size:25px}.refs li{grid-template-columns:1fr}.st{justify-self:start;padding:1px 8px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header class="top">
+  <p class="eyebrow">c0mpiled-17 Seoul 제출 영상</p>
+  <h1>LostAI 120초 데모 대본</h1>
+  <p class="meta"><span class="pill">초안. 판정 9건 대기, 화면에는 기본값으로 표시</span> 기획 v0.3 개정판 (2026-11-09 10:55), 주현 (ProfessionalSeaweedDevourer)</p>
+  <blockquote lang="en">Say it in the meeting. The plan changes. When two people disagree, it stops and asks the room.</blockquote>
+  <nav class="toc"><a href="#script">대본</a><a href="#board">콘티</a><a href="#judg">판정 대기</a><a href="#fallback">막힐 때</a><a href="#check">검증</a><a href="#judges">심사진</a><a href="#refs">참고 자료</a></nav>
+</header>
+
+<section class="bluf"><h2>요약</h2><ul><li>연속 테이크 하나로 보인다. 말하면 시트 칸이 바뀌고, 출시일이 엇갈리면 문서가 쓰기를 멈추고, 동시에 보인 엄지 하나가 아래면 아무것도 쓰지 않는다.</li><li>이야기 축은 출시일 엇갈림 하나다(대본 L10, L11, L17). 첫 장면, 잡기, 결정, 끝 카드가 같은 문제를 다룬다.</li><li>모든 장면이 리포 P0이나 P1에 기댄다. P2(손가락 표결, 진행자 고리)는 영상에 0초, 선택 라이브 데모에서만 보인다.</li><li>문서가 보이는 시간은 120초 중 85초다. 판정 9건이 남아 있고, 다음 판단 밖 검증은 14:40 외부 1명 시청이다.</li></ul>
+<p class="stat"><b class="num">85</b>초 / 120초 문서가 보임 <span class="sep"></span><b class="num">12</b>개 대사와 공개 <span class="sep"></span><b class="num">9</b>건 판정 대기</p></section>
+
+<section><h2>120초 흐름</h2><div class="tl-wrap"><div class="tl"><a class="tl-seg doc-no" style="width:5.000%" href="#s0"><span class="tl-t">0~6</span><span class="tl-n">첫 장면</span><i class="tl-dot" title="판정 대기"></i></a><a class="tl-seg doc-no" style="width:3.333%" href="#s1"><span class="tl-t">6~10</span><span class="tl-n">손으로 입장</span></a><a class="tl-seg doc-yes" style="width:13.333%" href="#s2"><span class="tl-t">10~26</span><span class="tl-n">말하면 칸이 바뀐다</span><i class="tl-dot" title="판정 대기"></i></a><a class="tl-seg doc-yes" style="width:5.833%" href="#s3"><span class="tl-t">26~33</span><span class="tl-n">엄지 아래로 되돌림</span></a><a class="tl-seg doc-yes" style="width:5.833%" href="#s4"><span class="tl-t">33~40</span><span class="tl-n">실제 Google Sheet</span></a><a class="tl-seg doc-yes" style="width:13.333%" href="#s5"><span class="tl-t">40~56</span><span class="tl-n">출시일 엇갈림</span></a><a class="tl-seg doc-yes" style="width:18.333%" href="#s6"><span class="tl-t">56~78</span><span class="tl-n">동시 엄지 공개</span><i class="tl-dot" title="판정 대기"></i></a><a class="tl-seg doc-yes" style="width:10.000%" href="#s7"><span class="tl-t">78~90</span><span class="tl-n">칸이 아는 것</span><i class="tl-dot" title="판정 대기"></i></a><a class="tl-seg doc-partial" style="width:12.500%" href="#s8"><span class="tl-t">90~105</span><span class="tl-n">기록과 숫자</span><i class="tl-dot" title="판정 대기"></i></a><a class="tl-seg doc-no" style="width:12.500%" href="#s9"><span class="tl-t">105~120</span><span class="tl-n">끝 카드</span><i class="tl-dot" title="판정 대기"></i></a></div><div class="tl-take" style="left:5.000%;width:70.000%">연속 테이크 6~90초</div></div><p class="legend"><span class="lg doc-yes"></span>문서가 보임 <span class="lg doc-partial"></span>일부 <span class="lg doc-no"></span>안 보임 <i class="tl-dot static"></i>판정 대기</p></section>
+
+<section id="script"><h2>대본</h2>
+<p class="lead">영어 원문으로 읽는다(LostAI eval/README.md 규칙). 오른쪽 아래 <b>읽기 모드</b>는 한 줄씩 크게 띄우고, 시계를 켜면 영상 시각과 장면 구간을 비교해 준다. 키보드: 스페이스나 오른쪽 화살표 다음, 왼쪽 화살표 이전, S 시계, Esc 닫기.</p>
+<ul class="cast"><li><span class="spk c-blue">Jiwon <small>지원</small></span> 진행, 일정 담당</li><li><span class="spk c-amber">Haeun <small>하은</small></span> QA, 통합 테스트</li><li><span class="spk c-green">Junho <small>준호</small></span> 백엔드</li><li><span class="spk c-violet">Mina <small>민아</small></span> 마케팅, 반대 한 표</li></ul>
+<p class="note">배역 이름은 대본 인물이다(poc_a_wbs_long.json). 팀원 누가 어느 배역을 읽을지는 아직 정하지 않았다.</p>
+<div class="filters" role="group" aria-label="배역으로 강조"><button type="button" class="f on" data-f="">전체</button><button type="button" class="f" data-f="Jiwon">Jiwon 지원</button><button type="button" class="f" data-f="Haeun">Haeun 하은</button><button type="button" class="f" data-f="Junho">Junho 준호</button><button type="button" class="f" data-f="Mina">Mina 민아</button></div>
+<div class="lines"><article class="line" id="line-T1" data-spk="Haeun" data-i="0"><header><b class="tid">T1</b><span class="spk c-amber">Haeun <small>하은</small></span><a class="scene-ref" href="#s2">10~26초 말하면 칸이 바뀐다</a><button type="button" class="read-here" data-i="0">여기서 읽기</button></header><p class="say" lang="en">Integration test needs another week if we&#x27;re covering payments. Make it ten days.</p><dl><dt>화면</dt><dd>3.2 칸이 빛나고 하은 꼬리표</dd><dt>op</dt><dd><code>set_cell 3.2 기간 5→10</code></dd><dt>출처</dt><dd>L6 <span class="src-ko">통합 테스트가 5일로 잡혀 있는데 결제까지 같이 보려면 부족해요. 1주일 늘리죠.</span></dd></dl></article>
+<article class="line" id="line-T2" data-spk="Junho" data-i="1"><header><b class="tid">T2</b><span class="spk c-green">Junho <small>준호</small></span><a class="scene-ref" href="#s2">10~26초 말하면 칸이 바뀐다</a><button type="button" class="read-here" data-i="1">여기서 읽기</button></header><p class="say" lang="en">Did anyone else&#x27;s coffee machine break this morning?</p><dl><dt>화면</dt><dd>칸 변화 없음, 오른쪽 기록에 ignored</dd><dt>op</dt><dd><code>없음(ignore)</code></dd><dt>출처</dt><dd>새 줄</dd></dl></article>
+<article class="line" id="line-T3" data-spk="Junho" data-i="2"><header><b class="tid">T3</b><span class="spk c-green">Junho <small>준호</small></span><a class="scene-ref" href="#s2">10~26초 말하면 칸이 바뀐다</a><button type="button" class="read-here" data-i="2">여기서 읽기</button></header><p class="say" lang="en">Add a payment webhook task under backend. Mine, three days.</p><dl><dt>화면</dt><dd>백엔드 아래 새 행</dd><dt>op</dt><dd><code>add_row</code></dd><dt>출처</dt><dd>L12 <span class="src-ko">결제 웹훅 처리 작업 하나 추가해 주세요. 백엔드고 담당은 저, 3일이요.</span></dd></dl></article>
+<article class="line" id="line-T4" data-spk="Junho" data-i="3"><header><b class="tid">T4</b><span class="spk c-green">Junho <small>준호</small></span><a class="scene-ref" href="#s3">26~33초 엄지 아래로 되돌림</a><button type="button" class="read-here" data-i="3">여기서 읽기</button></header><p class="say" lang="en">And a load-test task, two days.</p><dl><dt>화면</dt><dd>새 행</dd><dt>op</dt><dd><code>add_row</code></dd><dt>출처</dt><dd>새 줄</dd></dl></article>
+<article class="line" id="line-T5" data-spk="Jiwon" data-i="4"><header><b class="tid">T5</b><span class="spk c-blue">Jiwon <small>지원</small></span><a class="scene-ref" href="#s3">26~33초 엄지 아래로 되돌림</a><button type="button" class="read-here" data-i="4">여기서 읽기</button></header><p class="say" lang="en">No, not this sprint.</p><p class="cue">말하면서 엄지 아래</p><dl><dt>화면</dt><dd>T4 행이 줄긋기로 사라지고 reverted</dd><dt>op</dt><dd><code>revert(손동작)</code></dd><dt>출처</dt><dd>새 줄</dd></dl></article>
+<article class="line" id="line-T6" data-spk="Jiwon" data-i="5"><header><b class="tid">T6</b><span class="spk c-blue">Jiwon <small>지원</small></span><a class="scene-ref" href="#s5">40~56초 출시일 엇갈림</a><button type="button" class="read-here" data-i="5">여기서 읽기</button></header><p class="say" lang="en">Push perf test, UAT and launch prep back a week each.</p><dl><dt>화면</dt><dd>3.3~3.5 행이 차례로 고쳐짐</dd><dt>op</dt><dd><code>set_cell 3.3~3.5</code></dd><dt>출처</dt><dd>L9 <span class="src-ko">일단 통합 테스트 뒤에 있는 성능 테스트, UAT, 출시 준비 전부 1주일씩 밀어 주세요.</span></dd></dl></article>
+<article class="line" id="line-T7" data-spk="Haeun" data-i="6"><header><b class="tid">T7</b><span class="spk c-amber">Haeun <small>하은</small></span><a class="scene-ref" href="#s5">40~56초 출시일 엇갈림</a><button type="button" class="read-here" data-i="6">여기서 읽기</button></header><p class="say" lang="en">So launch lands on January 21st.</p><dl><dt>화면</dt><dd>출시 칸에 1월 21일 꼬리표</dd><dt>op</dt><dd><code>capture</code></dd><dt>출처</dt><dd>L10 <span class="src-ko">그러면 출시가 1월 21일이 되네요.</span></dd></dl></article>
+<article class="line" id="line-T8" data-spk="Mina" data-i="7"><header><b class="tid">T8</b><span class="spk c-violet">Mina <small>민아</small></span><a class="scene-ref" href="#s5">40~56초 출시일 엇갈림</a><button type="button" class="read-here" data-i="7">여기서 읽기</button></header><p class="say" lang="en">That&#x27;s too late. Marketing already booked a campaign for January 14th.</p><dl><dt>화면</dt><dd>엇갈림 카드와 비용 줄, 2초 펼침</dd><dt>op</dt><dd><code>open_conflict</code></dd><dt>출처</dt><dd>L11 <span class="src-ko">21일은 너무 늦어요. 마케팅팀이 1월 14일 출시로 캠페인을 이미 잡아 놨어요.</span></dd></dl></article>
+<article class="line" id="line-T9" data-spk="Jiwon" data-i="8"><header><b class="tid">T9</b><span class="spk c-blue">Jiwon <small>지원</small></span><a class="scene-ref" href="#s6">56~78초 동시 엄지 공개</a><button type="button" class="read-here" data-i="8">여기서 읽기</button></header><p class="say" lang="en">Let&#x27;s do a beta on the 14th and GA on the 21st.</p><dl><dt>화면</dt><dd>결정 제안 카드</dd><dt>op</dt><dd><code>결정 제안(엄지 대기)</code></dd><dt>출처</dt><dd>L17 <span class="src-ko">출시는 이렇게 하죠. 1월 14일에 베타로 공개하고 정식 출시는 1월 21일로 갑니다.</span></dd></dl></article>
+<article class="line" id="line-R1" data-spk="ALL" data-i="9"><header><b class="tid">R1</b><span class="spk c-ink">ALL <small>모두</small></span><a class="scene-ref" href="#s6">56~78초 동시 엄지 공개</a><button type="button" class="read-here" data-i="9">여기서 읽기</button></header><p class="say" lang="en">3, 2, 1</p><p class="cue">모두 동시에 엄지. 위 셋, 아래 하나(Mina). 구령은 누가 할지 미정</p><dl><dt>화면</dt><dd>disputed, not written</dd><dt>op</dt><dd><code>쓰지 않음, 카드 열림</code></dd><dt>출처</dt><dd>새 장면</dd></dl></article>
+<article class="line" id="line-T10" data-spk="Mina" data-i="10"><header><b class="tid">T10</b><span class="spk c-violet">Mina <small>민아</small></span><a class="scene-ref" href="#s6">56~78초 동시 엄지 공개</a><button type="button" class="read-here" data-i="10">여기서 읽기</button></header><p class="say" lang="en">Only if the campaign says beta, not launch.</p><dl><dt>화면</dt><dd>조건이 카드에 한 줄로 붙음</dd><dt>op</dt><dd><code>add_note(조건)</code></dd><dt>출처</dt><dd>새 줄</dd></dl></article>
+<article class="line" id="line-R2" data-spk="ALL" data-i="11"><header><b class="tid">R2</b><span class="spk c-ink">ALL <small>모두</small></span><a class="scene-ref" href="#s6">56~78초 동시 엄지 공개</a><button type="button" class="read-here" data-i="11">여기서 읽기</button></header><p class="say" lang="en">3, 2, 1</p><p class="cue">모두 동시에 엄지. 위 넷</p><dl><dt>화면</dt><dd>마일스톤 두 줄, 조건은 칸 메모, Sheet 반영</dd><dt>op</dt><dd><code>resolve_conflict, add_decision, 마일스톤 고침</code></dd><dt>출처</dt><dd>L17</dd></dl></article></div>
+<p class="note">10줄을 소리 내어 읽으면 약 33초(추정). 연속 테이크 구간(6~90초)에 지연과 엄지 공개 두 번을 더해 들어간다. 읽기 모드의 시계로 리허설 한 번에 실제 초를 잰다.</p>
+</section>
+
+<section id="board"><h2>콘티 (장면별)</h2><div class="tbl"><table><thead><tr><th>초</th><th>화면</th><th>자막</th><th>리포 우선순위</th><th>문서</th></tr></thead><tbody><tr id="s0"><td class="num">0~6</td><td><b>첫 장면</b> <a class="pend" href="#j7" title="판정 7번 대기">판정 7</a><br>두 사람이 한 계획에 다른 날짜를 넣는 픽토그램. 빌드는 Eric 허가 뒤(v0.2 8.1절 1번).</td><td lang="en" class="cap">Two people told the plan two different dates. Nobody noticed until launch week.</td><td><span class="tag">영상 편집</span></td><td>아니오</td></tr><tr id="s1"><td class="num">6~10</td><td><b>손으로 입장</b> <br>연속 테이크 시작. 오른쪽 위에 벽시계와 테이크 번호가 끝까지 남는다. 네 사람이 손동작으로 입장, 참가자 줄에 확인 표시.</td><td lang="en" class="cap">Four people join by hand. Every edit carries a verified name.</td><td><span class="tag">P0 입장 관문</span></td><td>아니오</td></tr><tr id="s2"><td class="num">10~26</td><td><b>말하면 칸이 바뀐다</b> <a class="pend" href="#j9" title="판정 9번 대기">판정 9</a><br>T1 뒤 3.2 칸이 빛나고 하은 꼬리표. T2 잡담은 칸 변화 없이 오른쪽 기록에 ignored. T3 뒤 새 행. 기록 줄마다 발화에서 칸까지 걸린 초.</td><td lang="en" class="cap">It edits the plan while you talk. Small talk changes nothing.</td><td><span class="tag">P0 Router/Editor</span><span class="tag">P0 Op 엔진</span><span class="tag">P0 B 화면</span></td><td>예</td></tr><tr id="s3"><td class="num">26~33</td><td><b>엄지 아래로 되돌림</b> <br>T4 뒤 새 행. T5 지원이 엄지 아래, 그 행이 줄긋기로 사라지고 reverted.</td><td lang="en" class="cap">Wrong edit? Thumbs down. Undone.</td><td><span class="tag">P1 엄지 되돌림</span></td><td>예</td></tr><tr id="s4"><td class="num">33~40</td><td><b>실제 Google Sheet</b> <br>화면 반을 실제 Google Sheet로. 같은 3.2 칸 값과 셀 메모(Haeun, 00:14, extend integration test a week).</td><td lang="en" class="cap">Same edit, in the Google Sheet your team already uses.</td><td><span class="tag">P0 Sheets 동기화</span></td><td>예</td></tr><tr id="s5"><td class="num">40~56</td><td><b>출시일 엇갈림</b> <br>T6 뒤 3.3~3.5 행이 차례로 고쳐짐. T7, T8 뒤 출시 칸에 두 날짜가 걸리고 엇갈림 카드(하은 L10, 민아 L11 꼬리표)와 비용 줄. 비용 줄을 2초 펼쳐 계산 근거를 보임(3.5 종료 01-21, 캠페인 01-14, 근무일 차 5).</td><td lang="en" class="cap">Two dates for one launch. It stops writing and flags it, with who said what.</td><td><span class="tag">P0 open_conflict</span><span class="tag">비용 줄은 화면 계산</span></td><td>예</td></tr><tr id="s6"><td class="num">56~78</td><td><b>동시 엄지 공개</b> <a class="pend" href="#j8" title="판정 8번 대기">판정 8</a><br>T9 뒤 결정 제안 카드. 3, 2, 1에 네 사람이 동시에 엄지: 위 셋, 아래 하나(민아). 카드는 열린 채 disputed, not written. T10 민아가 조건을 말하면 카드에 한 줄. 다시 3, 2, 1에 위 넷: 마일스톤 두 줄, 조건은 칸 메모, Sheet도 같이.</td><td lang="en" class="cap">Everyone shows at once. One thumb down, and nothing gets written.</td><td><span class="tag">P0 결정, 충돌 해소</span><span class="tag">P1 엄지 승인</span><span class="tag">vote 계약 재사용</span></td><td>예</td></tr><tr id="s7"><td class="num">78~90</td><td><b>칸이 아는 것</b> <a class="pend" href="#j6" title="판정 6번 대기">판정 6</a><br>출시 칸 클릭, 팝오버: 이 칸을 바꾼 발화(L9, L11, L17, T10), 시각, 되돌리기 버튼. 오른쪽 기록 카드를 펴면 op 한 줄씩(무엇을, 어떤 발화로, 결과).</td><td lang="en" class="cap">Every cell knows who changed it, when, and why.</td><td><span class="tag">P1 칸 팝오버</span><span class="tag">변경 기록 카드</span></td><td>예</td></tr><tr id="s8"><td class="num">90~105</td><td><b>기록과 숫자</b> <a class="pend" href="#j5" title="판정 5번 대기">판정 5</a><br>리포의 테이크 기록 파일 한 줄과 당일 잰 숫자 하나(발화에서 칸까지 중앙값). 영상 벽시계와 기록 파일 시각이 같은 줄을 나란히.</td><td lang="en" class="cap">Same take, logged: takes/T07.jsonl. Speech to cell: X s median.</td><td><span class="tag">P0 리플레이</span></td><td>일부(약 5초)</td></tr><tr id="s9"><td class="num">105~120</td><td><b>끝 카드</b> <a class="pend" href="#j4" title="판정 4번 대기">판정 4</a><br>N edits live, 1 undone, 1 conflict caught, 1 thumb down held the write. 한 줄과 살 사람 한 줄.</td><td lang="en" class="cap">(한 줄을 그대로)</td><td><span class="tag">영상 편집</span></td><td>아니오</td></tr></tbody></table></div></section>
+
+<section id="judg"><h2>판정 대기</h2><p class="lead">대본과 콘티는 모두 기본값으로 그렸다. 판정이 바뀌면 demo_script.json을 고치고 다시 빌드한다.</p><ol class="judg"><li id="j1"><b>1</b><div><p>이야기 축을 출시일 엇갈림(L10, L11, L17)으로 옮기는가</p><p class="def">기본값: Y</p></div></li><li id="j2"><b>2</b><div><p>표결 고리를 엄지 승인으로 줄이고 손가락 표결과 진행자 고리를 라이브 데모 몫으로 넘기는가</p><p class="def">기본값: Y (10:45 약한 동의의 구체안)</p></div></li><li id="j3"><b>3</b><div><p>진행자 기능은 비용 줄 하나만 남기는가(화면 계산, LLM 없음)</p><p class="def">기본값: Y</p></div></li><li id="j4"><b>4</b><div><p>끝 카드의 살 사람 한 줄. 후보 &#x27;Eng leads who run weekly plan reviews in Google Sheets&#x27;</p><p class="def">기본값: 팀이 정한다. 착수 회의 뒤 지원에게 묻는다</p></div></li><li id="j5"><b>5</b><div><p>테이크 기록 파일을 커밋되는 위치(예: takes/)에 두자고 지원에게 요청하는가. 지금 results/는 gitignore 대상이라 리포에서 안 보인다</p><p class="def">기본값: Y</p></div></li><li id="j6"><b>6</b><div><p>B 화면 오른쪽 카드 제목을 Minutes가 아니라 변경 기록으로 보이게 하는가</p><p class="def">기본값: Y (브랜치 ProfessionalSeaweedDevourer/minutes-card에서 고칠 수 있음)</p></div></li><li id="j7"><b>7</b><div><p>첫 장면을 6초로 줄이는가(v0.2는 10초)</p><p class="def">기본값: Y</p></div></li><li id="j8"><b>8</b><div><p>결정 장면을 동시 엄지 공개, 아래 하나가 쓰기를 막음, 반대한 사람이 먼저 말함, 다시 공개 순으로 바꾸는가</p><p class="def">기본값: Y (한서 투표 집계, 태우 겹침 화면 일이 조금 는다)</p></div></li><li id="j9"><b>9</b><div><p>제품의 지연 표시 기본값은 꺼짐 그대로 두고 영상 테이크만 켠 채 찍는가</p><p class="def">기본값: Y. 중앙값이 2.5초를 넘으면 끈 채 찍는다</p></div></li></ol></section>
+
+<section id="fallback"><h2>12:00에 기능이 밀릴 때</h2><p class="lead">영상 길이는 그대로 두고 장면만 바꾼다.</p><div class="tbl"><table class=""><thead><tr><th>빠지는 것</th><th>대체 장면</th><th>잃는 것</th></tr></thead><tbody><tr><td>P1 엄지 되돌림</td><td>T5를 말로 &#x27;Undo that.&#x27; (리포 fixture에 같은 경로)</td><td>손 이야기 하나</td></tr><tr><td>동시 엄지 공개</td><td>계약의 vote.opened, vote.cast, vote.closed를 값 둘(위, 아래)로 쓴다. 안 되면 엄지를 한 사람씩 보이고 막기 규칙만 남김</td><td>동시성. 막기 규칙은 남음</td></tr><tr><td>P1 엄지 승인</td><td>결정을 말로 확정하고 승인 표시 없이 적용</td><td>막기 장면 전체. 56~78초를 줄이고 팝오버를 늘림</td></tr><tr><td>P1 칸 팝오버</td><td>78~90초를 오른쪽 기록 카드 펴기만으로</td><td>칸 단위 추적. 기록 카드가 대신 답함</td></tr><tr><td>P0 Sheets 동기화</td><td>33~40초 삭제, 문서 장면을 7초 늘림</td><td>실제 연동 근거. 가장 아픈 손실이라 12:00 전 우선 확인</td></tr><tr><td>P0 입장 관문</td><td>6~10초를 참가자 줄 등장만으로</td><td>verified name 자막</td></tr></tbody></table></div></section>
+
+<section id="check"><h2>판단 밖 검증</h2><div class="tbl"><table class=""><thead><tr><th>번호</th><th>무엇</th><th>통과 조건과 결과</th><th>언제</th></tr></thead><tbody><tr><td><b>V1</b></td><td>문서가 보이는 초</td><td>120초 중 80초 이상. 지금 콘티로 85초</td><td>착수 회의 뒤, 최종 편집본에서 다시</td></tr><tr><td><b>V2</b></td><td>발화에서 칸까지 지연</td><td>중앙값 2.5초 이하여야 실시간 자막을 쓴다</td><td>리허설</td></tr><tr><td><b>V5</b></td><td>장면과 리포 우선순위 대응</td><td>P2와 계약 밖 기능에 기대는 장면 0초</td><td>지금, 그리고 12:00</td></tr><tr><td><b>V6</b></td><td>맥락 없는 심사위원 판독(모델 6건)</td><td>v0.3가 공식 기준 셋 합계에서 앞섬. 결과 불통과(130 대 130). 개정판은 다시 돌리지 않음</td><td>10:50 완료</td></tr><tr><td><b>V4</b></td><td>외부 1명 시청</td><td>v0.2 기획과 같음</td><td>14:40</td></tr></tbody></table></div><h3>맥락 없는 심사위원 판독(V6) 결과</h3><div class="tbl"><table class="narrow"><thead><tr><th>항목</th><th>v0.2</th><th>v0.3 첫 판</th></tr></thead><tbody><tr><td>명확성 평균(10점)</td><td><span class="num">5.5</span></td><td><span class="num">8.3</span></td></tr><tr><td>기술 평균</td><td><span class="num">7.3</span></td><td><span class="num">7.3</span></td></tr><tr><td>창의성 평균</td><td><span class="num">8.8</span></td><td><span class="num">6.0</span></td></tr><tr><td>합계(6건)</td><td><span class="num">130</span></td><td><span class="num">130</span></td></tr><tr><td>고른 판</td><td><span class="num">1건</span></td><td><span class="num">5건</span></td></tr><tr><td>25팀 뒤에도 기억할 판</td><td><span class="num">6건</span></td><td><span class="num">0건</span></td></tr></tbody></table></div><p class="note">기억된 장면은 6건 모두 v0.2의 동시 공개와 소수 먼저. v0.3 첫 판에서 5건이 4/4 행복 경로를 연출로 의심. 10:55 개정판은 이 둘을 엄지 동시 공개와 아래 하나로 받았다. 판독자는 모델이라 심사위원 본인을 대신하지 못한다.</p></section>
+
+<section id="judges"><h2>심사진</h2><div class="tbl"><table class=""><thead><tr><th>항목</th><th>내용</th></tr></thead><tbody><tr><td>심사 기준</td><td>Problem-solution clarity, technical implementation/execution, and creativity</td></tr><tr><td>제출</td><td>데모 영상과 GitHub URL. 첫 공지는 90초, 이 대본은 120초로 짰다(상한은 다시 확인)</td></tr><tr><td>일정</td><td>10:00~15:00 빌드, 15:00~17:00 심사, 선택 라이브 데모, 시상</td></tr><tr><td>주제 경쟁</td><td>Multiplayer AI는 버클리 회차 25팀 중 6팀이 고른 1위 주제. 같은 주제 팀과 갈리는 것은 장면 하나와 숫자 하나</td></tr></tbody></table></div><div class="tbl"><table class=""><thead><tr><th>심사위원</th><th>소속</th><th>볼 것(추론 포함)</th></tr></thead><tbody><tr><td><b>Merlin Kafka</b></td><td>Rex CEO (YC S26)</td><td>사람이 에이전트를 감독하는 화면. 행복 경로가 아니라 엇나간 경우</td></tr><tr><td><b>Lewis Blackwood</b></td><td>Rex CTO</td><td>실제 연동과 감사 가능성, 기업용이어도 좋은 디자인</td></tr><tr><td><b>Arthur Guiot</b></td><td>Circleback 엔지니어</td><td>UI 완성도와 반응 속도, 에이전트가 진짜인지. 리포를 열어 볼 가능성이 가장 높다</td></tr><tr><td><b>Andres Viera</b></td><td>Circleback 엔지니어</td><td>음성 인식 지연과 화자 처리 품질(신원 추정)</td></tr><tr><td><b>Daniel Park</b></td><td>Pickle CEO (YC W25)</td><td>가짜 데모에 민감. 실시간 회의 노트는 자기가 이미 냄</td></tr><tr><td><b>Peter Shin</b></td><td>Outsome</td><td>돈 낼 사람이 분명한가, 세계 시장에 팔 수 있는가</td></tr><tr><td><b>James Tan</b></td><td>Transpose Platform, c0mpiled 창설자</td><td>투자할 창업자의 신호: 속도, 문제 정의의 날카로움</td></tr><tr><td><b>Sina Matian</b></td><td>YC 프로덕트 엔지니어</td><td>제품 감각, 끝까지 도는 흐름</td></tr></tbody></table></div><h3>Merlin Kafka의 네 질문과 답하는 장면</h3><div class="tbl"><table class=""><thead><tr><th>질문</th><th>답하는 장면</th><th>화면</th></tr></thead><tbody><tr><td><span lang="en">What just happened?</span></td><td><a href="#s2">10~26초 말하면 칸이 바뀐다</a></td><td>칸이 빛나고 말한 사람 꼬리표</td></tr><tr><td><span lang="en">What did the AI actually do?</span></td><td><a href="#s7">78~90초 칸이 아는 것</a></td><td>오른쪽 기록 카드의 op 한 줄씩</td></tr><tr><td><span lang="en">Can I trust it?</span></td><td><a href="#s1">6~10초 손으로 입장</a></td><td>손으로 확인된 이름, 칸 팝오버, 엄지 되돌리기</td></tr><tr><td><span lang="en">Should I be worried that I didn&#x27;t see it happen?</span></td><td><a href="#s9">105~120초 끝 카드</a></td><td>끝 카드의 수: 고침, 되돌림, 잡은 엇갈림, 막은 쓰기</td></tr></tbody></table></div></section>
+
+<section id="refs"><h2>참고 자료</h2><p class="note">meeting-agent-poc 경로는 주현의 로컬 폴더(git 밖)다. 팀원이 보려면 주현에게 파일을 받는다. LostAI 경로는 GitHub에서 바로 열린다.</p><h3>이 대본의 원천</h3><ul class="refs"><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/video/hackathon_c0mpiled17_demo_plan_JoohyunPark_ko_v0_3_20261109.md</code><p>LostAI 리포 P0 기준으로 다시 짠 120초 데모 기획(이 페이지의 원본)</p></div></li><li><span class="st st-mid">일부 승계</span><div><code class="path">meeting-agent-poc/design/video/hackathon_c0mpiled17_demo_plan_JoohyunPark_ko_v0_2_20261109.md</code><p>실시간 문서 위 진행자 구성의 데모 기획. 3, 5, 6, 8.1절은 v0.3가 이어받음</p></div></li><li><span class="st st-old">대체됨</span><div><code class="path">meeting-agent-poc/design/video/hackathon_c0mpiled17_demo_plan_JoohyunPark_ko_v0_1_20261109.md</code><p>영상과 라이브 데모 첫 실행 기획, 빌드 시간표</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/data/poc_a_wbs_long.json</code><p>대사 줄 번호(L6~L17)의 출처인 WBS 점검 회의 대본</p></div></li><li><span class="st st-ok">현행</span><div><a href="https://github.com/gitgutgit/LostAI/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener">LostAI/docs/ARCHITECTURE.md</a><p>P0, P1, P2 우선순위(11절)와 데이터 계약</p></div></li><li><span class="st st-ok">현행</span><div><a href="https://github.com/gitgutgit/LostAI/blob/main/server/events.py" target="_blank" rel="noopener">LostAI/server/events.py</a><p>이벤트 계약. vote.opened, vote.cast, vote.closed가 여기 있다</p></div></li><li><span class="st st-ok">현행</span><div><a href="https://github.com/gitgutgit/LostAI/blob/main/eval/README.md" target="_blank" rel="noopener">LostAI/eval/README.md</a><p>평가와 시연 입력은 영어 원문이라는 규칙</p></div></li><li><span class="st st-ref">참고</span><div><code class="path">meeting-agent-poc/design/video/research_video_tools.md</code><p>데모 영상 구성 원칙과 맥용 제작 도구 조사</p></div></li></ul><h3>심사진</h3><ul class="refs"><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/hackathon_c0mpiled17_judges_research_ko_v0_1_20261108.md</code><p>심사위원 8명의 배경, 성향, 심사 기준과 유리한 접근</p></div></li><li><span class="st st-ref">참고</span><div><a href="https://claude.ai/artifact/95LyiKYwmgnWgHP6kJc9wA" target="_blank" rel="noopener">심사진 조사 그림 페이지(팀 공유용)</a><p>위 조사를 그림으로 옮긴 페이지</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/hackathon_c0mpiled17_judge_scenarios_JoohyunPark_ko_v0_6_20261109.md</code><p>심사진 공략 시나리오 셋과 무맥락 리뷰 사전 등록</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/eval_meetings/scenario_review_20261109/RESULTS.md</code><p>공략 시나리오를 무맥락 Claude 15세션이 리뷰한 결과</p></div></li></ul><h3>제품 기획</h3><ul class="refs"><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/hackathon_c0mpiled17_facilitator_framing_JoohyunPark_ko_v0_5_20261109.md</code><p>진행자 AI 제품 프레이밍, Eric 판정 완료된 방향</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/hackathon_c0mpiled17_product_identity_C_JoohyunPark_ko_v0_1_20261109.md</code><p>문서가 곧 회의 화면(C안)을 메인으로 잡은 제품 정체성</p></div></li><li><span class="st st-ref">참고</span><div><code class="path">meeting-agent-poc/design/signed_jarvis_contract_v2_draft.md</code><p>손 조종 계약 2판 초안. 지금은 리포 계약이 우선</p></div></li><li><span class="st st-ref">참고</span><div><code class="path">meeting-agent-poc/design/hackathon_c0mpiled17_kickoff_questions_JoohyunPark_ko_20261109.md</code><p>10시 착수 회의 질문 목록과 손 시험 기록지</p></div></li><li><span class="st st-ref">참고</span><div><code class="path">meeting-agent-poc/design/hackathon_c0mpiled17_kickoff_eli5_JoohyunPark_ko_20261109.html</code><p>착수 회의에서 정할 세 묶음을 그림판으로 설명</p></div></li><li><span class="st st-ref">참고</span><div><code class="path">meeting-agent-poc/design/hackathon_c0mpiled17_jarvis_plan_JoohyunPark_ko_v0_2_20261108.md</code><p>초기 기획과 단계별 착수안. 방향은 프레이밍 v0.5가 이어받음</p></div></li><li><span class="st st-ref">참고</span><div><code class="path">meeting-agent-poc/design/hackathon_c0mpiled17_work_log_JoohyunPark_ko_v0_1_20261108.md</code><p>주현의 해커톤 준비 작업 기록</p></div></li></ul><h3>화면 디자인</h3><ul class="refs"><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/wireframes/facilitator_v0_3/render_v04/index.html</code><p>실시간 문서를 왼쪽에 둔 최신 렌더 시안</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/wireframes/facilitator_v0_3/render_v04/NOTES.md</code><p>v0.4 변경점, 화면별 무대, 기획과 어긋난 곳</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/wireframes/facilitator_v0_3/render_v04/features.html</code><p>진행자 기능 넷의 전체 모양과 줄인 모양 견본</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/wireframes/facilitator_v0_3/TEAM_CLAUDE_DESIGN_v1.md</code><p>팀원 Claude용 진행자 사양서(상태 기계, 필수와 권장)</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/wireframes/facilitator_v0_2/flow.html</code><p>상태 흐름, 입출력 표, 메시지 정의</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/hackathon_c0mpiled17_screen_components_JoohyunPark_ko_v0_2_20261108.md</code><p>화면 구성 요소와 AI 캔버스 설계 기준판</p></div></li><li><span class="st st-ok">델타</span><div><code class="path">meeting-agent-poc/design/hackathon_c0mpiled17_screen_components_JoohyunPark_ko_v0_3_delta_20261109.md</code><p>v0.2에 얹는 실시간 상황판의 이유와 형태</p></div></li><li><span class="st st-ok">델타</span><div><code class="path">meeting-agent-poc/design/hackathon_c0mpiled17_mediator_cards_JoohyunPark_ko_v0_4_delta_20261109.md</code><p>v0.3 델타에 얹는 진행 참여 AI 중재 카드 안</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/eval_meetings/canvas_test_runs/run_20261109/RESULTS.md</code><p>회의록 대 상황판 이해도 비교 시험 결과</p></div></li><li><span class="st st-ref">참고</span><div><code class="path">meeting-agent-poc/design/wireframes/facilitator_v0_2/research_unslop.md</code><p>AI 티를 빼는 조사, 읽는 거리 기준, 배치 시안 5개</p></div></li><li><span class="st st-ref">참고</span><div><code class="path">meeting-agent-poc/design/wireframes/facilitator_v0_2/JUDGE.md</code><p>시안의 AI 티, 거리, 구현성 판정 기준</p></div></li><li><span class="st st-ref">참고</span><div><code class="path">meeting-agent-poc/design/wireframes/facilitator_v0_2/REVIEW_redteam_20261109.md</code><p>flow.html과 v0.3 적용안 축소 레드팀 리뷰</p></div></li><li><span class="st st-ref">참고</span><div><code class="path">meeting-agent-poc/design/wireframes/facilitator_v0_3/PLAN.md</code><p>v0.2 피드백을 원칙으로 묶은 v0.3 적용안</p></div></li><li><span class="st st-ref">참고</span><div><code class="path">meeting-agent-poc/design/eval_meetings/canvas_research/research_digest.md</code><p>AI 캔버스 디자인 다섯 갈래 리서치 요약</p></div></li></ul><h3>디자인 참고 소스 (공개 링크)</h3><ul class="refs"><li><span class="st st-ref">참고</span><div><a href="https://ui.shadcn.com/" target="_blank" rel="noopener">shadcn/ui</a><p>컴포넌트 라이브러리 겸 디자인 시스템</p></div></li><li><span class="st st-ref">참고</span><div><a href="https://github.com/google-labs-code/design.md" target="_blank" rel="noopener">google-labs-code/design.md</a><p>디자인 규약을 md로 쓰고 lint, 토큰 export까지 하는 형식</p></div></li><li><span class="st st-ref">참고</span><div><a href="https://github.com/VoltAgent/awesome-design-md/" target="_blank" rel="noopener">VoltAgent/awesome-design-md</a><p>실제 브랜드 DESIGN.md 모음(stripe, notion, raycast 등)</p></div></li><li><span class="st st-ref">참고</span><div><a href="https://stitch.withgoogle.com/" target="_blank" rel="noopener">Google Stitch</a><p>AI 기반 UI 디자인 생성 도구</p></div></li><li><span class="st st-ref">참고</span><div><a href="https://paper.design/" target="_blank" rel="noopener">paper.design</a><p>HTML/CSS 캔버스 디자인 도구</p></div></li></ul><h3>이름과 로고 (미확정)</h3><ul class="refs"><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/hackathon_c0mpiled17_naming_logo_instruction_JoohyunPark_ko_20261109.md</code><p>제품 이름과 로고를 정하는 지시서</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/brand/candidates_ko_20261109.md</code><p>이름 후보 18개 채점과 Moai 충돌 검색</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/brand/naming_theory_research_ko_20261109.md</code><p>이름 짓기 이론 근거와 8항목 채점표</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/brand/moai_backronym_mascot_ko_20261109.md</code><p>MOAI 역두문자 후보와 마스코트 구상</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/brand/logo/sheet_v1.html</code><p>MOAI 워드마크와 마스코트 표정 시안</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/brand/external_prompt_pack_en_20261109.md</code><p>외부 모델용 블라인드 판독 프롬프트 묶음</p></div></li></ul><h3>평가 대본</h3><ul class="refs"><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/hackathon_c0mpiled17_eval_script_plan_JoohyunPark_ko_v0_1_20261108.md</code><p>평가 대본 확장 작업의 단계와 검증 기획</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/eval_meetings/WRITING_SPEC.md</code><p>업종별 회의 대본 작성 규격과 검사 명령</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/eval_meetings/pack_src/README.md</code><p>영어 평가 회의 대본 4개 묶음 안내</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/eval_meetings/labels/README.md</code><p>대본 정답을 팀원이 독립 라벨링하는 절차</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/eval_meetings/chat_page/eval_meetings_chat.html</code><p>평가 회의 대본 4개를 채팅 형태로 보는 페이지</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/eval_meetings/corpus_style_notes.md</code><p>ICSI, AMI 실회의 말투 통계와 본보기</p></div></li></ul><h3>외부 출처 (심사진 조사의 근거)</h3><ul class="refs"><li><span class="st st-ref">참고</span><div><a href="https://luma.com/compiled-8lsr" target="_blank" rel="noopener">행사 페이지 (Luma)</a><p>심사 기준, 제출 규정, 일정</p></div></li><li><span class="st st-ref">참고</span><div><a href="https://merlinkafka.com/writing/human-in-the-loop-interface" target="_blank" rel="noopener">Merlin Kafka, human-in-the-loop interface</a><p>네 질문의 원문</p></div></li><li><span class="st st-ref">참고</span><div><a href="https://circleback.ai/releases" target="_blank" rel="noopener">Circleback releases</a><p>Circleback이 이미 하는 것. 회의 중 기능은 없음</p></div></li><li><span class="st st-ref">참고</span><div><a href="https://www.compiled.sh/articles/c0mpiled-14-uc-berkeley" target="_blank" rel="noopener">c0mpiled-14 UC Berkeley 회고</a><p>Multiplayer AI 25팀 중 6팀</p></div></li><li><span class="st st-ref">참고</span><div><a href="https://www.compiled.sh/articles/c0mpiled-16-ucsd-hackathon" target="_blank" rel="noopener">c0mpiled-16 UCSD 회고</a><p>상위작은 숫자로 말했다</p></div></li><li><span class="st st-ref">참고</span><div><a href="https://www.rex.inc/" target="_blank" rel="noopener">Rex</a><p>에이전트와 재무 전문가 감독형 서비스</p></div></li><li><span class="st st-ref">참고</span><div><a href="https://github.com/pickle-com/glass" target="_blank" rel="noopener">Pickle Glass</a><p>Daniel Park 팀의 실시간 회의 노트 도구</p></div></li></ul></section>
+
+<footer class="foot">원천 meeting-agent-poc/design/video/hackathon_c0mpiled17_demo_plan_JoohyunPark_ko_v0_3_20261109.md. 이 페이지는 LostAI docs/demo/build.py가 demo_script.json에서 만든다.</footer>
+</main>
+
+<div id="reader" class="reader" hidden role="dialog" aria-modal="true" aria-label="읽기 모드">
+  <div class="r-top"><span id="r-clock" class="num">테이크 0:00 / 영상 0:06</span><span id="r-scene"></span><span id="r-pos" class="num"></span><button type="button" id="r-close">닫기</button></div>
+  <div class="r-body"><p id="r-prev" class="r-side"></p><div id="r-cur"></div><p id="r-next" class="r-side"></p></div>
+  <div class="r-bot"><button type="button" id="r-back">이전</button><button type="button" id="r-timer">시계 시작</button><button type="button" id="r-reset">처음부터</button><button type="button" id="r-fwd" class="primary">다음</button></div>
+  <ol id="r-log" class="r-log"></ol>
+</div>
+<button type="button" id="open-reader" class="fab">읽기 모드</button>
+<script id="reader-data" type="application/json">{"take": 6, "speakers": {"Jiwon": {"ko": "지원", "role": "진행, 일정 담당", "color": "blue"}, "Haeun": {"ko": "하은", "role": "QA, 통합 테스트", "color": "amber"}, "Junho": {"ko": "준호", "role": "백엔드", "color": "green"}, "Mina": {"ko": "민아", "role": "마케팅, 반대 한 표", "color": "violet"}, "ALL": {"ko": "모두", "role": "동시 엄지 공개", "color": "ink"}}, "scenes": {"s0": {"t": [0, 6], "title": "첫 장면"}, "s1": {"t": [6, 10], "title": "손으로 입장"}, "s2": {"t": [10, 26], "title": "말하면 칸이 바뀐다"}, "s3": {"t": [26, 33], "title": "엄지 아래로 되돌림"}, "s4": {"t": [33, 40], "title": "실제 Google Sheet"}, "s5": {"t": [40, 56], "title": "출시일 엇갈림"}, "s6": {"t": [56, 78], "title": "동시 엄지 공개"}, "s7": {"t": [78, 90], "title": "칸이 아는 것"}, "s8": {"t": [90, 105], "title": "기록과 숫자"}, "s9": {"t": [105, 120], "title": "끝 카드"}}, "lines": [{"id": "T1", "speaker": "Haeun", "text": "Integration test needs another week if we're covering payments. Make it ten days.", "op": "set_cell 3.2 기간 5→10", "src": "L6", "src_ko": "통합 테스트가 5일로 잡혀 있는데 결제까지 같이 보려면 부족해요. 1주일 늘리죠.", "scene": "s2", "result": "3.2 칸이 빛나고 하은 꼬리표"}, {"id": "T2", "speaker": "Junho", "text": "Did anyone else's coffee machine break this morning?", "op": "없음(ignore)", "src": "새 줄", "scene": "s2", "result": "칸 변화 없음, 오른쪽 기록에 ignored"}, {"id": "T3", "speaker": "Junho", "text": "Add a payment webhook task under backend. Mine, three days.", "op": "add_row", "src": "L12", "src_ko": "결제 웹훅 처리 작업 하나 추가해 주세요. 백엔드고 담당은 저, 3일이요.", "scene": "s2", "result": "백엔드 아래 새 행"}, {"id": "T4", "speaker": "Junho", "text": "And a load-test task, two days.", "op": "add_row", "src": "새 줄", "scene": "s3", "result": "새 행"}, {"id": "T5", "speaker": "Jiwon", "text": "No, not this sprint.", "cue": "말하면서 엄지 아래", "op": "revert(손동작)", "src": "새 줄", "scene": "s3", "result": "T4 행이 줄긋기로 사라지고 reverted"}, {"id": "T6", "speaker": "Jiwon", "text": "Push perf test, UAT and launch prep back a week each.", "op": "set_cell 3.3~3.5", "src": "L9", "src_ko": "일단 통합 테스트 뒤에 있는 성능 테스트, UAT, 출시 준비 전부 1주일씩 밀어 주세요.", "scene": "s5", "result": "3.3~3.5 행이 차례로 고쳐짐"}, {"id": "T7", "speaker": "Haeun", "text": "So launch lands on January 21st.", "op": "capture", "src": "L10", "src_ko": "그러면 출시가 1월 21일이 되네요.", "scene": "s5", "result": "출시 칸에 1월 21일 꼬리표"}, {"id": "T8", "speaker": "Mina", "text": "That's too late. Marketing already booked a campaign for January 14th.", "op": "open_conflict", "src": "L11", "src_ko": "21일은 너무 늦어요. 마케팅팀이 1월 14일 출시로 캠페인을 이미 잡아 놨어요.", "scene": "s5", "result": "엇갈림 카드와 비용 줄, 2초 펼침"}, {"id": "T9", "speaker": "Jiwon", "text": "Let's do a beta on the 14th and GA on the 21st.", "op": "결정 제안(엄지 대기)", "src": "L17", "src_ko": "출시는 이렇게 하죠. 1월 14일에 베타로 공개하고 정식 출시는 1월 21일로 갑니다.", "scene": "s6", "result": "결정 제안 카드"}, {"id": "R1", "speaker": "ALL", "text": "3, 2, 1", "cue": "모두 동시에 엄지. 위 셋, 아래 하나(Mina). 구령은 누가 할지 미정", "op": "쓰지 않음, 카드 열림", "src": "새 장면", "scene": "s6", "result": "disputed, not written"}, {"id": "T10", "speaker": "Mina", "text": "Only if the campaign says beta, not launch.", "op": "add_note(조건)", "src": "새 줄", "scene": "s6", "result": "조건이 카드에 한 줄로 붙음"}, {"id": "R2", "speaker": "ALL", "text": "3, 2, 1", "cue": "모두 동시에 엄지. 위 넷", "op": "resolve_conflict, add_decision, 마일스톤 고침", "src": "L17", "scene": "s6", "result": "마일스톤 두 줄, 조건은 칸 메모, Sheet 반영"}]}</script>
+<script>(function () {
+  var D = JSON.parse(document.getElementById('reader-data').textContent);
+  var L = D.lines, i = 0, filt = '', t0 = null, tick = null, log = {};
+  var $ = function (id) { return document.getElementById(id); };
+  var R = $('reader');
+  function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+  function mmss(s) { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+  function chip(k) { var s = D.speakers[k]; return '<span class="spk c-' + s.color + '">' + esc(k) + ' <small>' + esc(s.ko) + '</small></span>'; }
+  function elapsed() { return t0 == null ? 0 : (Date.now() - t0) / 1000; }
+  function videoAt() { return D.take + elapsed(); }
+
+  // list view: speaker emphasis
+  var btns = document.querySelectorAll('.filters .f');
+  btns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      filt = b.getAttribute('data-f');
+      btns.forEach(function (x) { x.classList.toggle('on', x === b); });
+      document.querySelectorAll('.line').forEach(function (el) {
+        var s = el.getAttribute('data-spk');
+        el.classList.toggle('dim', !!filt && s !== filt && s !== 'ALL');
+      });
+    });
+  });
+
+  function line(k, cls) {
+    var x = L[k]; if (!x) return '';
+    return '<b>' + esc(x.id) + '</b> ' + esc(D.speakers[x.speaker].ko) + ': ' + esc(x.text);
+  }
+  function render() {
+    var x = L[i], sc = D.scenes[x.scene];
+    var mine = !filt || x.speaker === filt || x.speaker === 'ALL';
+    var cur = $('r-cur');
+    cur.className = mine ? '' : 'cue-only';
+    cur.innerHTML = chip(x.speaker) + ' <b class="num">' + esc(x.id) + '</b>' +
+      '<p class="r-say" lang="en">' + esc(x.text) + '</p>' +
+      (x.cue ? '<p class="r-cue">' + esc(x.cue) + '</p>' : '') +
+      '<p class="r-res">화면: ' + esc(x.result || '') + '</p>';
+    $('r-prev').innerHTML = i > 0 ? '이전 ' + line(i - 1) : '테이크 시작(영상 ' + mmss(D.take) + '), 손으로 입장 4초 뒤 첫 대사';
+    $('r-next').innerHTML = i < L.length - 1 ? '다음 ' + line(i + 1) : '끝. 이 뒤로 칸 팝오버와 기록 카드(78~90초)';
+    $('r-scene').textContent = '장면 ' + sc.t[0] + '~' + sc.t[1] + '초 ' + sc.title;
+    $('r-pos').textContent = (i + 1) + ' / ' + L.length;
+    clock();
+  }
+  function clock() {
+    var x = L[i], sc = D.scenes[x.scene], v = videoAt();
+    var el = $('r-clock');
+    el.textContent = '테이크 ' + mmss(elapsed()) + ' / 영상 ' + mmss(v);
+    el.classList.toggle('late', t0 != null && v > sc.t[1]);
+  }
+  function stamp() {
+    if (t0 == null) return;
+    var x = L[i], sc = D.scenes[x.scene], v = videoAt();
+    log[x.id] = { v: v, late: v > sc.t[1], early: v < sc.t[0] };
+    var ol = $('r-log'); ol.innerHTML = '';
+    L.forEach(function (y) {
+      var g = log[y.id]; if (!g) return;
+      var s2 = D.scenes[y.scene];
+      var li = document.createElement('li');
+      li.textContent = y.id + ' 영상 ' + mmss(g.v) + ' (장면 ' + s2.t[0] + '~' + s2.t[1] + (g.late ? ', 늦음 +' + Math.round(g.v - s2.t[1]) + '초' : g.early ? ', 빠름' : '') + ')';
+      if (g.late) li.className = 'late';
+      ol.appendChild(li);
+    });
+  }
+  function go(k) { i = Math.max(0, Math.min(L.length - 1, k)); render(); stamp(); }
+  function open(k) { R.hidden = false; document.body.style.overflow = 'hidden'; go(k || 0); $('r-fwd').focus(); }
+  function close() { R.hidden = true; document.body.style.overflow = ''; var el = document.getElementById('line-' + L[i].id); if (el) el.scrollIntoView({ block: 'center' }); }
+  function timer() {
+    if (t0 == null) { t0 = Date.now(); tick = setInterval(clock, 250); $('r-timer').textContent = '시계 멈춤'; stamp(); }
+    else { clearInterval(tick); tick = null; t0 = null; $('r-timer').textContent = '시계 시작'; clock(); }
+  }
+  function reset() { if (tick) clearInterval(tick); tick = null; t0 = null; log = {}; $('r-log').innerHTML = ''; $('r-timer').textContent = '시계 시작'; go(0); }
+
+  $('open-reader').addEventListener('click', function () { open(0); });
+  document.querySelectorAll('.read-here').forEach(function (b) { b.addEventListener('click', function () { open(+b.getAttribute('data-i')); }); });
+  $('r-close').addEventListener('click', close);
+  $('r-fwd').addEventListener('click', function () { go(i + 1); });
+  $('r-back').addEventListener('click', function () { go(i - 1); });
+  $('r-timer').addEventListener('click', timer);
+  $('r-reset').addEventListener('click', reset);
+  document.addEventListener('keydown', function (e) {
+    if (R.hidden) return;
+    if (e.key === 'Escape') { close(); }
+    else if (e.key === 'ArrowRight' || e.key === 'PageDown' || (e.key === ' ' && e.target.tagName !== 'BUTTON')) { e.preventDefault(); go(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(i - 1); }
+    else if (e.key === 's' || e.key === 'S') { timer(); }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+{
+  "title": "LostAI 120초 데모 대본",
+  "version": "기획 v0.3 개정판 (2026-11-09 10:55)",
+  "status": "초안. 판정 9건 대기, 화면에는 기본값으로 표시",
+  "author": "주현 (ProfessionalSeaweedDevourer)",
+  "plan_path": "meeting-agent-poc/design/video/hackathon_c0mpiled17_demo_plan_JoohyunPark_ko_v0_3_20261109.md",
+  "one_liner": "Say it in the meeting. The plan changes. When two people disagree, it stops and asks the room.",
+  "bluf": [
+    "연속 테이크 하나로 보인다. 말하면 시트 칸이 바뀌고, 출시일이 엇갈리면 문서가 쓰기를 멈추고, 동시에 보인 엄지 하나가 아래면 아무것도 쓰지 않는다.",
+    "이야기 축은 출시일 엇갈림 하나다(대본 L10, L11, L17). 첫 장면, 잡기, 결정, 끝 카드가 같은 문제를 다룬다.",
+    "모든 장면이 리포 P0이나 P1에 기댄다. P2(손가락 표결, 진행자 고리)는 영상에 0초, 선택 라이브 데모에서만 보인다.",
+    "문서가 보이는 시간은 120초 중 85초다. 판정 9건이 남아 있고, 다음 판단 밖 검증은 14:40 외부 1명 시청이다."
+  ],
+  "take_start": 6,
+  "speakers": {
+    "Jiwon": {"ko": "지원", "role": "진행, 일정 담당", "color": "blue"},
+    "Haeun": {"ko": "하은", "role": "QA, 통합 테스트", "color": "amber"},
+    "Junho": {"ko": "준호", "role": "백엔드", "color": "green"},
+    "Mina":  {"ko": "민아", "role": "마케팅, 반대 한 표", "color": "violet"},
+    "ALL":   {"ko": "모두", "role": "동시 엄지 공개", "color": "ink"}
+  },
+  "cast_note": "배역 이름은 대본 인물이다(poc_a_wbs_long.json). 팀원 누가 어느 배역을 읽을지는 아직 정하지 않았다.",
+  "scenes": [
+    {"id": "s0", "t": [0, 6], "title": "첫 장면", "screen": "두 사람이 한 계획에 다른 날짜를 넣는 픽토그램. 빌드는 Eric 허가 뒤(v0.2 8.1절 1번).", "caption": "Two people told the plan two different dates. Nobody noticed until launch week.", "repo": ["영상 편집"], "doc": "no", "judg": [7]},
+    {"id": "s1", "t": [6, 10], "title": "손으로 입장", "screen": "연속 테이크 시작. 오른쪽 위에 벽시계와 테이크 번호가 끝까지 남는다. 네 사람이 손동작으로 입장, 참가자 줄에 확인 표시.", "caption": "Four people join by hand. Every edit carries a verified name.", "repo": ["P0 입장 관문"], "doc": "no", "judg": []},
+    {"id": "s2", "t": [10, 26], "title": "말하면 칸이 바뀐다", "screen": "T1 뒤 3.2 칸이 빛나고 하은 꼬리표. T2 잡담은 칸 변화 없이 오른쪽 기록에 ignored. T3 뒤 새 행. 기록 줄마다 발화에서 칸까지 걸린 초.", "caption": "It edits the plan while you talk. Small talk changes nothing.", "repo": ["P0 Router/Editor", "P0 Op 엔진", "P0 B 화면"], "doc": "yes", "judg": [9]},
+    {"id": "s3", "t": [26, 33], "title": "엄지 아래로 되돌림", "screen": "T4 뒤 새 행. T5 지원이 엄지 아래, 그 행이 줄긋기로 사라지고 reverted.", "caption": "Wrong edit? Thumbs down. Undone.", "repo": ["P1 엄지 되돌림"], "doc": "yes", "judg": []},
+    {"id": "s4", "t": [33, 40], "title": "실제 Google Sheet", "screen": "화면 반을 실제 Google Sheet로. 같은 3.2 칸 값과 셀 메모(Haeun, 00:14, extend integration test a week).", "caption": "Same edit, in the Google Sheet your team already uses.", "repo": ["P0 Sheets 동기화"], "doc": "yes", "judg": []},
+    {"id": "s5", "t": [40, 56], "title": "출시일 엇갈림", "screen": "T6 뒤 3.3~3.5 행이 차례로 고쳐짐. T7, T8 뒤 출시 칸에 두 날짜가 걸리고 엇갈림 카드(하은 L10, 민아 L11 꼬리표)와 비용 줄. 비용 줄을 2초 펼쳐 계산 근거를 보임(3.5 종료 01-21, 캠페인 01-14, 근무일 차 5).", "caption": "Two dates for one launch. It stops writing and flags it, with who said what.", "repo": ["P0 open_conflict", "비용 줄은 화면 계산"], "doc": "yes", "judg": []},
+    {"id": "s6", "t": [56, 78], "title": "동시 엄지 공개", "screen": "T9 뒤 결정 제안 카드. 3, 2, 1에 네 사람이 동시에 엄지: 위 셋, 아래 하나(민아). 카드는 열린 채 disputed, not written. T10 민아가 조건을 말하면 카드에 한 줄. 다시 3, 2, 1에 위 넷: 마일스톤 두 줄, 조건은 칸 메모, Sheet도 같이.", "caption": "Everyone shows at once. One thumb down, and nothing gets written.", "repo": ["P0 결정, 충돌 해소", "P1 엄지 승인", "vote 계약 재사용"], "doc": "yes", "judg": [8]},
+    {"id": "s7", "t": [78, 90], "title": "칸이 아는 것", "screen": "출시 칸 클릭, 팝오버: 이 칸을 바꾼 발화(L9, L11, L17, T10), 시각, 되돌리기 버튼. 오른쪽 기록 카드를 펴면 op 한 줄씩(무엇을, 어떤 발화로, 결과).", "caption": "Every cell knows who changed it, when, and why.", "repo": ["P1 칸 팝오버", "변경 기록 카드"], "doc": "yes", "judg": [6]},
+    {"id": "s8", "t": [90, 105], "title": "기록과 숫자", "screen": "리포의 테이크 기록 파일 한 줄과 당일 잰 숫자 하나(발화에서 칸까지 중앙값). 영상 벽시계와 기록 파일 시각이 같은 줄을 나란히.", "caption": "Same take, logged: takes/T07.jsonl. Speech to cell: X s median.", "repo": ["P0 리플레이"], "doc": "partial", "doc_sec": 5, "judg": [5]},
+    {"id": "s9", "t": [105, 120], "title": "끝 카드", "screen": "N edits live, 1 undone, 1 conflict caught, 1 thumb down held the write. 한 줄과 살 사람 한 줄.", "caption": "(한 줄을 그대로)", "repo": ["영상 편집"], "doc": "no", "judg": [4]}
+  ],
+  "lines": [
+    {"id": "T1", "speaker": "Haeun", "text": "Integration test needs another week if we're covering payments. Make it ten days.", "op": "set_cell 3.2 기간 5→10", "src": "L6", "src_ko": "통합 테스트가 5일로 잡혀 있는데 결제까지 같이 보려면 부족해요. 1주일 늘리죠.", "scene": "s2", "result": "3.2 칸이 빛나고 하은 꼬리표"},
+    {"id": "T2", "speaker": "Junho", "text": "Did anyone else's coffee machine break this morning?", "op": "없음(ignore)", "src": "새 줄", "scene": "s2", "result": "칸 변화 없음, 오른쪽 기록에 ignored"},
+    {"id": "T3", "speaker": "Junho", "text": "Add a payment webhook task under backend. Mine, three days.", "op": "add_row", "src": "L12", "src_ko": "결제 웹훅 처리 작업 하나 추가해 주세요. 백엔드고 담당은 저, 3일이요.", "scene": "s2", "result": "백엔드 아래 새 행"},
+    {"id": "T4", "speaker": "Junho", "text": "And a load-test task, two days.", "op": "add_row", "src": "새 줄", "scene": "s3", "result": "새 행"},
+    {"id": "T5", "speaker": "Jiwon", "text": "No, not this sprint.", "cue": "말하면서 엄지 아래", "op": "revert(손동작)", "src": "새 줄", "scene": "s3", "result": "T4 행이 줄긋기로 사라지고 reverted"},
+    {"id": "T6", "speaker": "Jiwon", "text": "Push perf test, UAT and launch prep back a week each.", "op": "set_cell 3.3~3.5", "src": "L9", "src_ko": "일단 통합 테스트 뒤에 있는 성능 테스트, UAT, 출시 준비 전부 1주일씩 밀어 주세요.", "scene": "s5", "result": "3.3~3.5 행이 차례로 고쳐짐"},
+    {"id": "T7", "speaker": "Haeun", "text": "So launch lands on January 21st.", "op": "capture", "src": "L10", "src_ko": "그러면 출시가 1월 21일이 되네요.", "scene": "s5", "result": "출시 칸에 1월 21일 꼬리표"},
+    {"id": "T8", "speaker": "Mina", "text": "That's too late. Marketing already booked a campaign for January 14th.", "op": "open_conflict", "src": "L11", "src_ko": "21일은 너무 늦어요. 마케팅팀이 1월 14일 출시로 캠페인을 이미 잡아 놨어요.", "scene": "s5", "result": "엇갈림 카드와 비용 줄, 2초 펼침"},
+    {"id": "T9", "speaker": "Jiwon", "text": "Let's do a beta on the 14th and GA on the 21st.", "op": "결정 제안(엄지 대기)", "src": "L17", "src_ko": "출시는 이렇게 하죠. 1월 14일에 베타로 공개하고 정식 출시는 1월 21일로 갑니다.", "scene": "s6", "result": "결정 제안 카드"},
+    {"id": "R1", "speaker": "ALL", "text": "3, 2, 1", "cue": "모두 동시에 엄지. 위 셋, 아래 하나(Mina). 구령은 누가 할지 미정", "op": "쓰지 않음, 카드 열림", "src": "새 장면", "scene": "s6", "result": "disputed, not written"},
+    {"id": "T10", "speaker": "Mina", "text": "Only if the campaign says beta, not launch.", "op": "add_note(조건)", "src": "새 줄", "scene": "s6", "result": "조건이 카드에 한 줄로 붙음"},
+    {"id": "R2", "speaker": "ALL", "text": "3, 2, 1", "cue": "모두 동시에 엄지. 위 넷", "op": "resolve_conflict, add_decision, 마일스톤 고침", "src": "L17", "scene": "s6", "result": "마일스톤 두 줄, 조건은 칸 메모, Sheet 반영"}
+  ],
+  "reading_note": "10줄을 소리 내어 읽으면 약 33초(추정). 연속 테이크 구간(6~90초)에 지연과 엄지 공개 두 번을 더해 들어간다. 읽기 모드의 시계로 리허설 한 번에 실제 초를 잰다.",
+  "judgments": [
+    {"n": 1, "q": "이야기 축을 출시일 엇갈림(L10, L11, L17)으로 옮기는가", "default": "Y"},
+    {"n": 2, "q": "표결 고리를 엄지 승인으로 줄이고 손가락 표결과 진행자 고리를 라이브 데모 몫으로 넘기는가", "default": "Y (10:45 약한 동의의 구체안)"},
+    {"n": 3, "q": "진행자 기능은 비용 줄 하나만 남기는가(화면 계산, LLM 없음)", "default": "Y"},
+    {"n": 4, "q": "끝 카드의 살 사람 한 줄. 후보 'Eng leads who run weekly plan reviews in Google Sheets'", "default": "팀이 정한다. 착수 회의 뒤 지원에게 묻는다"},
+    {"n": 5, "q": "테이크 기록 파일을 커밋되는 위치(예: takes/)에 두자고 지원에게 요청하는가. 지금 results/는 gitignore 대상이라 리포에서 안 보인다", "default": "Y"},
+    {"n": 6, "q": "B 화면 오른쪽 카드 제목을 Minutes가 아니라 변경 기록으로 보이게 하는가", "default": "Y (브랜치 ProfessionalSeaweedDevourer/minutes-card에서 고칠 수 있음)"},
+    {"n": 7, "q": "첫 장면을 6초로 줄이는가(v0.2는 10초)", "default": "Y"},
+    {"n": 8, "q": "결정 장면을 동시 엄지 공개, 아래 하나가 쓰기를 막음, 반대한 사람이 먼저 말함, 다시 공개 순으로 바꾸는가", "default": "Y (한서 투표 집계, 태우 겹침 화면 일이 조금 는다)"},
+    {"n": 9, "q": "제품의 지연 표시 기본값은 꺼짐 그대로 두고 영상 테이크만 켠 채 찍는가", "default": "Y. 중앙값이 2.5초를 넘으면 끈 채 찍는다"}
+  ],
+  "fallbacks": [
+    {"miss": "P1 엄지 되돌림", "alt": "T5를 말로 'Undo that.' (리포 fixture에 같은 경로)", "loss": "손 이야기 하나"},
+    {"miss": "동시 엄지 공개", "alt": "계약의 vote.opened, vote.cast, vote.closed를 값 둘(위, 아래)로 쓴다. 안 되면 엄지를 한 사람씩 보이고 막기 규칙만 남김", "loss": "동시성. 막기 규칙은 남음"},
+    {"miss": "P1 엄지 승인", "alt": "결정을 말로 확정하고 승인 표시 없이 적용", "loss": "막기 장면 전체. 56~78초를 줄이고 팝오버를 늘림"},
+    {"miss": "P1 칸 팝오버", "alt": "78~90초를 오른쪽 기록 카드 펴기만으로", "loss": "칸 단위 추적. 기록 카드가 대신 답함"},
+    {"miss": "P0 Sheets 동기화", "alt": "33~40초 삭제, 문서 장면을 7초 늘림", "loss": "실제 연동 근거. 가장 아픈 손실이라 12:00 전 우선 확인"},
+    {"miss": "P0 입장 관문", "alt": "6~10초를 참가자 줄 등장만으로", "loss": "verified name 자막"}
+  ],
+  "checks": [
+    {"id": "V1", "what": "문서가 보이는 초", "pass": "120초 중 80초 이상. 지금 콘티로 85초", "when": "착수 회의 뒤, 최종 편집본에서 다시"},
+    {"id": "V2", "what": "발화에서 칸까지 지연", "pass": "중앙값 2.5초 이하여야 실시간 자막을 쓴다", "when": "리허설"},
+    {"id": "V5", "what": "장면과 리포 우선순위 대응", "pass": "P2와 계약 밖 기능에 기대는 장면 0초", "when": "지금, 그리고 12:00"},
+    {"id": "V6", "what": "맥락 없는 심사위원 판독(모델 6건)", "pass": "v0.3가 공식 기준 셋 합계에서 앞섬. 결과 불통과(130 대 130). 개정판은 다시 돌리지 않음", "when": "10:50 완료"},
+    {"id": "V4", "what": "외부 1명 시청", "pass": "v0.2 기획과 같음", "when": "14:40"}
+  ],
+  "v6": {
+    "rows": [["명확성 평균(10점)", "5.5", "8.3"], ["기술 평균", "7.3", "7.3"], ["창의성 평균", "8.8", "6.0"], ["합계(6건)", "130", "130"], ["고른 판", "1건", "5건"], ["25팀 뒤에도 기억할 판", "6건", "0건"]],
+    "note": "기억된 장면은 6건 모두 v0.2의 동시 공개와 소수 먼저. v0.3 첫 판에서 5건이 4/4 행복 경로를 연출로 의심. 10:55 개정판은 이 둘을 엄지 동시 공개와 아래 하나로 받았다. 판독자는 모델이라 심사위원 본인을 대신하지 못한다."
+  },
+  "event": [
+    ["심사 기준", "Problem-solution clarity, technical implementation/execution, and creativity"],
+    ["제출", "데모 영상과 GitHub URL. 첫 공지는 90초, 이 대본은 120초로 짰다(상한은 다시 확인)"],
+    ["일정", "10:00~15:00 빌드, 15:00~17:00 심사, 선택 라이브 데모, 시상"],
+    ["주제 경쟁", "Multiplayer AI는 버클리 회차 25팀 중 6팀이 고른 1위 주제. 같은 주제 팀과 갈리는 것은 장면 하나와 숫자 하나"]
+  ],
+  "judges": [
+    {"name": "Merlin Kafka", "org": "Rex CEO (YC S26)", "sees": "사람이 에이전트를 감독하는 화면. 행복 경로가 아니라 엇나간 경우"},
+    {"name": "Lewis Blackwood", "org": "Rex CTO", "sees": "실제 연동과 감사 가능성, 기업용이어도 좋은 디자인"},
+    {"name": "Arthur Guiot", "org": "Circleback 엔지니어", "sees": "UI 완성도와 반응 속도, 에이전트가 진짜인지. 리포를 열어 볼 가능성이 가장 높다"},
+    {"name": "Andres Viera", "org": "Circleback 엔지니어", "sees": "음성 인식 지연과 화자 처리 품질(신원 추정)"},
+    {"name": "Daniel Park", "org": "Pickle CEO (YC W25)", "sees": "가짜 데모에 민감. 실시간 회의 노트는 자기가 이미 냄"},
+    {"name": "Peter Shin", "org": "Outsome", "sees": "돈 낼 사람이 분명한가, 세계 시장에 팔 수 있는가"},
+    {"name": "James Tan", "org": "Transpose Platform, c0mpiled 창설자", "sees": "투자할 창업자의 신호: 속도, 문제 정의의 날카로움"},
+    {"name": "Sina Matian", "org": "YC 프로덕트 엔지니어", "sees": "제품 감각, 끝까지 도는 흐름"}
+  ],
+  "four_questions": [
+    {"q": "What just happened?", "scene": "s2", "a": "칸이 빛나고 말한 사람 꼬리표"},
+    {"q": "What did the AI actually do?", "scene": "s7", "a": "오른쪽 기록 카드의 op 한 줄씩"},
+    {"q": "Can I trust it?", "scene": "s1", "a": "손으로 확인된 이름, 칸 팝오버, 엄지 되돌리기"},
+    {"q": "Should I be worried that I didn't see it happen?", "scene": "s9", "a": "끝 카드의 수: 고침, 되돌림, 잡은 엇갈림, 막은 쓰기"}
+  ],
+  "ref_note": "meeting-agent-poc 경로는 주현의 로컬 폴더(git 밖)다. 팀원이 보려면 주현에게 파일을 받는다. LostAI 경로는 GitHub에서 바로 열린다.",
+  "references": [
+    {"group": "이 대본의 원천", "items": [
+      {"path": "meeting-agent-poc/design/video/hackathon_c0mpiled17_demo_plan_JoohyunPark_ko_v0_3_20261109.md", "what": "LostAI 리포 P0 기준으로 다시 짠 120초 데모 기획(이 페이지의 원본)", "status": "현행"},
+      {"path": "meeting-agent-poc/design/video/hackathon_c0mpiled17_demo_plan_JoohyunPark_ko_v0_2_20261109.md", "what": "실시간 문서 위 진행자 구성의 데모 기획. 3, 5, 6, 8.1절은 v0.3가 이어받음", "status": "일부 승계"},
+      {"path": "meeting-agent-poc/design/video/hackathon_c0mpiled17_demo_plan_JoohyunPark_ko_v0_1_20261109.md", "what": "영상과 라이브 데모 첫 실행 기획, 빌드 시간표", "status": "대체됨"},
+      {"path": "meeting-agent-poc/data/poc_a_wbs_long.json", "what": "대사 줄 번호(L6~L17)의 출처인 WBS 점검 회의 대본", "status": "현행"},
+      {"url": "https://github.com/gitgutgit/LostAI/blob/main/docs/ARCHITECTURE.md", "path": "LostAI/docs/ARCHITECTURE.md", "what": "P0, P1, P2 우선순위(11절)와 데이터 계약", "status": "현행"},
+      {"url": "https://github.com/gitgutgit/LostAI/blob/main/server/events.py", "path": "LostAI/server/events.py", "what": "이벤트 계약. vote.opened, vote.cast, vote.closed가 여기 있다", "status": "현행"},
+      {"url": "https://github.com/gitgutgit/LostAI/blob/main/eval/README.md", "path": "LostAI/eval/README.md", "what": "평가와 시연 입력은 영어 원문이라는 규칙", "status": "현행"},
+      {"path": "meeting-agent-poc/design/video/research_video_tools.md", "what": "데모 영상 구성 원칙과 맥용 제작 도구 조사", "status": "참고"}
+    ]},
+    {"group": "심사진", "items": [
+      {"path": "meeting-agent-poc/design/hackathon_c0mpiled17_judges_research_ko_v0_1_20261108.md", "what": "심사위원 8명의 배경, 성향, 심사 기준과 유리한 접근", "status": "현행"},
+      {"url": "https://claude.ai/artifact/95LyiKYwmgnWgHP6kJc9wA", "path": "심사진 조사 그림 페이지(팀 공유용)", "what": "위 조사를 그림으로 옮긴 페이지", "status": "참고"},
+      {"path": "meeting-agent-poc/design/hackathon_c0mpiled17_judge_scenarios_JoohyunPark_ko_v0_6_20261109.md", "what": "심사진 공략 시나리오 셋과 무맥락 리뷰 사전 등록", "status": "현행"},
+      {"path": "meeting-agent-poc/design/eval_meetings/scenario_review_20261109/RESULTS.md", "what": "공략 시나리오를 무맥락 Claude 15세션이 리뷰한 결과", "status": "현행"}
+    ]},
+    {"group": "제품 기획", "items": [
+      {"path": "meeting-agent-poc/design/hackathon_c0mpiled17_facilitator_framing_JoohyunPark_ko_v0_5_20261109.md", "what": "진행자 AI 제품 프레이밍, Eric 판정 완료된 방향", "status": "현행"},
+      {"path": "meeting-agent-poc/design/hackathon_c0mpiled17_product_identity_C_JoohyunPark_ko_v0_1_20261109.md", "what": "문서가 곧 회의 화면(C안)을 메인으로 잡은 제품 정체성", "status": "현행"},
+      {"path": "meeting-agent-poc/design/signed_jarvis_contract_v2_draft.md", "what": "손 조종 계약 2판 초안. 지금은 리포 계약이 우선", "status": "참고"},
+      {"path": "meeting-agent-poc/design/hackathon_c0mpiled17_kickoff_questions_JoohyunPark_ko_20261109.md", "what": "10시 착수 회의 질문 목록과 손 시험 기록지", "status": "참고"},
+      {"path": "meeting-agent-poc/design/hackathon_c0mpiled17_kickoff_eli5_JoohyunPark_ko_20261109.html", "what": "착수 회의에서 정할 세 묶음을 그림판으로 설명", "status": "참고"},
+      {"path": "meeting-agent-poc/design/hackathon_c0mpiled17_jarvis_plan_JoohyunPark_ko_v0_2_20261108.md", "what": "초기 기획과 단계별 착수안. 방향은 프레이밍 v0.5가 이어받음", "status": "참고"},
+      {"path": "meeting-agent-poc/design/hackathon_c0mpiled17_work_log_JoohyunPark_ko_v0_1_20261108.md", "what": "주현의 해커톤 준비 작업 기록", "status": "참고"}
+    ]},
+    {"group": "화면 디자인", "items": [
+      {"path": "meeting-agent-poc/design/wireframes/facilitator_v0_3/render_v04/index.html", "what": "실시간 문서를 왼쪽에 둔 최신 렌더 시안", "status": "현행"},
+      {"path": "meeting-agent-poc/design/wireframes/facilitator_v0_3/render_v04/NOTES.md", "what": "v0.4 변경점, 화면별 무대, 기획과 어긋난 곳", "status": "현행"},
+      {"path": "meeting-agent-poc/design/wireframes/facilitator_v0_3/render_v04/features.html", "what": "진행자 기능 넷의 전체 모양과 줄인 모양 견본", "status": "현행"},
+      {"path": "meeting-agent-poc/design/wireframes/facilitator_v0_3/TEAM_CLAUDE_DESIGN_v1.md", "what": "팀원 Claude용 진행자 사양서(상태 기계, 필수와 권장)", "status": "현행"},
+      {"path": "meeting-agent-poc/design/wireframes/facilitator_v0_2/flow.html", "what": "상태 흐름, 입출력 표, 메시지 정의", "status": "현행"},
+      {"path": "meeting-agent-poc/design/hackathon_c0mpiled17_screen_components_JoohyunPark_ko_v0_2_20261108.md", "what": "화면 구성 요소와 AI 캔버스 설계 기준판", "status": "현행"},
+      {"path": "meeting-agent-poc/design/hackathon_c0mpiled17_screen_components_JoohyunPark_ko_v0_3_delta_20261109.md", "what": "v0.2에 얹는 실시간 상황판의 이유와 형태", "status": "델타"},
+      {"path": "meeting-agent-poc/design/hackathon_c0mpiled17_mediator_cards_JoohyunPark_ko_v0_4_delta_20261109.md", "what": "v0.3 델타에 얹는 진행 참여 AI 중재 카드 안", "status": "델타"},
+      {"path": "meeting-agent-poc/design/eval_meetings/canvas_test_runs/run_20261109/RESULTS.md", "what": "회의록 대 상황판 이해도 비교 시험 결과", "status": "현행"},
+      {"path": "meeting-agent-poc/design/wireframes/facilitator_v0_2/research_unslop.md", "what": "AI 티를 빼는 조사, 읽는 거리 기준, 배치 시안 5개", "status": "참고"},
+      {"path": "meeting-agent-poc/design/wireframes/facilitator_v0_2/JUDGE.md", "what": "시안의 AI 티, 거리, 구현성 판정 기준", "status": "참고"},
+      {"path": "meeting-agent-poc/design/wireframes/facilitator_v0_2/REVIEW_redteam_20261109.md", "what": "flow.html과 v0.3 적용안 축소 레드팀 리뷰", "status": "참고"},
+      {"path": "meeting-agent-poc/design/wireframes/facilitator_v0_3/PLAN.md", "what": "v0.2 피드백을 원칙으로 묶은 v0.3 적용안", "status": "참고"},
+      {"path": "meeting-agent-poc/design/eval_meetings/canvas_research/research_digest.md", "what": "AI 캔버스 디자인 다섯 갈래 리서치 요약", "status": "참고"}
+    ]},
+    {"group": "디자인 참고 소스 (공개 링크)", "items": [
+      {"url": "https://ui.shadcn.com/", "path": "shadcn/ui", "what": "컴포넌트 라이브러리 겸 디자인 시스템", "status": "참고"},
+      {"url": "https://github.com/google-labs-code/design.md", "path": "google-labs-code/design.md", "what": "디자인 규약을 md로 쓰고 lint, 토큰 export까지 하는 형식", "status": "참고"},
+      {"url": "https://github.com/VoltAgent/awesome-design-md/", "path": "VoltAgent/awesome-design-md", "what": "실제 브랜드 DESIGN.md 모음(stripe, notion, raycast 등)", "status": "참고"},
+      {"url": "https://stitch.withgoogle.com/", "path": "Google Stitch", "what": "AI 기반 UI 디자인 생성 도구", "status": "참고"},
+      {"url": "https://paper.design/", "path": "paper.design", "what": "HTML/CSS 캔버스 디자인 도구", "status": "참고"}
+    ]},
+    {"group": "이름과 로고 (미확정)", "items": [
+      {"path": "meeting-agent-poc/design/hackathon_c0mpiled17_naming_logo_instruction_JoohyunPark_ko_20261109.md", "what": "제품 이름과 로고를 정하는 지시서", "status": "현행"},
+      {"path": "meeting-agent-poc/design/brand/candidates_ko_20261109.md", "what": "이름 후보 18개 채점과 Moai 충돌 검색", "status": "현행"},
+      {"path": "meeting-agent-poc/design/brand/naming_theory_research_ko_20261109.md", "what": "이름 짓기 이론 근거와 8항목 채점표", "status": "현행"},
+      {"path": "meeting-agent-poc/design/brand/moai_backronym_mascot_ko_20261109.md", "what": "MOAI 역두문자 후보와 마스코트 구상", "status": "현행"},
+      {"path": "meeting-agent-poc/design/brand/logo/sheet_v1.html", "what": "MOAI 워드마크와 마스코트 표정 시안", "status": "현행"},
+      {"path": "meeting-agent-poc/design/brand/external_prompt_pack_en_20261109.md", "what": "외부 모델용 블라인드 판독 프롬프트 묶음", "status": "현행"}
+    ]},
+    {"group": "평가 대본", "items": [
+      {"path": "meeting-agent-poc/design/hackathon_c0mpiled17_eval_script_plan_JoohyunPark_ko_v0_1_20261108.md", "what": "평가 대본 확장 작업의 단계와 검증 기획", "status": "현행"},
+      {"path": "meeting-agent-poc/design/eval_meetings/WRITING_SPEC.md", "what": "업종별 회의 대본 작성 규격과 검사 명령", "status": "현행"},
+      {"path": "meeting-agent-poc/design/eval_meetings/pack_src/README.md", "what": "영어 평가 회의 대본 4개 묶음 안내", "status": "현행"},
+      {"path": "meeting-agent-poc/design/eval_meetings/labels/README.md", "what": "대본 정답을 팀원이 독립 라벨링하는 절차", "status": "현행"},
+      {"path": "meeting-agent-poc/design/eval_meetings/chat_page/eval_meetings_chat.html", "what": "평가 회의 대본 4개를 채팅 형태로 보는 페이지", "status": "현행"},
+      {"path": "meeting-agent-poc/design/eval_meetings/corpus_style_notes.md", "what": "ICSI, AMI 실회의 말투 통계와 본보기", "status": "현행"}
+    ]},
+    {"group": "외부 출처 (심사진 조사의 근거)", "items": [
+      {"url": "https://luma.com/compiled-8lsr", "path": "행사 페이지 (Luma)", "what": "심사 기준, 제출 규정, 일정", "status": "참고"},
+      {"url": "https://merlinkafka.com/writing/human-in-the-loop-interface", "path": "Merlin Kafka, human-in-the-loop interface", "what": "네 질문의 원문", "status": "참고"},
+      {"url": "https://circleback.ai/releases", "path": "Circleback releases", "what": "Circleback이 이미 하는 것. 회의 중 기능은 없음", "status": "참고"},
+      {"url": "https://www.compiled.sh/articles/c0mpiled-14-uc-berkeley", "path": "c0mpiled-14 UC Berkeley 회고", "what": "Multiplayer AI 25팀 중 6팀", "status": "참고"},
+      {"url": "https://www.compiled.sh/articles/c0mpiled-16-ucsd-hackathon", "path": "c0mpiled-16 UCSD 회고", "what": "상위작은 숫자로 말했다", "status": "참고"},
+      {"url": "https://www.rex.inc/", "path": "Rex", "what": "에이전트와 재무 전문가 감독형 서비스", "status": "참고"},
+      {"url": "https://github.com/pickle-com/glass", "path": "Pickle Glass", "what": "Daniel Park 팀의 실시간 회의 노트 도구", "status": "참고"}
+    ]}
+  ]
+}
