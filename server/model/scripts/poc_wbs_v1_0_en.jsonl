@@ -4,18 +4,18 @@
 {"speaker": "Junho", "text": "We can run performance testing in parallel with integration testing."}
 {"speaker": "Jiwon", "text": "No, performance testing should start after integration testing is done."}
 {"speaker": "Jiwon", "text": "Let's vote yes or no on running performance testing after integration testing."}
-{"speaker": "Jiwon", "gesture": "Fingers_3"}
-{"speaker": "Haeun", "gesture": "Fingers_3"}
+{"speaker": "Jiwon", "gesture": "Fingers_2"}
+{"speaker": "Haeun", "gesture": "Fingers_2"}
 {"speaker": "Junho", "gesture": "Fingers_1"}
 {"speaker": "Mina", "gesture": "Fingers_1"}
 {"wait": 9}
 {"speaker": "Junho", "text": "Running them together would get us to launch three days earlier."}
 {"speaker": "Haeun", "text": "But mixing them corrupts the payment test data, so we couldn't trust the load results."}
 {"speaker": "Jiwon", "text": "Let's vote again."}
-{"speaker": "Jiwon", "gesture": "Fingers_3"}
-{"speaker": "Haeun", "gesture": "Fingers_3"}
-{"speaker": "Mina", "gesture": "Fingers_3"}
-{"speaker": "Junho", "text": "Okay."}
+{"speaker": "Jiwon", "gesture": "Fingers_2"}
+{"speaker": "Haeun", "gesture": "Fingers_2"}
+{"speaker": "Mina", "gesture": "Fingers_2"}
+{"speaker": "Junho", "text": "Two."}
 {"wait": 9}
 {"speaker": "Jiwon", "text": "Great. Performance testing goes after integration testing. That's decided."}
 {"speaker": "Junho", "text": "Please add a new task row: payment webhook handling, backend, owner Junho, three days."}
