@@ -23,10 +23,15 @@ class Room:
     def __init__(self, room_id: str = "main", seed: str | None = None):
         self.room_id = room_id
         self.seed_name = seed or os.getenv("SEED", "sprint")
-        self.t0 = time.monotonic()
-        self.events: list[Event] = []
         self.sockets: dict[Socket, str] = {}  # socket → 참석자 이름
         self.participants: dict[str, dict[str, Any]] = {}
+        self._worker: asyncio.Task | None = None
+        self._init_meeting()
+
+    def _init_meeting(self) -> None:
+        """회의 내용(시간, 이벤트, 문서, 변경, 발화 큐)만 처음 상태로. 접속과 참석자는 건드리지 않는다."""
+        self.t0 = time.monotonic()
+        self.events: list[Event] = []
         self.paused = False
         self.utterance_queue: asyncio.Queue[Event] = asyncio.Queue()
         self.state: DocState = load_seed(self.seed_name)
@@ -37,8 +42,26 @@ class Room:
         )
         log_dir = Path(os.getenv("EVENT_LOG_DIR", "results"))
         log_dir.mkdir(parents=True, exist_ok=True)
-        self.log_path = log_dir / f"events_{room_id}_{time.strftime('%m%d_%H%M%S')}.jsonl"
-        self._worker: asyncio.Task | None = None
+        self.log_path = log_dir / f"events_{self.room_id}_{time.strftime('%m%d_%H%M%S')}.jsonl"
+
+    async def reset(self) -> None:
+        """같은 방 객체를 처음 상태로 되돌린다.
+
+        방 객체를 새로 만들면 접속 중인 화면은 옛 방에 남아(옛 방 워커는 멈춤) 이후 발화가 처리되지 않는다.
+        진행 중이던 발화 처리와 지연 반영 타이머는 취소해, 리셋 전 결과가 새 회의에 끼어들지 않게 한다.
+        """
+        worker, self._worker = self._worker, None
+        if worker is not None:
+            worker.cancel()
+            if worker.get_loop() is asyncio.get_running_loop():  # 끝날 때까지 기다려 옛 결과가 새 방에 emit되지 않게
+                try:
+                    await worker
+                except asyncio.CancelledError:
+                    pass
+        for t in self.changes._timers.values():
+            t.cancel()
+        self._init_meeting()
+        self.start()
 
     # ---- 시간 ----
     def now(self) -> float:

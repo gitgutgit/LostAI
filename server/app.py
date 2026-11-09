@@ -82,30 +82,48 @@ async def join_manual(req: ManualReq):
 
 # ---------------------------------------------------------------- 회의
 
+async def _notice(ws: WebSocket, text: str) -> None:
+    await ws.send_text(json.dumps({"kind": "notice", "text": text}, ensure_ascii=False))
+
+
+async def _handle_client_message(room, name: str, raw: str, ws: WebSocket) -> None:
+    msg = ClientMessage.model_validate(json.loads(raw))
+    p = msg.payload
+    if msg.kind in ("utterance.final", "utterance.interim"):
+        text = p.get("text")
+        if not isinstance(text, str) or not text.strip():
+            return  # 빈 인식 결과: 조용히 버린다
+        await room.submit_utterance(name, text, final=msg.kind == "utterance.final")
+    elif msg.kind == "gesture":
+        await handle_gesture(room, name, p["kind"], float(p.get("confidence", 1)), int(p.get("hold_ms", 0)))
+    elif msg.kind == "change.approve":
+        await room.changes.approve(p["change_id"], by=name, via="button")
+    elif msg.kind == "change.revert":
+        err = await room.changes.revert(p["change_id"], by=name, via="button")
+        if err:
+            await _notice(ws, err)
+
+
 @app.websocket("/ws")
-async def ws_endpoint(ws: WebSocket, token: str):
+async def ws_endpoint(ws: WebSocket, token: str = ""):
     name = challenge.verify_token(token)
+    # accept 전에 close하면 uvicorn이 HTTP 403으로 바꿔 보내 브라우저는 4401을 못 보고 계속 다시 붙는다
+    await ws.accept()
     if name is None:
         await ws.close(code=4401)
         return
-    await ws.accept()
-    room = get_room()
+    room = get_room()  # 리셋은 같은 방 객체를 그 자리에서 비우므로 이 참조는 계속 유효하다
     await room.connect(ws, name)
     try:
         while True:
-            msg = ClientMessage.model_validate(json.loads(await ws.receive_text()))
-            p = msg.payload
-            if msg.kind in ("utterance.final", "utterance.interim"):
-                await room.submit_utterance(name, p["text"], final=msg.kind == "utterance.final")
-            elif msg.kind == "gesture":
-                await handle_gesture(room, name, p["kind"], float(p.get("confidence", 1)), int(p.get("hold_ms", 0)))
-            elif msg.kind == "change.approve":
-                await room.changes.approve(p["change_id"], by=name, via="button")
-            elif msg.kind == "change.revert":
-                err = await room.changes.revert(p["change_id"], by=name, via="button")
-                if err:
-                    await ws.send_text(json.dumps({"kind": "notice", "text": err}, ensure_ascii=False))
+            raw = await ws.receive_text()
+            try:
+                await _handle_client_message(room, name, raw, ws)
+            except Exception as e:  # 잘못된 메시지 하나로 접속을 끊지 않는다
+                await _notice(ws, f"요청을 처리하지 못했어요 ({type(e).__name__})")
     except WebSocketDisconnect:
+        pass
+    finally:
         room.disconnect(ws)
         await room.emit("participant.left", name, {}, {"name": name})
 
@@ -143,25 +161,31 @@ async def links(token: str):
 
 @app.get("/api/stats")
 async def stats():
-    """말 → 화면 지연 등. 단계별 latency_ms를 모은다."""
+    """서버 쪽 지연. 음성 인식과 화면 그리기 시간은 들어 있지 않다.
+
+    - latency_ms: 반영된 변경의 단계별 값(queue, route, edit, apply, total)
+    - utterance_ms: 발화 도착 → 처리 끝(done) 시간, 라우터 라벨별과 전체(all). ignore, ask도 센다
+    """
     room = get_room()
     rows = [c.latency_ms for c in room.changes.changes.values() if c.status != "failed"]
     from server.common.latency import percentiles
     keys = sorted({k for r in rows for k in r})
+    done = [e.payload for e in room.events if e.type == "agent.progress" and e.payload.get("stage") == "done"]
+    labels = sorted({d.get("label", "?") for d in done})
+    utterance_ms = {lb: percentiles([d["ms"] for d in done if d.get("label", "?") == lb]) for lb in labels}
+    utterance_ms["all"] = percentiles([d["ms"] for d in done])
     return {"changes": len(rows), "latency_ms": {k: percentiles([r[k] for r in rows if k in r]) for k in keys},
-            "events": len(room.events)}
+            "utterance_ms": utterance_ms, "events": len(room.events)}
 
 
 @app.post("/api/reset")
 async def reset():
-    from server import room as room_mod
-    old = room_mod.rooms.pop("main", None)
-    if old and old._worker:
-        old._worker.cancel()
-    new = get_room()
-    new.start()
-    await new.emit("room.reset", "server", {}, {})
-    outbox.enqueue_full_sync(new)
+    """회의 내용을 시드로 되돌린다. 접속 중인 화면은 끊지 않고 새 스냅샷을 받는다."""
+    room = get_room()
+    await room.reset()
+    await room.emit("room.reset", "server", {}, {})
+    await room.broadcast(room.snapshot())
+    outbox.enqueue_full_sync(room)
     return {"ok": True}
 
 

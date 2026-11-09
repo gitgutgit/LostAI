@@ -90,20 +90,25 @@ class ChangeManager:
         try:
             for op in ch.ops:
                 diff += apply_op(self.state, op)
-        except OpError as e:
+        except Exception as e:  # OpError 밖의 예외(없는 문서 KeyError 등)도 반쯤 적용된 채로 두지 않는다
             self.state.__dict__.update(snapshot.__dict__)
-            ch.status, ch.error = "failed", str(e)
+            ch.status = "failed"
+            ch.error = str(e) if isinstance(e, OpError) else f"{type(e).__name__}: {e}"
             await self._emit("change.failed", ch)
             return
         ch.diff, ch.targets, ch.status = diff, anchors_of(diff), "applied"
         ch.applied_ts = self.now()
         ch.latency_ms["apply"] = int((self.now() - t0) * 1000)
+        # 음성 변경이면 발화 도착 → 반영(queue + route + edit + apply). 지연 정책의 대기 시간은 빼고 잰다
+        ch.latency_ms["total"] = sum(v for k, v in ch.latency_ms.items() if k != "total")
         for a in ch.targets:
             self.state.provenance[a] = ch.change_id
         await self._emit("change.applied", ch)
 
     async def approve(self, change_id: str, by: str, via: str = "button") -> None:
-        ch = self.changes[change_id]
+        ch = self.changes.get(change_id)
+        if ch is None:  # 리셋 전 변경이나 오래된 화면의 버튼: 할 일 없음
+            return
         if ch.status == "proposed":  # 지연 중 엄지 위 → 바로 반영
             self._cancel_timer(change_id)
             await self.apply(change_id)
@@ -115,7 +120,9 @@ class ChangeManager:
 
     async def revert(self, change_id: str, by: str, via: str = "button") -> str | None:
         """되돌릴 수 없으면 이유 문장을 돌려준다."""
-        ch = self.changes[change_id]
+        ch = self.changes.get(change_id)
+        if ch is None:
+            return "이미 없는 변경이에요"
         if ch.status == "proposed":
             self._cancel_timer(change_id)
             ch.status = "discarded"
@@ -127,13 +134,28 @@ class ChangeManager:
         later = [a for a in ch.targets if self.state.provenance.get(a) not in (ch.change_id, None)]
         if later:
             return "이후에 바뀐 칸이라 되돌릴 수 없어요"
-        revert_diff(self.state, ch.diff)
+        # 이 변경이 만든 행, 구역 안을 이후 변경이 고쳤으면 그것부터 되돌려야 한다
+        if self._dependents(ch):
+            return "이 변경에 딸린 이후 변경을 먼저 되돌려 주세요"
+        snapshot = copy.deepcopy(self.state)
+        try:
+            revert_diff(self.state, ch.diff)
+        except Exception as e:  # 되돌리기가 반쯤 끝난 상태를 남기지 않는다
+            self.state.__dict__.update(snapshot.__dict__)
+            return f"되돌릴 수 없어요 ({type(e).__name__})"
         for a in ch.targets:
             self.state.provenance.pop(a, None)
         ch.status = "reverted"
         ch.approvals.append({"by": by, "via": via, "ts": self.now(), "action": "revert"})
         await self._emit("change.reverted", ch)
         return None
+
+    def _dependents(self, ch: Change) -> list[Change]:
+        """ch가 만든 앵커 아래(행 안의 칸, 구역 안의 항목)를 고친, 아직 살아 있는 이후 변경."""
+        prefixes = tuple(a + "/" for a in ch.targets)
+        return [c for c in self.changes.values()
+                if c is not ch and c.status in ("applied", "approved")
+                and any(t.startswith(prefixes) for t in c.targets)]
 
     # ---- 조회 ----
     def latest(self, statuses: tuple[str, ...] = ("applied",), within_sec: float | None = None) -> Change | None:
