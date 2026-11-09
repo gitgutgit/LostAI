@@ -1,0 +1,3 @@
+state       size  hits  answers
+decided       64  3/3 PASS  Thumbs Up | Thumbs up | Thumbs Up
+decided       32  0/3 fail  Listening intently | Taking notes | Reading Notes

@@ -1,0 +1,13 @@
+# Regenerated outputs stay local: PNG exports (render.sh, build_wm.py), judge renders,
+# wall_judge captures and diffs, the Chrome profile it keeps for the font cache.
+png/
+_rejected/
+__pycache__/
+wall_judge/ref*/
+wall_judge/app*/
+wall_judge/out*/
+wall_judge/.v04diff-*-profile/
+wall_judge/existing/
+wall_judge/nofont/
+wall_judge/coldfont/
+wall_judge/.tmp_*

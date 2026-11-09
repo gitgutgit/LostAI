@@ -1,0 +1,5 @@
+state       size  hits  answers
+listening     64  3/3 PASS  Actively listening | Actively listening | Actively listening
+listening     32  2/3 PASS  Headphones Listening | Headphones On | Headset listening
+writing       64  3/3 PASS  Taking notes | Taking Notes | Taking notes
+writing       32  3/3 PASS  Taking notes | Taking notes | Taking notes

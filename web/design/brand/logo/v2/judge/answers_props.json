@@ -1,0 +1,86 @@
+[
+ {
+  "state": "listening",
+  "size": "64",
+  "run": 0,
+  "answer": "Actively listening",
+  "hit": true
+ },
+ {
+  "state": "listening",
+  "size": "64",
+  "run": 1,
+  "answer": "Actively listening",
+  "hit": true
+ },
+ {
+  "state": "listening",
+  "size": "64",
+  "run": 2,
+  "answer": "Actively listening",
+  "hit": true
+ },
+ {
+  "state": "listening",
+  "size": "32",
+  "run": 0,
+  "answer": "Headphones Listening",
+  "hit": true
+ },
+ {
+  "state": "listening",
+  "size": "32",
+  "run": 1,
+  "answer": "Headphones On",
+  "hit": false
+ },
+ {
+  "state": "listening",
+  "size": "32",
+  "run": 2,
+  "answer": "Headset listening",
+  "hit": true
+ },
+ {
+  "state": "writing",
+  "size": "64",
+  "run": 0,
+  "answer": "Taking notes",
+  "hit": true
+ },
+ {
+  "state": "writing",
+  "size": "64",
+  "run": 1,
+  "answer": "Taking Notes",
+  "hit": true
+ },
+ {
+  "state": "writing",
+  "size": "64",
+  "run": 2,
+  "answer": "Taking notes",
+  "hit": true
+ },
+ {
+  "state": "writing",
+  "size": "32",
+  "run": 0,
+  "answer": "Taking notes",
+  "hit": true
+ },
+ {
+  "state": "writing",
+  "size": "32",
+  "run": 1,
+  "answer": "Taking notes",
+  "hit": true
+ },
+ {
+  "state": "writing",
+  "size": "32",
+  "run": 2,
+  "answer": "Taking notes",
+  "hit": true
+ }
+]

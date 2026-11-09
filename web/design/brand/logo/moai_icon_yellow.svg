@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512">
+<rect width="64" height="64" rx="12" fill="#F3C316"/>
+<defs><mask id="m"><rect width="64" height="64" fill="#fff"/><g fill="#000"><rect x="21" y="18" width="9" height="5"/><rect x="34" y="18" width="9" height="5"/><path d="M30 23H34V36H37V39H27V36H30Z"/><rect x="26" y="42" width="12" height="3"/></g></mask></defs>
+<g fill="#17212B" mask="url(#m)"><path d="M20 5H44L46 13L44 16V44L47 51H17L20 44V16L18 13Z"/><rect x="14" y="17" width="5" height="22" rx="1"/><rect x="45" y="17" width="5" height="22" rx="1"/><path d="M10 61L15 51H49L54 61Z"/></g>
+</svg>

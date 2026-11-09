@@ -1,0 +1,7 @@
+state       size  hits  answers
+listening     64  3/3 PASS  Listening Attentively | Listening intently | Listening intently
+listening     32  3/3 PASS  Listening intently | Listening intently | Actively listening
+writing       64  3/3 PASS  Taking notes. | Taking notes | Taking notes
+writing       32  3/3 PASS  Taking notes | Taking notes. | Taking notes.
+decided       64  3/3 PASS  Approving, confirmed. | Approving, Confirming | Thumbs up
+decided       32  0/3 fail  Taking notes | Taking notes | Taking notes

@@ -1,0 +1,128 @@
+[
+ {
+  "state": "listening",
+  "size": "64",
+  "run": 0,
+  "answer": "Listening Attentively",
+  "hit": true
+ },
+ {
+  "state": "listening",
+  "size": "64",
+  "run": 1,
+  "answer": "Listening intently",
+  "hit": true
+ },
+ {
+  "state": "listening",
+  "size": "64",
+  "run": 2,
+  "answer": "Listening intently",
+  "hit": true
+ },
+ {
+  "state": "listening",
+  "size": "32",
+  "run": 0,
+  "answer": "Listening intently",
+  "hit": true
+ },
+ {
+  "state": "listening",
+  "size": "32",
+  "run": 1,
+  "answer": "Listening intently",
+  "hit": true
+ },
+ {
+  "state": "listening",
+  "size": "32",
+  "run": 2,
+  "answer": "Actively listening",
+  "hit": true
+ },
+ {
+  "state": "writing",
+  "size": "64",
+  "run": 0,
+  "answer": "Taking notes.",
+  "hit": true
+ },
+ {
+  "state": "writing",
+  "size": "64",
+  "run": 1,
+  "answer": "Taking notes",
+  "hit": true
+ },
+ {
+  "state": "writing",
+  "size": "64",
+  "run": 2,
+  "answer": "Taking notes",
+  "hit": true
+ },
+ {
+  "state": "writing",
+  "size": "32",
+  "run": 0,
+  "answer": "Taking notes",
+  "hit": true
+ },
+ {
+  "state": "writing",
+  "size": "32",
+  "run": 1,
+  "answer": "Taking notes.",
+  "hit": true
+ },
+ {
+  "state": "writing",
+  "size": "32",
+  "run": 2,
+  "answer": "Taking notes.",
+  "hit": true
+ },
+ {
+  "state": "decided",
+  "size": "64",
+  "run": 0,
+  "answer": "Approving, confirmed.",
+  "hit": true
+ },
+ {
+  "state": "decided",
+  "size": "64",
+  "run": 1,
+  "answer": "Approving, Confirming",
+  "hit": true
+ },
+ {
+  "state": "decided",
+  "size": "64",
+  "run": 2,
+  "answer": "Thumbs up",
+  "hit": true
+ },
+ {
+  "state": "decided",
+  "size": "32",
+  "run": 0,
+  "answer": "Taking notes",
+  "hit": false
+ },
+ {
+  "state": "decided",
+  "size": "32",
+  "run": 1,
+  "answer": "Taking notes",
+  "hit": false
+ },
+ {
+  "state": "decided",
+  "size": "32",
+  "run": 2,
+  "answer": "Taking notes",
+  "hit": false
+ }
+]
