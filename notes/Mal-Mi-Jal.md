@@ -1,18 +1,19 @@
 # Note — 태우 (Mal-Mi-Jal) · 서버·UI 메인
 
-> 마지막 업데이트: 2026-11-09 13:30
-> 한 줄 상태: 🟢 진행 중 — 화면에 Google Sheet 바로가기 추가 완료, 다음: Google Docs 동기화
+> 마지막 업데이트: 2026-11-09 14:00
+> 한 줄 상태: 🟢 진행 중 — Google Docs 동기화 동작 + 팀 공용 Sheet/Doc 연결, PR #2 올림
 > 실행: `uv run python -m server.sync.google_auth` · `uv run uvicorn server.app:app --reload --port 8000`  ·  모드: MOCK
 
 ## 현재 목표
-- (P1→시연 필수) Google Docs 동기화 `server/sync/google_docs.py` push 구현 → 화면 📝 버튼 활성화. 그다음 PR
+- PR #2 리뷰·merge → 지연 측정(리플레이 → `/api/stats`). Docs 동기화 1.3초 → 탭 길이 캐시로 조회 1회 줄이기
 
 ## 최근 결과
 | 지표 | 값 | 목표 | 언제 · 모드 | 결과 파일 |
 |---|---|---|---|---|
-| 테스트 | 7/7 통과 (스모크 2 + Sheets 5) | 전부 통과 | 11-09 11:15 · MOCK | — |
+| 테스트 | 11/11 통과 | 전부 통과 | 11-09 11:15 · MOCK | — |
 | 말 → 화면 p50 | — | 2.5초 미만 | — | — |
-| Google Sheets 동기화 | 시작 전체 1698ms(백그라운드) · 첫 발화 445ms · 리셋 529ms, 모두 sync.ok | — | 11-09 11:38 · MOCK, 개발용 Sheet | — |
+| Google Docs 동기화 | 시작 1867ms · 결정 추가 1286ms, sync.ok | — | 11-09 13:55 · MOCK, 팀 공용 Doc(전용 탭) | — |
+| Google Sheets 동기화 | 시작 2203ms · 행 추가 448ms · 취소 393ms, sync.ok | — | 11-09 13:55 · MOCK, 팀 공용 Sheet(별도 탭) | — |
 
 ## 진행 중
 - [ ] (P0) 회의 화면 텍스트 발화 입력창 + STT 상태 표시 (시작: 12:50)
@@ -32,7 +33,6 @@
   - [ ] 팀원 Gmail 테스트 사용자 등록 여부 확인 (GCP 관리자)
 
 ## 할 일
-- [ ] (P0) 개발용 Sheet → 팀 공용 시연 Sheet로 교체 (`google_auth --sheet <URL> --save`)
 - [ ] (P0) Web Speech STT `web/src/capture/stt.ts`
 - [ ] (P0) 회의방+WS / Op 엔진 / 리플레이 — 실제 흐름에서 점검
 
@@ -43,6 +43,8 @@
 
 ## 완료
 ### 2026-11-09
+- [x] (P1) Google Docs 동기화 — `server/sync/google_docs.py`: Doc 안 전용 탭 '회의 노트'(addDocumentTab)만 미러링, 기존 탭 안 건드림. 제목2·글머리·변경 항목 노랑·'· 누가' 회색. `tests/test_google_docs.py` 3개. 화면 📝 버튼은 전용 탭으로 바로 열림
+- [x] 팀 공용 Sheet/Doc으로 `.env` 교체 (편집 권한 확인). Sheet는 별도 탭 '스프린트 24 보드'에만 씀
 - [x] (P0) B 화면 보드·노트 탭 브라우저 확인 (사용자 확인: 잘 뜸, 12:45). 카메라·마이크는 테스트 환경 없어 미확인
 - [x] (P0) cloudflared quick tunnel → web(5173, /api·/ws 프록시) https 접속 확인: 페이지 200, 입장 pass, wss snapshot → 발화 → change.applied (MOCK). 주소는 `results/tunnel_url.txt`(gitignore)에만
 - [x] PR #1 main merge (12:20)
@@ -65,3 +67,4 @@ odejs`
 - STT 기본 언어 en-US → ko-KR로 바꿈 (시드가 한국어). `?lang=en-US`로 변경 가능. 영어 시연이면 URL에 붙일 것
 - 고친 버그: Room/Outbox 워커가 첫 이벤트 루프에 묶여 TestClient를 두 번 띄우면 두 번째 발화가 멈춤 → `start()`에서 루프가 다르면 다시 만듦 (실서버 영향 없음)
 - JOIN_SECRET이 비어 있으면 서버 프로세스마다 토큰 키가 달라짐 → 서버 재시작하면 기존 화면은 다시 입장해야 함
+- 팀 공용 Sheet/Doc은 기존 PoC A 내용(WBS, 프로젝트 계획)이 있음 → 우리는 전용 탭에만 쓰고 기존 탭(`시트1`, `Tab 1`)은 안 건드림. 테스트 후 `/api/reset`으로 원상복구함

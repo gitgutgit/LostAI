@@ -134,6 +134,10 @@ async def links(token: str):
     if google_docs.enabled():
         from server.sync.google_auth import parse_id
         doc = f"https://docs.google.com/document/d/{parse_id(os.environ['GOOGLE_DOC_ID'])}/edit"
+        notes = next((d.title for d in get_room().state.docs.values() if d.kind == "doc"), None)
+        tab = google_docs.tab_id_for(notes) if notes else None
+        if tab:
+            doc += f"?tab={tab}"  # 회의 노트 전용 탭으로 바로
     return {"sheet": sheet, "doc": doc, "doc_sync": getattr(google_docs, "IMPLEMENTED", False)}
 
 

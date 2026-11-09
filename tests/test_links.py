@@ -9,7 +9,7 @@ def test_links_requires_token(monkeypatch):
     with TestClient(app_mod.app) as c:
         assert c.get("/api/links", params={"token": "nobody.bad"}).status_code == 401
         token = challenge.make_token("Ines")
-        assert c.get("/api/links", params={"token": token}).json() == {"sheet": None, "doc": None, "doc_sync": False}
+        assert c.get("/api/links", params={"token": token}).json() == {"sheet": None, "doc": None, "doc_sync": True}
 
         monkeypatch.setenv("GOOGLE_SHEET_ID", "https://docs.google.com/spreadsheets/d/S_ID/edit")
         monkeypatch.setenv("GOOGLE_DOC_ID", "D_ID")
