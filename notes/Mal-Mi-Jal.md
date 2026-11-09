@@ -1,26 +1,34 @@
 # Note — 태우 (Mal-Mi-Jal) · 서버·UI 메인
 
-> 마지막 업데이트: 2026-11-09 11:35
-> 한 줄 상태: 🟡 진행 중 — LIVE 지연 측정 완료: 목표 미달 (처리 p50 3.7초, 대기 포함 8초). PR 올림
+> 마지막 업데이트: 2026-11-09 11:55
+> 한 줄 상태: 🟢 진행 중 — 원본 문서 모드(`SEED=google`) 동작: 팀 원본 Sheet/Doc 직접 수정 + 리셋 복원 확인, PR 올림
 > 실행: `uv run python -m server.sync.google_auth` · `uv run uvicorn server.app:app --reload --port 8000`  ·  모드: MOCK
 
 ## 현재 목표
-- 지연 PR 리뷰 → 대기 시간 줄이기 방향을 한서(77SONNY77)·팀장과 정하기 (라우터·에디터 동시 실행 P1 / 시작 시 LLM 워밍업 / ignore 빠른 길)
+- PR 리뷰 대기. 예전 별도 탭('스프린트 24 보드', '회의 노트') 정리 여부 확인 → 다음 P0 (STT 실기기 확인 / 입장 화면)
 
 ## 최근 결과
 | 지표 | 값 | 목표 | 언제 · 모드 | 결과 파일 |
 |---|---|---|---|---|
+| 원본 문서 모드 실측 | 리스크 추가 Doc 859ms · 결정(섹션 생성) 830ms · 행 추가 Sheet 589ms · 취소 507ms, 리셋 후 원본과 **완전히 같음** | — | 11-09 11:55 · MOCK, 팀 원본 Sheet/Doc | `results/Mal-Mi-Jal_original_backup_1109_1154.json`(원본 백업) |
 | 말 → 화면 (대기 포함) | p50 8.0초 / 최대 12.8초 (n=10) | 2.5초 미만 ❌ | 11-09 11:35 · LIVE haiku-5-5 → sonnet-5-5, 대본 1~2초 간격 2회 | `results/Mal-Mi-Jal_replay_live_1109_1140.json`, `_1145.json` |
 | 순수 처리 (라우터+에디터+적용) | p50 3.7초 (워밍 후 n=9), 첫 호출 4.9~9.5초 | 2.5초 미만 ❌ (PoC 3.1초) | 같음 | 같음 |
+| 첫 발화 라우터 (워밍업 후) | 1213ms (워밍업 자체 3086ms, 백그라운드) | 콜드 스타트 제거 ✅ | 11-09 11:45 · LIVE haiku-5-5 | — |
 | 라우터 / 에디터 | p50 1.2초 / 2.2초 | 0.6초 / 1.5초 ❌ | 같음 | 같음 |
 | 처리 대기 (앞 발화 기다림) | p50 4.9~6.5초 | — | 같음 | 같음 |
-| 테스트 | 14/14 통과 | 전부 통과 | 11-09 11:15 · MOCK | — |
+| 테스트 | 24/24 통과 | 전부 통과 | 11-09 11:15 · MOCK | — |
 | 말 → 화면 p50 | — | 2.5초 미만 | — | — |
 | 말 → 화면 (서버) | p50 3ms / p95 6ms (n=7) | 2.5초 미만 (LIVE 기준) | 11-09 11:31 · MOCK | `results/Mal-Mi-Jal_latency_live_google_1109_1135.json` |
 | 말 → Google Doc | p50 548ms / p95 607ms (n=5), 호출 자체 544ms | — | 11-09 11:31 · MOCK, 팀 공용 Doc | 같은 파일 |
 | 말 → Google Sheet | p50 440ms / p95 518ms (n=2) | — | 11-09 11:31 · MOCK, 팀 공용 Sheet | 같은 파일 |
 
 ## 진행 중
+- [ ] (P0) 원본 문서 직접 쓰기 (시작: 11:48, 사용자 결정: 원본 읽기·원본 쓰기 / 리셋=회의 전 복원 / 결정·액션 섹션은 처음 기록 때 끝에 추가)
+  - [x] `server/sync/google_source.py` 원본 → DocState (시트1 23행×14열, Tab 1 목표·범위·마일스톤·리스크)
+  - [x] Sheets 원본 칸 단위 쓰기 (값·메모·하이라이트, 행 추가·삭제), 기존 칸 서식 보존
+  - [x] Docs 원본 문단 단위 쓰기 (삽입·수정·삭제, '· 누가' 회색, 없는 섹션은 끝에 추가)
+  - [x] 리셋 = 회의 중 변경 역순 되돌리기 + 추가한 섹션 제거
+  - [x] 바로가기 링크를 원본 탭으로
 - [ ] (P0) 지연 측정 (시작: 14:30)
   - [x] `server/common/event_latency.py` 이벤트 로그 → 단계별·전체 지연 (CLI 포함)
   - [x] `server/replay.py` 요약 · `/api/stats`에 연결 (mode, vs_goal 포함)
@@ -57,6 +65,8 @@
 
 ## 완료
 ### 2026-11-09
+- [x] (11:55) 원본 문서 모드 `SEED=google` — `server/sync/google_source.py`(불러오기·칸/문단 단위 쓰기·복원), `google_sheets`/`google_docs` 위임, `outbox.enqueue_restore`, `app.py` 시작·리셋·링크, `room.py`, `replay.py --seed`. `tests/test_google_source.py` 7개 (가짜 Docs가 '서식은 줄바꿈에 붙음' 규칙대로 동작)
+- [x] (11:45) 서버 시작·`/api/reset` 때 LIVE LLM 워밍업 — `server/common/warmup.py`, `server/app.py`. 첫 발화 라우터 3.5~8초 → 1.2초 (LIVE). PR #9 merge됨
 - [x] (P1) Google Docs 동기화 — `server/sync/google_docs.py`: Doc 안 전용 탭 '회의 노트'(addDocumentTab)만 미러링, 기존 탭 안 건드림. 제목2·글머리·변경 항목 노랑·'· 누가' 회색. `tests/test_google_docs.py` 3개. 화면 📝 버튼은 전용 탭으로 바로 열림
 - [x] 팀 공용 Sheet/Doc으로 `.env` 교체 (편집 권한 확인). Sheet는 별도 탭 '스프린트 24 보드'에만 씀
 - [x] (P0) B 화면 보드·노트 탭 브라우저 확인 (사용자 확인: 잘 뜸, 12:45). 카메라·마이크는 테스트 환경 없어 미확인
@@ -68,6 +78,9 @@
 - [x] `notes/Mal-Mi-Jal.md` 생성
 
 ## 메모
+- 12:21 PR #11을 main(#8 room.reset 구조)으로 rebase. reset 흐름: room.reset()이 멈춘 뒤의 옛 변경 반환 → enqueue_restore(같은 방) → full_sync → warmup. 복원 sync 이벤트는 utt_id 지움(새 회의 u1과 안 섞이게). 실제 팀 문서: 변경 4개 → 리셋 → 백업과 동일 (Doc·Sheet)
+- 주의: 원본 모드에서 서버를 리셋 없이 끄면 회의 중 변경이 원본에 남고, 다음 시작 때 그게 원본으로 읽힌다 (12:05~12:15 STT 테스트 한 줄이 남아 손으로 지움)
+- tests/test_server_robustness.py는 Windows에서 SIGALRM 없음 → shim으로 돌림, join_secret 0600 권한 테스트 2개는 Windows라 실패 (main과 같음)
 - 이 PC: uv는 `python -m uv`로 실행 (pip --user 설치, PATH에 없음). `pytest.exe`는 Windows 앱 제어 정책에 막힘 → `uv run python -m pytest`
 - 환경변수 `GOOGLE_CREDENTIALS` / `GOOGLE_TOKEN`으로 파일 경로를 바꿀 수 있음 (선택, `.env.example`에는 안 넣음 — 루트 파일이라 승인 필요)
 - 개발용 Sheet `[meeting-agent] dev sync test (Mal-Mi-Jal)`를 내 Drive에 만들어 `.env` GOOGLE_SHEET_ID에 연결함 (ID는 기록 안 함)
@@ -86,3 +99,5 @@ odejs`
 - 회의방 시계 `time.monotonic` → `time.perf_counter` (Windows monotonic 해상도 15.6ms라 지연이 0/16/31ms로만 찍혔음). 이전 로그의 utt_to_* 숫자는 15ms 단위로 부정확
 - 리플레이를 `--realtime` 없이 돌리면 발화가 한꺼번에 들어가 앞 발화 대기 시간이 utt_to_*에 섞임 → 지연 숫자는 `--realtime`으로
 - 11:35 LIVE 측정: 대본 간격(1~2초)보다 처리(3~4초)가 길어서 뒤 발화가 계속 밀림 → 말 → 화면이 대기 때문에 8초. 실제 회의 간격이 더 길면 줄겠지만 시연 대본 간격을 정할 때 고려
+- 11:55 Docs 규칙: 문단 서식은 그 문단 끝 줄바꿈에 붙어 있음 → 마지막 문단을 지우려고 앞 줄바꿈을 지우면 앞 문단이 지운 문단 서식을 받음. `_del_range_to_end`에서 앞 문단 서식을 다시 줌
+- `.env` SEED=google로 바꿈 (로컬). `.env.example`은 루트 파일이라 안 바꿈 → 안내는 `server/sync/GOOGLE_SETUP.md` 5절

@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 MAX_RETRIES = 3
 TARGETS = {"sheets": ("google_sheets", google_sheets), "docs": ("google_docs", google_docs),
            "linear": ("linear", linear)}
+RESTORE = "source.restore"  # 원본 모드 리셋: 앞서 넣은 되돌리기들이 끝난 뒤 하이라이트·추가 섹션 정리
 FULL_SYNC = "sync.full"  # 큐 안에서만 쓰는 작업 이름 (이벤트 type 아님): 서버 시작·리셋 때 전체 미러링
 
 
@@ -41,9 +42,24 @@ class Outbox:
         첫 호출이 Google 연결 준비(서비스 생성·탭 조회)도 겸해서 첫 발화 동기화가 빨라진다."""
         self.queue.put_nowait((room, FULL_SYNC, {}))
 
+    def enqueue_restore(self, room: "Room", changes: list[dict[str, Any]]) -> None:
+        """원본 모드 리셋: 회의 중 적용된 change를 역순으로 되돌리고 정리한다 (전부 같은 워커 줄).
+
+        room은 리셋된(같은) 방 객체. 원본 모드 push는 room.state를 읽지 않고 change의 diff만 쓰므로 새 회의 상태여도 된다.
+        sync 이벤트는 새 회의 로그에 남으니 옛 회의 utt_id는 지운다 (새 회의도 u1부터라 지연 집계에 섞이지 않게).
+        """
+        for ch in reversed(changes):
+            self.queue.put_nowait((room, "change.reverted", {**ch, "utt_id": None}))
+        self.queue.put_nowait((room, RESTORE, {}))
+
     async def _run(self) -> None:
         while True:
             room, event_type, change = await self.queue.get()
+            if event_type == RESTORE:
+                from server.sync import google_source
+                await self._push(room, "google_restore", google_source, RESTORE, change)
+                self.queue.task_done()
+                continue
             if event_type == FULL_SYNC:
                 mods = [TARGETS[t] for t in sorted(TARGETS)]
             else:
@@ -61,7 +77,9 @@ class Outbox:
             t0 = time.perf_counter()
             try:
                 # 블로킹 Google 클라이언트를 쓰더라도 워커가 하나라 동시 호출은 생기지 않는다
-                if event_type == FULL_SYNC:
+                if event_type == RESTORE:
+                    await asyncio.to_thread(mod.cleanup)
+                elif event_type == FULL_SYNC:
                     await asyncio.to_thread(mod.push_all, room.state)
                 else:
                     await asyncio.to_thread(mod.push, room.state, event_type, change)

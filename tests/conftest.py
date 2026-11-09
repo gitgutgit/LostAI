@@ -9,3 +9,4 @@ import os
 for key in ("GOOGLE_SHEET_ID", "GOOGLE_DOC_ID", "LINEAR_API_KEY"):
     os.environ[key] = ""
 os.environ.setdefault("AGENT_MODE", "MOCK")
+os.environ["SEED"] = "sprint"  # .env가 SEED=google(원본 모드)이어도 테스트는 시드로

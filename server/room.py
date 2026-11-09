@@ -11,7 +11,7 @@ from typing import Any, Protocol
 
 from server.events import Event, Refs
 from server.model.docs import DocState, load_seed
-from server.ops.changes import ChangeManager
+from server.ops.changes import Change, ChangeManager
 
 RECENT_EVENTS_ON_CONNECT = 500
 
@@ -37,7 +37,11 @@ class Room:
         self.events: list[Event] = []
         self.paused = False
         self.utterance_queue: asyncio.Queue[Event] = asyncio.Queue()
-        self.state: DocState = load_seed(self.seed_name)
+        if self.seed_name == "google":  # 원본 문서 모드: 서버 시작 때 불러온 원본 (server/sync/google_source.py)
+            from server.sync import google_source
+            self.state: DocState = google_source.baseline_copy()
+        else:
+            self.state = load_seed(self.seed_name)
         self.changes = ChangeManager(
             self.state, self._emit_from_changes, self.now,
             policy=os.getenv("COMMIT_POLICY", "immediate"),  # type: ignore[arg-type]
@@ -47,7 +51,7 @@ class Room:
         log_dir.mkdir(parents=True, exist_ok=True)
         self.log_path = log_dir / f"events_{self.room_id}_{time.strftime('%m%d_%H%M%S')}.jsonl"
 
-    async def reset(self) -> None:
+    async def reset(self) -> list[Change]:
         """같은 방 객체에서 회의 내용만 시드 상태로 되돌린다. 접속과 참석자는 그대로 둔다.
 
         방 객체를 새로 만들면 접속 중인 화면은 옛 방에 남아(옛 방 워커는 멈춤) 이후 발화가 처리되지 않는다.
@@ -68,8 +72,10 @@ class Room:
             t.cancel()
         from server.gestures.votes import votes  # 순환 import 방지
         votes.reset()  # 옛 회의의 표결 마감이 새 회의에 끼어들지 않게
+        old_changes = list(self.changes.changes.values())  # 원본 문서 복원용 (app.reset → outbox.enqueue_restore)
         self._init_meeting()
         self.start()
+        return old_changes
 
     # ---- 시간 ----
     def now(self) -> float:

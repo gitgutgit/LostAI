@@ -32,10 +32,10 @@ def load_script(path: Path) -> list[dict]:
     return lines
 
 
-async def run(path: Path, out: Path | None, realtime: bool) -> dict:
+async def run(path: Path, out: Path | None, realtime: bool, seed: str = "sprint") -> dict:
     from server.room import Room
 
-    room = Room("replay")
+    room = Room("replay", seed=seed)  # 대본은 시드 기준으로 쓰여 있다 (.env SEED=google이어도 원본을 안 건드린다)
     room.start()
     for line in load_script(path):
         if realtime and line.get("delay"):
@@ -67,9 +67,10 @@ def main() -> None:
     ap.add_argument("script", type=Path)
     ap.add_argument("--out", type=Path, default=None)
     ap.add_argument("--realtime", action="store_true", help="delay 값만큼 기다리며 재생")
+    ap.add_argument("--seed", default="sprint", help="시작 문서 (server/model/seeds/<이름>.json)")
     a = ap.parse_args()
     t0 = time.perf_counter()
-    summary = asyncio.run(run(a.script, a.out, a.realtime))
+    summary = asyncio.run(run(a.script, a.out, a.realtime, a.seed))
     summary["wall_sec"] = round(time.perf_counter() - t0, 2)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 

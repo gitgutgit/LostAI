@@ -190,6 +190,10 @@ def mirror(state: DocState, key: str, highlight: set[str] | None = None, fresh: 
 
 def push(state: DocState, event_type: str, change: dict[str, Any]) -> None:
     """event_type: change.applied | change.reverted. 실패하면 예외를 올린다 (Outbox가 재시도)."""
+    from server.sync import google_source
+    if google_source.active():  # 원본 모드: 바뀐 문단만 원본 탭에 직접
+        google_source.push_doc(event_type, change)
+        return
     record_who(event_type, change)
     for key in doc_keys_in(change):
         if key in state.docs and isinstance(state.docs[key], Doc):
@@ -198,7 +202,10 @@ def push(state: DocState, event_type: str, change: dict[str, Any]) -> None:
 
 
 def push_all(state: DocState) -> list[str]:
-    """모든 Doc을 미러링 (서버 시작·리셋 때). 새 방이므로 이전 출처도 지운다."""
+    """모든 Doc을 미러링 (서버 시작·리셋 때). 새 방이므로 이전 출처도 지운다. 원본 모드에서는 안 한다."""
+    from server.sync import google_source
+    if google_source.active():
+        return []
     _item_who.clear()
     keys = [k for k, d in state.docs.items() if isinstance(d, Doc)]
     for k in keys:

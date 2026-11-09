@@ -20,6 +20,7 @@ from server.auth import challenge  # noqa: E402
 from server.events import ClientMessage  # noqa: E402
 from server.gestures.fastpath import handle_gesture  # noqa: E402
 from server.room import get_room  # noqa: E402
+from server.common.warmup import schedule_warmup  # noqa: E402
 from server.sync.outbox import outbox  # noqa: E402
 
 log = logging.getLogger(__name__)
@@ -27,11 +28,29 @@ log = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    await load_google_source()      # SEED=google: 원본 Sheet/Doc을 회의 시작 상태로 (Outbox 시작 전 1회)
     room = get_room()
     room.start()
     outbox.start()
     outbox.enqueue_full_sync(room)  # 외부 문서를 시드 상태로 맞추고 Google 연결도 미리 데움
+    schedule_warmup(room.state)     # LIVE면 라우터·에디터 미리 호출 (첫 발화 콜드 스타트 제거)
     yield
+
+
+async def load_google_source() -> None:
+    if os.getenv("SEED") != "google":
+        return
+    import asyncio
+    import logging
+    from server.sync import google_source
+    log = logging.getLogger("uvicorn.error")
+    try:
+        await asyncio.to_thread(google_source.pull_baseline)
+        b = google_source.baseline_copy()
+        log.info("원본 문서 불러옴: 시트 %d행, 문서 섹션 %d개", len(b.docs["board"].rows), len(b.docs["notes"].sections))
+    except Exception as e:  # 원본을 못 읽으면 시드로 (회의는 연다)
+        log.warning("원본 문서 불러오기 실패 → SEED=sprint로 시작: %s", str(e)[:200])
+        os.environ["SEED"] = "sprint"
 
 
 app = FastAPI(title="meeting-agent", lifespan=lifespan)
@@ -144,7 +163,9 @@ async def links(token: str):
     Google을 새로 부르지 않는다 (호출은 Outbox 워커만): 탭 위치는 시작 동기화 때 캐시된 값만 쓴다."""
     if challenge.verify_token(token) is None:
         raise HTTPException(401, "invalid token")
-    from server.sync import google_docs, google_sheets
+    from server.sync import google_docs, google_sheets, google_source
+    if google_source.active():  # 원본 모드: 원본 탭으로 바로
+        return {**google_source.links(), "doc_sync": True}
     sheet = None
     if google_sheets.enabled():
         sid = google_sheets.spreadsheet_id()
@@ -184,12 +205,20 @@ async def stats():
 
 @app.post("/api/reset")
 async def reset():
-    """회의 내용을 시드로 되돌린다. 접속 중인 화면은 끊지 않고 새 스냅샷을 받는다."""
+    """회의 내용을 시드로 되돌린다. 접속 중인 화면은 끊지 않고 새 스냅샷을 받는다.
+
+    원본 문서 모드면 회의 중 적용된 변경을 역순으로 되돌려 Google 원본도 회의 시작 전으로 (Outbox 줄 맨 앞에서).
+    """
+    from server.sync import google_source
     room = get_room()
-    await room.reset()
+    old_changes = await room.reset()  # 워커·타이머를 멈춘 뒤의 변경 목록 → 그 사이 적용된 것도 빠지지 않는다
     await room.emit("room.reset", "server", {}, {})
     await room.broadcast(room.snapshot())
+    if google_source.active():
+        active = [c.model_dump() for c in old_changes if c.status in ("applied", "approved")]
+        outbox.enqueue_restore(room, active)
     outbox.enqueue_full_sync(room)
+    schedule_warmup(room.state)  # 시연 직전 리셋 → 프롬프트 캐시(약 5분)를 다시 데움
     return {"ok": True}
 
 
