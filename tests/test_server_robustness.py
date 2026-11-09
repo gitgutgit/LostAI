@@ -6,16 +6,45 @@ dependent reverts, orphaned sockets after reset, 403 instead of 4401, add_note o
 """
 import asyncio
 import os
+import signal
+import threading
+import time
 
 os.environ.setdefault("AGENT_MODE", "MOCK")
 
 import pytest
 from fastapi.testclient import TestClient
-from starlette.websockets import WebSocketDisconnect
 
 from server.model.docs import load_seed
 from server.ops.changes import ChangeManager
 from server.ops.engine import apply_op
+
+
+# ---------------------------------------------------------------- isolation
+
+TEST_TIMEOUT_SEC = 15  # a regression must fail, not hang on ws.receive_json()
+
+
+@pytest.fixture(autouse=True)
+def _isolate():
+    """Per-test time limit and a clean slate for module-level state (rooms, gesture cooldown, votes)."""
+    from server import room as room_mod
+    from server.gestures import fastpath
+    from server.gestures.votes import votes
+
+    def _timeout(*_):
+        raise TimeoutError(f"test exceeded {TEST_TIMEOUT_SEC}s")
+
+    old = signal.signal(signal.SIGALRM, _timeout)
+    signal.alarm(TEST_TIMEOUT_SEC)
+    room_mod.rooms.clear()
+    fastpath._last.clear()
+    votes.reset()
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old)
 
 
 # ---------------------------------------------------------------- helpers
@@ -163,14 +192,33 @@ def test_reset_keeps_sockets_and_processing_alive():
             _until(ws, _is("change.applied"))
 
 
-def test_invalid_token_closes_with_4401():
+def test_invalid_token_closes_with_4401_on_real_uvicorn():
+    """TestClient reports 4401 even for close-before-accept; only a real uvicorn shows the HTTP 403 bug."""
+    import uvicorn
+    from websockets.exceptions import ConnectionClosed, InvalidStatus
+    from websockets.sync.client import connect
+
     from server import app as app_mod
 
-    with TestClient(app_mod.app) as c:
-        with pytest.raises(WebSocketDisconnect) as e:
-            with c.websocket_connect("/ws?token=Ines.bad") as ws:
-                ws.receive_json()
-        assert e.value.code == 4401
+    server = uvicorn.Server(uvicorn.Config(app_mod.app, host="127.0.0.1", port=0, lifespan="off", log_level="warning"))
+    th = threading.Thread(target=server.run, daemon=True)
+    th.start()
+    for _ in range(100):
+        if server.started:
+            break
+        time.sleep(0.05)
+    port = server.servers[0].sockets[0].getsockname()[1]
+    try:
+        with pytest.raises(ConnectionClosed) as e:
+            try:
+                with connect(f"ws://127.0.0.1:{port}/ws?token=Ines.bad", open_timeout=5) as ws:
+                    ws.recv(timeout=5)
+            except InvalidStatus as bad:
+                pytest.fail(f"handshake rejected with HTTP {bad.response.status_code}; the browser never sees 4401")
+        assert e.value.rcvd is not None and e.value.rcvd.code == 4401
+    finally:
+        server.should_exit = True
+        th.join(5)
 
 
 # ---------------------------------------------------------------- join secret
@@ -243,3 +291,135 @@ def test_thumb_down_refusal_is_broadcast():
         assert any('"notice"' in s for s in sent)
 
     asyncio.run(run())
+
+
+def test_join_secret_empty_file_is_regenerated_and_tightened(tmp_path):
+    from server.auth.challenge import load_secret
+
+    path = tmp_path / "join_secret"
+    path.write_bytes(b"  \n")
+    os.chmod(path, 0o644)
+    key = load_secret("", path)
+    assert key and path.read_bytes() == key
+    assert (path.stat().st_mode & 0o777) == 0o600
+    path.write_bytes(b"abc\n")
+    assert load_secret("", path) == b"abc"
+
+
+# ---------------------------------------------------------------- reset while work is in flight
+
+def test_reset_while_editing_drops_old_result(monkeypatch):
+    from server import app as app_mod
+    from server.agent import pipeline
+    from server.room import get_room
+
+    async def slow_edit(text, speaker, state, transcript, label):
+        await asyncio.sleep(0.4)
+        return [{"op": "add_note", "text": "OLD:" + text}]
+
+    monkeypatch.setattr(pipeline, "edit", slow_edit)
+    with TestClient(app_mod.app) as c:
+        token = _join(c, "Ines")
+        with c.websocket_connect(f"/ws?token={token}") as ws:
+            ws.receive_json()
+            ws.send_json({"kind": "utterance.final", "payload": {"text": "결제 테스트가 불안정한 게 리스크야"}})
+            _until(ws, _is("agent.progress", stage="editing"))
+            assert c.post("/api/reset").json()["ok"]
+            _until(ws, lambda m: m["kind"] == "snapshot")
+            time.sleep(0.6)
+            monkeypatch.undo()
+            ws.send_json({"kind": "utterance.final", "payload": {"text": "결제 테스트가 불안정한 게 리스크야"}})
+            seen = _until(ws, _is("agent.progress", stage="done"))
+            assert any(_kind(m) == "change.applied" for m in seen)
+            assert not any("OLD:" in str(m) for m in seen)
+            assert "OLD:" not in get_room().state.model_dump_json()
+
+
+def test_reset_drops_queued_utterances(monkeypatch):
+    from server import app as app_mod
+    from server.agent import pipeline
+
+    async def slow_route(text, transcript):
+        await asyncio.sleep(0.3)
+        return "capture"
+
+    monkeypatch.setattr(pipeline, "route", slow_route)
+    with TestClient(app_mod.app) as c:
+        token = _join(c, "Ines")
+        with c.websocket_connect(f"/ws?token={token}") as ws:
+            ws.receive_json()
+            for t in ("QUEUED-1 리스크야", "QUEUED-2 리스크야", "QUEUED-3 리스크야"):
+                ws.send_json({"kind": "utterance.final", "payload": {"text": t}})
+            _until(ws, _is("agent.progress", stage="routing"))
+            c.post("/api/reset")
+            _until(ws, lambda m: m["kind"] == "snapshot")
+            monkeypatch.undo()
+            ws.send_json({"kind": "utterance.final", "payload": {"text": "결제 테스트가 불안정한 게 리스크야"}})
+            seen = _until(ws, _is("agent.progress", stage="done"))
+            assert not any("QUEUED" in str(m) for m in seen)
+
+
+def test_reset_cancels_delayed_commit(tmp_path, monkeypatch):
+    monkeypatch.setenv("EVENT_LOG_DIR", str(tmp_path))
+    monkeypatch.setenv("COMMIT_POLICY", "delayed")
+    monkeypatch.setenv("DELAYED_COMMIT_SEC", "0.05")
+    from server.room import Room
+
+    async def run():
+        room = Room("t_delay")
+        room.start()
+        before = room.state.model_dump()
+        ch = await room.changes.propose([{"op": "add_note", "text": "pending"}], requested_by="Ines")
+        assert ch.status == "proposed"
+        await room.reset()
+        await asyncio.sleep(0.15)
+        assert [e.type for e in room.events if e.type.startswith("change.")] == []
+        assert room.state.model_dump() == before
+
+    asyncio.run(run())
+
+
+# ---------------------------------------------------------------- failures and stats
+
+def test_llm_failure_emits_failed_not_done_and_worker_survives(monkeypatch):
+    from server import app as app_mod
+    from server.agent import pipeline
+
+    real = pipeline.route
+
+    async def flaky(text, transcript):
+        if "TIMEOUT" in text:
+            raise asyncio.TimeoutError("router timed out")
+        return await real(text, transcript)
+
+    monkeypatch.setattr(pipeline, "route", flaky)
+    with TestClient(app_mod.app) as c:
+        token = _join(c, "Ines")
+        with c.websocket_connect(f"/ws?token={token}") as ws:
+            ws.receive_json()
+            ws.send_json({"kind": "utterance.final", "payload": {"text": "TIMEOUT please"}})
+            seen = _until(ws, _is("agent.progress", stage="failed"))
+            assert isinstance(seen[-1]["event"]["payload"]["ms"], int)
+            assert not any(_is("agent.progress", stage="done")(m) for m in seen)
+            ws.send_json({"kind": "utterance.final", "payload": {"text": "결제 테스트가 불안정한 게 리스크야"}})
+            _until(ws, _is("change.applied"))
+            _until(ws, _is("agent.progress", stage="done"))
+        s = c.get("/api/stats").json()
+        assert s["failed_ms"]["n"] == 1
+        assert s["utterance_ms"]["all"]["n"] == 1
+
+
+def test_stats_count_every_router_label():
+    from server import app as app_mod
+
+    with TestClient(app_mod.app) as c:
+        token = _join(c, "Ines")
+        with c.websocket_connect(f"/ws?token={token}") as ws:
+            ws.receive_json()
+            for t in ("결제 테스트가 불안정한 게 리스크야", "그거 누가 맡았지?", "점심 뭐 먹지"):
+                ws.send_json({"kind": "utterance.final", "payload": {"text": t}})
+                _until(ws, _is("agent.progress", stage="done"))
+        s = c.get("/api/stats").json()
+        assert s["utterance_ms"]["all"]["n"] == 3
+        assert {"capture", "ask", "ignore"} <= set(s["utterance_ms"])
+        assert {"queue", "total"} <= set(s["latency_ms"])
