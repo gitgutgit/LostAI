@@ -1,11 +1,11 @@
 # Note — 태우 (Mal-Mi-Jal) · 서버·UI 메인
 
-> 마지막 업데이트: 2026-11-09 11:40
-> 한 줄 상태: 🟢 진행 중 — Sheets 동기화(시작·리셋 전체 미러링 포함) 동작, 커밋 대기 (git 원격 없음)
+> 마지막 업데이트: 2026-11-09 12:00
+> 한 줄 상태: 🟢 진행 중 — Sheets 동기화 PR #1 올림 (리뷰 대기: ProfessionalSeaweedDevourer)
 > 실행: `uv run python -m server.sync.google_auth` · `uv run uvicorn server.app:app --reload --port 8000`  ·  모드: MOCK
 
 ## 현재 목표
-- git 원격 연결되면 `Mal-Mi-Jal/sheets-sync` 브랜치로 커밋 3개 → PR. 그다음 개발용 Sheet → 팀 공용 Sheet 교체
+- PR #1 리뷰 반영 → merge. 그다음 개발용 Sheet → 팀 공용 시연 Sheet 교체 후 실제 흐름 한 번 돌리고 다음 커밋
 
 ## 최근 결과
 | 지표 | 값 | 목표 | 언제 · 모드 | 결과 파일 |
@@ -32,11 +32,12 @@
 - [ ] (P0) 회의방+WS / Op 엔진 / 리플레이 — 실제 흐름에서 점검
 
 ## 다른 영역 관련
-- [x] `tests/test_google_sheets.py`, `tests/conftest.py` 새 파일 추가 (tests/는 소유 표에 없음, 새 파일만) → gitgutgit 알림 (상태: 알림 전)
-- [x] `pyproject.toml`, `uv.lock` — Google 의존성 3개 **추가** (init-collab §2: 추가는 알리기만) → gitgutgit 알림 필요 (상태: 알림 전)
+- [x] `tests/test_google_sheets.py`, `tests/conftest.py` 새 파일 추가 (tests/는 소유 표에 없음, 새 파일만) → gitgutgit 알림 (상태: PR #1 설명에 적음)
+- [x] `pyproject.toml`, `uv.lock` — Google 의존성 3개 **추가** (init-collab §2: 추가는 알리기만) → gitgutgit 알림 (상태: PR #1 설명에 적음)
 
 ## 완료
 ### 2026-11-09
+- [x] 로컬 폴더를 `gitgutgit/LostAI`에 연결, 브랜치 `Mal-Mi-Jal/sheets-sync` 커밋 4개 → PR #1 (리뷰어 ProfessionalSeaweedDevourer)
 - [x] (P0) 서버 시작·`/api/reset` 때 Outbox로 전체 미러링 (`outbox.enqueue_full_sync`, `app.py`) — 첫 발화 동기화 1849ms → 445ms (MOCK). `tests/conftest.py`로 테스트가 실제 Google에 안 쓰게 막음
 - [x] (P0) Google Sheets `push` 구현 — `server/sync/google_sheets.py` (탭 통째 미러링 batchUpdate 1회, 셀 메모=출처, 이번 변경 노란색), `tests/test_google_sheets.py` 4개. 발화 → `change.applied` → `sync.ok` 1849ms, 취소 → `change.reverted` → `sync.ok` 505ms (MOCK)
 - [x] `notes/Mal-Mi-Jal.md` 생성
@@ -48,3 +49,4 @@
 - 동기화 방식: diff 단위 부분 수정 대신 탭 통째 미러링 — Outbox가 늦어도 최신 state로 덮으니 행 추가·삭제·되돌림 순서가 안 꼬임. 행 수가 수백 개 넘으면 다시 볼 것
 - 전체 동기화도 Outbox 큐로만 보냄 (app.py에서 직접 Google 호출 금지 → 동시 호출 규칙 유지). payload는 기존 `{target, ms}` 그대로라 계약 변경 없음
 - 이전 스모크 테스트는 `.env`의 GOOGLE_SHEET_ID 때문에 실제 Sheet에 쓰고 있었음 → conftest로 수정
+- 이 레포 git 작성자: repo-local `Mal-Mi-Jal` + GitHub noreply 이메일 (전역 `namwoo0303`은 안 건드림). gh는 `C:\Program Files\GitHub CLI\gh.exe`
