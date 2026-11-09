@@ -163,17 +163,44 @@ def test_vote_gives_people_time_and_closes_when_all_in():
     asyncio.run(run())
 
 
-def test_demo_does_not_vote_for_real_people():
-    """gitgutgit 11-09: 진짜 Junho가 입장해 있으면 대본의 'Junho: Fingers_1', 표결 중 'Junho: Two.'를 건너뛴다."""
-    from server.demo import skip_for_real_person
+def test_demo_waits_for_real_person_turn():
+    """gitgutgit 11-09: Jiwon이 진짜로 입장해 있으면 대본은 Jiwon 대사를 대신 말하지 않고, Jiwon이 직접 말할 때까지 기다린다."""
+    import asyncio
+    import os
 
-    class R:
-        participants = {"Junho": {}}
+    os.environ.setdefault("AGENT_MODE", "MOCK")
+    from server import demo as demo_mod
+    from server.room import Room
 
-    assert skip_for_real_person(R(), {"speaker": "Junho", "gesture": "Fingers_1"}, vote_open=True)
-    assert skip_for_real_person(R(), {"speaker": "Junho", "text": "Two."}, vote_open=True)
-    assert not skip_for_real_person(R(), {"speaker": "Junho", "text": "Add a task row."}, vote_open=False)  # 이야기 줄은 그대로
-    assert not skip_for_real_person(R(), {"speaker": "Mina", "gesture": "Fingers_1"}, vote_open=True)    # 입장 안 한 화자
+    from server.gestures.votes import votes
+
+    async def run():
+        votes.reset()  # 앞 시험이 열어 둔 표결이 남아 있으면 Jiwon 대사가 '표 차례'로 잡힌다
+        room = Room("turn-test")
+        room.start()
+        room.participants["Jiwon"] = {"verified": True}
+        d = demo_mod.Demo()
+        lines = [{"speaker": "Jiwon", "text": "Okay, let's start the weekly check."},
+                 {"speaker": "Mina", "text": "Wireframes are almost done."}]
+        task = asyncio.create_task(d._run(room, lines, speed=4.0))
+        await asyncio.sleep(1.0)
+        said = [e.actor for e in room.events if e.type == "utterance.final"]
+        assert said == [] and d.waiting_for == "Jiwon"   # 대본이 Jiwon 대신 말하지 않고, Mina도 아직
+        await room.submit_utterance("Jiwon", "Okay, let's start.")  # 진짜 Jiwon이 말함 (음성이든 타이핑이든)
+        await asyncio.wait_for(task, 10)
+        said = [e.actor for e in room.events if e.type == "utterance.final"]
+        assert said == ["Jiwon", "Mina"] and d.waiting_for is None
+
+    asyncio.run(run())
+
+
+def test_demo_turn_kinds():
+    from server.demo import turn_kind
+
+    assert turn_kind({"speaker": "Junho", "gesture": "Fingers_1"}, vote_open=True) == "vote"
+    assert turn_kind({"speaker": "Junho", "text": "Two."}, vote_open=True) == "vote"
+    assert turn_kind({"speaker": "Junho", "gesture": "Thumb_Up"}, vote_open=False) == "gesture"
+    assert turn_kind({"speaker": "Junho", "text": "Add a task row."}, vote_open=False) == "line"
 
 
 def test_leave_removes_participant_and_reconnect_rejoins():

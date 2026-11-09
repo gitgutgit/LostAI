@@ -10,7 +10,9 @@ author: ProfessionalSeaweedDevourer
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -32,13 +34,31 @@ def script_path(seed: str) -> Path | None:
     return None
 
 
-def skip_for_real_person(room: "Room", line: dict, vote_open: bool) -> bool:
-    """gitgutgit 11-09: 대본 화자와 같은 이름으로 진짜 사람이 입장해 있으면, 그 사람의 표는 대본이 대신 내지 않는다.
-    (손가락 줄, 표결 중의 대사.) 예전에는 대본의 'Junho: Fingers_1'이 진짜 Junho의 표로 잡혀 Junho는 투표도 못 했다."""
-    if line.get("speaker") not in getattr(room, "participants", {}):
-        return False
+TURN_WAIT_SEC = 60.0  # gitgutgit 11-09: 입장한 사람의 차례를 이만큼 기다리고, 그래도 없으면 그 줄을 건너뛴다
+
+
+def is_real_person(room: "Room", name: str | None) -> bool:
+    """대본 화자와 같은 이름으로 진짜 사람이 입장해 있나."""
+    return bool(name) and name in getattr(room, "participants", {})
+
+
+def turn_kind(line: dict, vote_open: bool) -> str:
+    """입장한 사람의 대본 줄이 무엇을 기다리나: vote(표) | gesture(손 신호) | line(말 한 줄)."""
     g = str(line.get("gesture") or "")
-    return g.startswith("Fingers_") or (vote_open and bool(line.get("text")))
+    if g.startswith("Fingers_") or (vote_open and line.get("text")):
+        return "vote"
+    return "gesture" if g else "line"
+
+
+async def tell(room: "Room", name: str, text: str) -> None:
+    """그 사람의 탭에만 안내를 띄운다 (빈 문자열이면 안내를 지운다). 이벤트 로그에는 남기지 않는다."""
+    data = json.dumps({"kind": "notice", "text": text}, ensure_ascii=False)
+    for ws, n in list(getattr(room, "sockets", {}).items()):
+        if n == name:
+            try:
+                await ws.send_text(data)
+            except Exception:
+                pass
 
 
 class Demo:
@@ -48,6 +68,7 @@ class Demo:
         self.pos = 0
         self.total = 0
         self.speed = 1.0
+        self.waiting_for: str | None = None  # 지금 차례를 기다리는 입장한 사람
 
     @property
     def running(self) -> bool:
@@ -58,7 +79,8 @@ class Demo:
         lines = len(load_script(p)) if p else 0
         mine = self.seed == seed
         return {"seed": seed, "lines": lines, "running": self.running and mine,
-                "pos": self.pos if mine else 0, "speed": self.speed}
+                "pos": self.pos if mine else 0, "speed": self.speed,
+                "waiting_for": self.waiting_for if mine else None}
 
     async def stop(self) -> None:
         task, self.task = self.task, None
@@ -94,8 +116,10 @@ class Demo:
                     await asyncio.sleep(wait / speed)
                     if not line.get("text") and not line.get("gesture"):
                         continue
-                if skip_for_real_person(room, line, votes.vote_id is not None):
-                    log.info("demo: %s is in the room, skipping their scripted vote line", line.get("speaker"))
+                if is_real_person(room, line.get("speaker")):
+                    # gitgutgit 11-09: 입장한 사람의 줄은 대본이 대신 말하지 않는다. 그 사람에게 안내를 띄우고 직접 할 때까지 기다린다.
+                    # 예전엔 Jiwon으로 입장해도 대본이 Jiwon 대사(표결 열기, 결정, 회의 끝)를 다 해 버려서 회의가 혼자 끝났다.
+                    await self._wait_turn(room, line, votes)
                     continue
                 if line.get("gesture"):
                     await room.utterance_queue.join()  # 엄지는 직전 줄의 변경을 가리키므로 처리가 끝난 뒤에
@@ -110,6 +134,34 @@ class Demo:
             raise
         except Exception:
             log.exception("demo replay failed at line %d", self.pos)
+        finally:
+            if self.waiting_for:
+                await tell(room, self.waiting_for, "")
+                self.waiting_for = None
+
+    async def _wait_turn(self, room: "Room", line: dict, votes) -> None:
+        who = line["speaker"]
+        await room.utterance_queue.join()
+        kind = turn_kind(line, votes.vote_id is not None)
+        since = room.events[-1].seq if room.events else 0
+        if kind == "vote":
+            await tell(room, who, "Your vote: show fingers, or say it (3 good · 2 okay · 1 no, or the option number).")
+            done = lambda: who in votes.cast or votes.vote_id is None
+        elif kind == "gesture":
+            await tell(room, who, f"Your turn: show {line['gesture']}.")
+            done = lambda: any(e.type == "gesture" and e.actor == who and e.seq > since for e in room.events)
+        else:
+            await tell(room, who, f'Your line: "{line["text"]}"  (say it or type it)')
+            done = lambda: any(e.type == "utterance.final" and e.actor == who and e.seq > since for e in room.events)
+        self.waiting_for = who
+        end = time.monotonic() + TURN_WAIT_SEC
+        while not done() and time.monotonic() < end:
+            await asyncio.sleep(0.2)
+        if not done():
+            log.info("demo: %s did not take their turn in %.0fs, skipping line %d", who, TURN_WAIT_SEC, self.pos)
+        self.waiting_for = None
+        await tell(room, who, "")
+        await room.utterance_queue.join()  # 그 사람이 한 말을 에이전트가 다 처리한 뒤 다음 줄
 
 
 demo = Demo()
