@@ -21,7 +21,23 @@ if TYPE_CHECKING:
 # ep: 말로 하는 표결. 표결 부르기('투표하죠')는 열린 질문이 있으면 LLM 없이 바로 표결을 열고,
 # 없으면 라우터, 에디터가 질문(open_conflict)부터 만든 뒤 연다. 표결 중 '2번' 같은 한마디는 한 표로 센다.
 VOTE_CALL = re.compile(r"(투표|표결|다수결|손 ?들어|\bvote\b|voting)", re.IGNORECASE)
-VOTE_PICK = re.compile(r"^\s*(?:[^:]{1,12}:\s*)?([1-4])\s*(번|표|번이요|번요|번이에요)?\s*[.!]?\s*$")
+VOTE_PICK = re.compile(r"^\s*(?:[^:]{1,12}:\s*)?([1-3])\s*(번|표|번이요|번요|번이에요)?\s*[.!]?\s*$")
+# gitgutgit: 표결 값 3 = 좋음, 2 = 보통, 1 = 싫음. 열린 표결에서 그 말 하나만 했을 때만 표로 센다.
+VOTE_WORDS = re.compile(r"^\s*(?:[^:]{1,12}:\s*)?(좋아요?|좋음|좋습니다|찬성|보통(이에요|이요)?|그저 그래요?|싫어요?|싫음|별로(예요|에요)?|반대|good|okay|ok|no)\s*[.!]?\s*$", re.IGNORECASE)
+
+
+def vote_value(text: str) -> int | None:
+    """'3', '2번', '좋아요', '보통', '싫어요' → 3 / 2 / 1. 표결 말이 아니면 None."""
+    if m := VOTE_PICK.match(text):
+        return int(m.group(1))
+    if m := VOTE_WORDS.match(text):
+        w = m.group(1).lower()
+        if w.startswith(("좋", "찬성", "good")):
+            return 3
+        if w.startswith(("보통", "그저", "okay", "ok")):
+            return 2
+        return 1
+    return None
 
 
 def _open_question(room: "Room") -> str | None:
@@ -48,8 +64,8 @@ async def handle_utterance(room: "Room", ev: Event) -> None:
         await room.emit("agent.progress", "agent", refs,
                         {"stage": "done", "label": label, "ms": int((room.now() - ev.ts) * 1000)})
 
-    if votes.vote_id is not None and (m := VOTE_PICK.match(text)):
-        await votes.cast_by_voice(room, speaker, int(m.group(1)))
+    if votes.vote_id is not None and (n := vote_value(text)) is not None:
+        await votes.cast_by_voice(room, speaker, n)
         await done("vote")
         return
     if VOTE_CALL.search(text) and (q := _open_question(room)) is not None:

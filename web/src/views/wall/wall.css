@@ -144,6 +144,7 @@ html.shot *,html.shot *::before,html.shot *::after{animation:none!important;tran
 .mv{font:700 200px/200px var(--disp)}
 .num{display:inline-block;width:64px;height:64px;border:4px solid currentColor;text-align:center;font:700 52px/56px var(--disp);margin:0 10px;vertical-align:-8px}
 #dial{position:absolute;right:0;top:20px;width:520px;height:309px}
+#cardB.take.rate #dial{display:none} /* 좋음·보통·싫음 결과: 1↔2 바늘은 뜻이 없다 */
 .dist{position:absolute;left:0;top:560px;width:1060px;animation:late 300ms 350ms ease-out both}
 @keyframes late{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 .dr{display:grid;grid-template-columns:90px 520px 1fr;align-items:center;font:400 56px/64px var(--text);height:96px;color:#C9D2DA}

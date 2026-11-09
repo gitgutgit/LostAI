@@ -72,7 +72,8 @@ export type CardBMsg =
 
 export interface EndCard { q: string; title: string; lines: { rich: Rich; green?: boolean }[]; parked?: boolean }
 
-export type Take = "count" | "split" | "navy conv" | "navy end";
+/** "navy conv rate": 좋음·보통·싫음 표결 결과 — 1번/2번 바늘(#dial)을 숨긴다. */
+export type Take = "count" | "split" | "navy conv" | "navy conv rate" | "navy end";
 
 export interface CardB { flap: string; off?: number[]; take?: Take; side?: string; msg: CardBMsg }
 

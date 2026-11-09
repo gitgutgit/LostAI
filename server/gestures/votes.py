@@ -1,4 +1,5 @@
 """손가락 표결 집계 (P2). 확인된 참석자 2명 이상이 2초 안에 손가락을 보이면 표결 시작, 5초 조용하면 마감.
+gitgutgit: 값은 3 = 좋음, 2 = 보통, 1 = 싫음. 그 밖의 손가락 수(0, 4, 5)는 표로 세지 않는다.
 ep: 말로 여는 표결(open_by_voice)과 말로 하는 한 표(cast_by_voice)를 더했다. 말로 연 표결은 아무도 안 내면 20초 뒤 마감."""
 from __future__ import annotations
 
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
 OPEN_WINDOW_SEC = 2.0
 QUIET_CLOSE_SEC = 5.0
 VOICE_OPEN_SEC = 20.0  # ep: 말로 연 표결의 첫 마감 시한
+RATINGS = {3: "좋음", 2: "보통", 1: "싫음"}  # gitgutgit: 손가락 수 → 뜻
 
 
 class Votes:
@@ -27,6 +29,8 @@ class Votes:
         self.__init__()
 
     async def on_fingers(self, room: "Room", who: str, n: int) -> None:
+        if n not in RATINGS:  # 주먹(0), 4, 5는 표가 아니다
+            return
         now = time.monotonic()
         if self.vote_id is None:
             self.pending[who] = (n, now)
@@ -52,8 +56,8 @@ class Votes:
         return True
 
     async def cast_by_voice(self, room: "Room", who: str, n: int) -> None:
-        """ep: 열린 표결에 말로 한 표('2번')."""
-        if self.vote_id is not None:
+        """ep: 열린 표결에 말로 한 표('2번', '좋아요')."""
+        if self.vote_id is not None and n in RATINGS:
             await self._cast(room, who, n)
 
     async def _cast(self, room: "Room", who: str, n: int) -> None:
