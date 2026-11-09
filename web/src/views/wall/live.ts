@@ -26,7 +26,7 @@ const str = (x: unknown) => (x === null || x === undefined ? "" : String(x));
  *  선택지 카드: 실제 선택지가 2~4개 → 번호 1~N 고르기. 범위 밖의 값은 세지 않는다. */
 const RATING: Record<number, string> = { 3: "Good", 2: "Okay", 1: "No" };
 const isRatingCard = (c?: Conflict) => !c || c.positions.length < 2 || c.positions.some((p) => /^(반대|no)$/i.test(p.says.trim()));
-const RATING_PROMPT = "3 fingers good, 2 okay, 1 no (좋음 · 보통 · 싫음). Or say it.";
+const RATING_PROMPT = "3 fingers good, 2 okay, 1 no. Or say good, okay or no (좋아요 · 보통 · 싫어요).";
 /** 회의를 끝내는 말과 다시 여는 말. 마지막 확정 발화 기준으로 CLOSED 끝 화면을 띄운다. */
 const CLOSE_RE = /(회의(를|는)?\s*(종료|마치|마무리|끝내|끝냅|끝)|회의\s*끝|오늘(은)?\s*여기까지|\bend (the )?meeting\b|\blet'?s (wrap|close)( it)? up\b|\bthat'?s a wrap\b|\bmeeting (is )?(over|closed)\b)/i;
 const REOPEN_RE = /(회의\s*(계속|재개|다시)|다시\s*시작|\b(reopen|resume) the meeting\b)/i;
@@ -83,7 +83,7 @@ export function lastVoteSeq(v: RoomView): number {
 }
 
 /** hideTakeUpTo: 이 seq까지의 표결 이벤트로 생긴 전체화면 표결 화면은 닫힌 것으로 보고 평소 카드로 그린다 (평상시 화면 버튼, 5초 카운트다운). */
-export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseUpTo = -1): WallState {
+export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseUpTo = -1, voteLeftSec?: number | null): WallState {
   const s = v.state;
   const lines = lineIndex(v.events);
   const L = (ch?: Change | null) => (ch?.utt_id && lines.get(ch.utt_id) ? `L${lines.get(ch.utt_id)!.n}` : "");
@@ -278,8 +278,12 @@ export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseU
   else if (countShown) {
     const cast = v.events.filter((e) => e.type === "vote.cast" && e.refs.vote_id === vOpen!.refs.vote_id).length;
     const vq = cardOf(vOpen!);
-    const prompt = isRatingCard(vq) ? RATING_PROMPT : `Pick a number: ${valuesFor(vq).map((n) => `${n} ${optName(vq, n)}`).join(", ")}. Fingers or say it.`;
-    cardB = { flap: "3 2 1", off: [0, 4], take: "count", msg: { kind: "countdown", q: vq ? qOf(vq) : "Q", title: vq?.topic ?? "Vote", prompt: `${prompt} ${cast} read.` } };
+    const prompt = isRatingCard(vq) ? RATING_PROMPT : `Pick a number: ${valuesFor(vq).map((n) => `${n} ${optName(vq, n)}`).join(", ")}. Show fingers, or say "two" or "option two" (2번).`;
+    // gitgutgit: 남은 초를 글자판에 숫자로 (서버가 준 closes_in 기준). 모르면 예전처럼 "3 2 1".
+    const left = voteLeftSec != null ? Math.max(0, voteLeftSec) : null;
+    cardB = left != null
+      ? { flap: String(left), take: "count", msg: { kind: "countdown", q: vq ? qOf(vq) : "Q", title: vq?.topic ?? "Vote", prompt: `${prompt} ${cast} read. Closes in ${left}s.` } }
+      : { flap: "3 2 1", off: [0, 4], take: "count", msg: { kind: "countdown", q: vq ? qOf(vq) : "Q", title: vq?.topic ?? "Vote", prompt: `${prompt} ${cast} read.` } };
   } else if (vClosed && tally((vClosed.payload.votes ?? {}) as Record<string, number>, valuesFor(cardOf(vClosed))).votes.length === 0 && (!lastAgent || vClosed.seq > lastAgent.seq)) {
     const vq = cardOf(vClosed);
     cardB = { flap: "NO VOTE", msg: { kind: "headline", big: ["No hands read"], sub: [`${isRatingCard(vq) ? RATING_PROMPT : "Show fingers or say a number."} Then call the vote again.`], subTop: 4 } };

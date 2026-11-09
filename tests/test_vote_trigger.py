@@ -118,7 +118,8 @@ def test_second_vote_opens_on_the_new_question():
             say("Eric", "투표하죠.", opened(1))
             say("Ines", "1번", lambda ev: any(e["type"] == "vote.cast" for e in ev))
             say("Ines", "그냥", lambda ev: True)  # 아무 말
-            ev = _wait(c, lambda ev: any(e["type"] == "vote.closed" for e in ev), sec=10)
+            from server.gestures.votes import QUIET_CLOSE_SEC  # 표결 마감 시간이 바뀌어도 따라가게
+            ev = _wait(c, lambda ev: any(e["type"] == "vote.closed" for e in ev), sec=QUIET_CLOSE_SEC + 5)
             say("Eric", "회고는 화요일이랑 목요일 중에 어느 쪽이 좋을까요?",
                 lambda ev: sum(e["type"] == "change.applied" for e in ev) >= 2)
             ev = say("Eric", "투표하죠.", opened(2))

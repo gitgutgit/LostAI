@@ -48,6 +48,11 @@ def test_rating_card_counts_1_to_3_and_words():
         await v.cast_by_voice(room, "a", 4)          # 찬반 카드에서 4는 안 셈
         assert v.rating_word("좋아요") == 3 and v.rating_word("보통") == 2 and v.rating_word("하은: 싫어요") == 1
         assert v.rating_word("좋아요 근데 일정은요") is None
+        # 영어 회의(기본 언어)
+        for said, want in [("Good.", 3), ("Yes", 3), ("I agree", 3), ("Mina: sounds good", 3), ("Okay", 2), ("fine", 2),
+                           ("neutral", 2), ("No.", 1), ("nope", 1), ("I disagree", 1), ("against it", 1)]:
+            assert v.rating_word(said) == want, said
+        assert v.rating_word("Good point, but what about the date?") is None
         await v.cast_by_voice(room, "a", v.rating_word("좋아요"))
         await v.on_fingers(room, "b", 1)
         assert v.cast == {"a": 3, "b": 1}

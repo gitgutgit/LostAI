@@ -38,6 +38,8 @@ async def run(path: Path, out: Path | None, realtime: bool, seed: str = "sprint"
     room = Room("replay", seed=seed)  # 대본은 시드 기준으로 쓰여 있다 (.env SEED=google이어도 원본을 안 건드린다)
     room.start()
     for line in load_script(path):
+        if not line.get("text"):  # 손 신호·wait 줄(데모 자동 재생용)은 리플레이에서 건너뛴다
+            continue
         if realtime and line.get("delay"):
             await asyncio.sleep(line["delay"])
         await room.submit_utterance(line["speaker"], line["text"])

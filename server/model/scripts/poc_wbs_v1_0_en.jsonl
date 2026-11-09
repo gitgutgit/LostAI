@@ -1,0 +1,26 @@
+{"speaker": "Jiwon", "text": "Okay, let's start the weekly WBS check."}
+{"speaker": "Mina", "text": "The wireframes are almost done. Set UI wireframes progress to 80 percent."}
+{"speaker": "Haeun", "text": "Integration testing needs more time to cover payments. Make it ten days."}
+{"speaker": "Junho", "text": "We can run performance testing in parallel with integration testing."}
+{"speaker": "Jiwon", "text": "No, performance testing should start after integration testing is done."}
+{"speaker": "Jiwon", "text": "Let's vote yes or no on running performance testing after integration testing."}
+{"speaker": "Jiwon", "gesture": "Fingers_2"}
+{"speaker": "Haeun", "gesture": "Fingers_2"}
+{"speaker": "Junho", "gesture": "Fingers_1"}
+{"speaker": "Mina", "gesture": "Fingers_1"}
+{"wait": 14}
+{"speaker": "Junho", "text": "Running them together would get us to launch three days earlier."}
+{"speaker": "Haeun", "text": "But mixing them corrupts the payment test data, so we couldn't trust the load results."}
+{"speaker": "Jiwon", "text": "Let's vote again."}
+{"speaker": "Jiwon", "gesture": "Fingers_2"}
+{"speaker": "Haeun", "gesture": "Fingers_2"}
+{"speaker": "Mina", "gesture": "Fingers_2"}
+{"speaker": "Junho", "text": "Two."}
+{"wait": 14}
+{"speaker": "Jiwon", "text": "Great. Performance testing goes after integration testing. That's decided."}
+{"speaker": "Junho", "text": "Please add a new task row: payment webhook handling, backend, owner Junho, three days."}
+{"speaker": "Mina", "text": "Then launch moves to January 21st, but the marketing campaign starts January 14th."}
+{"speaker": "Jiwon", "text": "We'll settle the launch date with marketing tomorrow. Leave it open for now."}
+{"speaker": "Haeun", "text": "Add an action for me: write the integration test checklist."}
+{"speaker": "Jiwon", "text": "Okay, that's it for today. Let's end the meeting."}
+{"wait": 6}

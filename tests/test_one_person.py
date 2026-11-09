@@ -97,7 +97,8 @@ def _run(app_mod):
             say("Ines", "1번", lambda ev: sum(e["type"] == "vote.cast" for e in ev) >= 1)
             say("Owen", "2번", lambda ev: sum(e["type"] == "vote.cast" for e in ev) >= 2)
             hand("Ravi", "Fingers_1", lambda ev: sum(e["type"] == "vote.cast" for e in ev) >= 3)
-            ev = _wait(c, lambda ev: any(e["type"] == "vote.closed" for e in ev), sec=10)
+            from server.gestures.votes import QUIET_CLOSE_SEC  # 표결 마감 시간이 바뀌어도 따라가게
+            ev = _wait(c, lambda ev: any(e["type"] == "vote.closed" for e in ev), sec=QUIET_CLOSE_SEC + 5)
             closed = next(e for e in ev if e["type"] == "vote.closed")
             assert closed["payload"]["votes"] == {"Ines": 1, "Owen": 2, "Ravi": 1}
 

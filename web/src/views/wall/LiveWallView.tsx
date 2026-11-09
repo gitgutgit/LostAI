@@ -113,7 +113,20 @@ export function LiveWallView({ me }: { me?: string }) {
   const onLang = () => { if (stopMic.current) { stopMic.current(); stopMic.current = startStt(); } };
 
   // hs: 제스처 커스텀 훅 — 버튼으로 활성화, Thumb_Down 3초로 끄기
-  useGesture(() => document.getElementById("livewrap"), gesture, () => setGesture(false));
+  // gitgutgit: 표결이 열려 있으면 Gesture 버튼과 관계없이 카메라를 켜고 손가락 수만 표로 보낸다(확대·포인터 끔).
+  const lastVoteEv = [...v.events].reverse().find((e) => e.type === "vote.opened" || e.type === "vote.closed");
+  const voteOpen = lastVoteEv?.type === "vote.opened";
+  const [camErr, setCamErr] = useState("");
+  // gitgutgit: 표결 남은 초 — 마지막 표결 이벤트(vote.opened/cast)를 받은 순간부터 그 이벤트의 closes_in을 센다
+  const lastVoteTick = [...v.events].reverse().find((e) => e.type === "vote.opened" || e.type === "vote.cast" || e.type === "vote.closed");
+  const seen = useRef<{ seq: number; at: number }>({ seq: -1, at: 0 });
+  if (lastVoteTick && lastVoteTick.seq !== seen.current.seq) seen.current = { seq: lastVoteTick.seq, at: Date.now() };
+  const [, setTick] = useState(0);
+  useEffect(() => { if (!voteOpen) return; const t = setInterval(() => setTick((n) => n + 1), 500); return () => clearInterval(t); }, [voteOpen]);
+  const closesIn = voteOpen && lastVoteTick?.type !== "vote.closed" ? Number(lastVoteTick?.payload.closes_in) : NaN;
+  const voteLeftSec = Number.isFinite(closesIn) ? Math.ceil(closesIn - (Date.now() - seen.current.at) / 1000) : null;
+  useGesture(() => document.getElementById("livewrap"), gesture || voteOpen, () => setGesture(false),
+    { voteOnly: voteOpen, onCamera: (s) => setCamErr(s.ok ? "" : s.reason) });
 
   // 키: M 마이크, F 전체 화면 (입력칸에 쓰는 중이면 무시)
   useEffect(() => {
@@ -130,7 +143,7 @@ export function LiveWallView({ me }: { me?: string }) {
   }, []);
 
   if (!v.state) return <FitStage><div id="stage"><div className="head" style={{ left: 24 }}>Connecting…</div></div></FitStage>;
-  const w0 = liveWall(v, me, hideTakeUpTo, closeSeq < hideCloseUpTo ? -1 : hideCloseUpTo);
+  const w0 = liveWall(v, me, hideTakeUpTo, closeSeq < hideCloseUpTo ? -1 : hideCloseUpTo, voteLeftSec);
   const isClosed = w0.cardB.take === "navy end";
   const qKey = w0.cardA ? `${w0.cardA.q} ${w0.cardA.title}` : "";
   const qHidden = !!qKey && qKey === hiddenQ && !w0.cardB.take;
@@ -146,6 +159,7 @@ export function LiveWallView({ me }: { me?: string }) {
       {isClosed && <button id="back-normal" onClick={() => setHideCloseUpTo(closeSeq)} title="끝 화면을 접고 회의 화면으로">✕ 회의 화면으로</button>}
       {minutes && <Minutes onClose={() => setMinutes(false)} />}
       {v.notice && <div id="notice">{v.notice}</div>}
+      {camErr && (gesture || voteOpen) && <div id="notice">📷 {camErr}</div>}
       {/* ep: Google Sheet, Doc 바로가기 + 테스트 대본 선택(임시). 무대(1920x1080) 배치는 건드리지 않게 창 왼쪽 아래 층에 둔다. 문서가 바뀌면(제목) 다시 받는다 */}
       <div id="wall-tools"><DocLinks refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} /><LangToggle onChange={onLang} /><TestSeedPicker /><DemoPlayer refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} /></div>
     </>}>
