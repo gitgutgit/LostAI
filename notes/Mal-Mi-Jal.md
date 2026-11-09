@@ -1,11 +1,11 @@
 # Note — 태우 (Mal-Mi-Jal) · 서버·UI 메인
 
-> 마지막 업데이트: 2026-11-09 12:40
-> 한 줄 상태: 🟢 진행 중 — https 터널 동작 (입장·WS·발화 확인), 다음: B 화면 브라우저 확인
+> 마지막 업데이트: 2026-11-09 13:05
+> 한 줄 상태: 🟢 진행 중 — 텍스트 발화 입력창 + STT 상태 표시 (`Mal-Mi-Jal/canvas-view`)
 > 실행: `uv run python -m server.sync.google_auth` · `uv run uvicorn server.app:app --reload --port 8000`  ·  모드: MOCK
 
 ## 현재 목표
-- B 화면 보드·노트 탭을 브라우저(터널 주소)에서 확인. 카메라 입장·마이크 STT 실제로 눌러 보기
+- 텍스트 발화 입력창 + STT 상태 표시 → 터널로 확인 → PR. 그다음 지연 측정(리플레이 → `/api/stats`)
 
 ## 최근 결과
 | 지표 | 값 | 목표 | 언제 · 모드 | 결과 파일 |
@@ -15,6 +15,11 @@
 | Google Sheets 동기화 | 시작 전체 1698ms(백그라운드) · 첫 발화 445ms · 리셋 529ms, 모두 sync.ok | — | 11-09 11:38 · MOCK, 개발용 Sheet | — |
 
 ## 진행 중
+- [ ] (P0) 회의 화면 텍스트 발화 입력창 + STT 상태 표시 (시작: 12:50)
+  - [x] `web/src/capture/stt.ts` 상태 콜백(듣는 중/권한 거부/미지원/오류), 언어 ko-KR 기본
+  - [x] `web/src/views/canvas/CanvasView.tsx` 입력창 (Enter 전송, 연결 끊김 안내) + `core/ws.ts` `send()`가 성공 여부 반환 + `styles.css`
+  - [x] typecheck · build 통과 (13:00)
+  - [ ] 브라우저에서 입력창으로 발화 → 화면·Sheet 확인 (사용자 확인 대기)
 - [ ] (P0) Google 인증 세팅 (시작: 10:30)
   - [x] PoC OAuth 클라이언트 `credentials.json` 루트로 복사 (PoC `token.json`은 계정 불명이라 안 가져옴)
   - [x] 의존성 추가: google-api-python-client, google-auth-oauthlib, google-auth-httplib2 (`pyproject.toml`, `uv.lock`)
@@ -27,7 +32,6 @@
 
 ## 할 일
 - [ ] (P0) 개발용 Sheet → 팀 공용 시연 Sheet로 교체 (`google_auth --sheet <URL> --save`)
-- [ ] (P0) B 화면 보드·노트 탭 — 브라우저에서 fixture 재생 확인
 - [ ] (P0) Web Speech STT `web/src/capture/stt.ts`
 - [ ] (P0) 회의방+WS / Op 엔진 / 리플레이 — 실제 흐름에서 점검
 
@@ -37,6 +41,7 @@
 
 ## 완료
 ### 2026-11-09
+- [x] (P0) B 화면 보드·노트 탭 브라우저 확인 (사용자 확인: 잘 뜸, 12:45). 카메라·마이크는 테스트 환경 없어 미확인
 - [x] (P0) cloudflared quick tunnel → web(5173, /api·/ws 프록시) https 접속 확인: 페이지 200, 입장 pass, wss snapshot → 발화 → change.applied (MOCK). 주소는 `results/tunnel_url.txt`(gitignore)에만
 - [x] PR #1 main merge (12:20)
 - [x] 로컬 폴더를 `gitgutgit/LostAI`에 연결, 브랜치 `Mal-Mi-Jal/sheets-sync` 커밋 4개 → PR #1 (리뷰어 ProfessionalSeaweedDevourer)
@@ -55,3 +60,4 @@
 - 이 PC는 Smart App Control On → rollup 네이티브 차단. `npm install --no-save "rollup@npm:@rollup/wasm-node@4.68.0"`로 node_modules만 우회 (package.json 안 바꿈. `npm ci` 다시 하면 재적용 필요). Node는 `C:\Program Files
 odejs`
 - 터널 띄우기: 서버 `uv run python -m uvicorn server.app:app --port 8000` → web `npx vite --host 0.0.0.0` → `"C:/Program Files (x86)/cloudflared/cloudflared.exe" tunnel --url http://localhost:5173`. quick tunnel은 재시작마다 주소 바뀜
+- STT 기본 언어 en-US → ko-KR로 바꿈 (시드가 한국어). `?lang=en-US`로 변경 가능. 영어 시연이면 URL에 붙일 것

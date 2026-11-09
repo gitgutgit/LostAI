@@ -14,6 +14,9 @@ export function connect(token: string) {
   };
 }
 
-export function send(msg: ClientMessage) {
-  if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(msg));
+/** 보냈으면 true. 연결이 끊긴 동안에는 버리고 false (화면에서 안내). */
+export function send(msg: ClientMessage): boolean {
+  if (socket?.readyState !== WebSocket.OPEN) return false;
+  socket.send(JSON.stringify(msg));
+  return true;
 }
