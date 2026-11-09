@@ -10,7 +10,7 @@ COPY web/ ./
 RUN npm run build
 
 FROM python:3.11-slim
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONUNBUFFERED=1 LOSTAI_IMAGE=dockerfile
 WORKDIR /app
 # uv.lock과 같은 고정 버전 (uv export로 뽑음 → 컨테이너에 uv 버전을 맞출 필요 없음)
 COPY server/deploy/requirements.txt /tmp/requirements.txt

@@ -24,6 +24,7 @@ from server.common.warmup import schedule_warmup  # noqa: E402
 from server.sync.outbox import outbox  # noqa: E402
 
 log = logging.getLogger(__name__)
+_WEB_DIST = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web", "dist")  # 배포 때 화면 빌드
 
 
 @asynccontextmanager
@@ -249,12 +250,15 @@ async def reset():
 
 @app.get("/health")
 async def health():
-    return {"ok": True}
+    """배포 확인용: 비밀 값은 없이 있다/없다만."""
+    from server.sync import google_auth, google_source
+    return {"ok": True, "image": os.getenv("LOSTAI_IMAGE", "local"), "web": os.path.isdir(_WEB_DIST),
+            "google_token": google_auth.token_path().exists() or bool(os.getenv("GOOGLE_TOKEN_JSON") or os.getenv("GOOGLE_TOKEN_B64")),
+            "source": google_source.active(), "seed": get_room().seed_name}
 
 
 # ---- 배포(Railway 등): 빌드된 화면(web/dist)을 같은 서버가 내보낸다. 개발 때는 Vite(5173)가 프록시하므로 없음.
 # API·WebSocket 라우트가 먼저 잡히고, 나머지 경로만 화면 파일로 간다 (맨 마지막에 둔다).
-_WEB_DIST = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web", "dist")
 if os.path.isdir(_WEB_DIST):
     from fastapi.staticfiles import StaticFiles
     app.mount("/", StaticFiles(directory=_WEB_DIST, html=True), name="web")

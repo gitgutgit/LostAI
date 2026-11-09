@@ -20,14 +20,14 @@
 | `ANTHROPIC_API_KEY` | LIVE일 때 |
 | `SEED` | `google` (원본 문서) / `sprint` (예시 문서) |
 | `GOOGLE_SHEET_ID`, `GOOGLE_DOC_ID` | 원본 Sheet/Doc 주소나 ID |
-| `GOOGLE_TOKEN_JSON` | 서버 계정 `token.json` **내용 전체** (한 줄 JSON). refresh token과 클라이언트 정보가 들어 있어 이것만 있으면 된다 |
+| `GOOGLE_TOKEN_B64` | **추천.** PC에서 만든 `results/railway_token_b64.txt` 내용 한 줄 그대로 (token.json을 base64로: `python -c "import base64;print(base64.b64encode(open('token.json','rb').read()).decode())"`). 또는 `GOOGLE_TOKEN_JSON`에 token.json 내용 전체 |
 | `JOIN_SECRET` | 아무 긴 무작위 문자열 (재배포해도 입장 토큰이 안 끊기게) |
 
 `PORT`는 Railway가 준다. 나머지(`COMMIT_POLICY` 등)는 비우면 기본값.
 
 ## 3. 확인
 
-- `https://<도메인>/health` → `{"ok":true}`
+- `https://<도메인>/health` → `image: dockerfile`(제 Dockerfile로 빌드됨), `web: true`(화면 있음), `google_token: true`, `source: true`(원본 문서 모드)
 - 배포 로그에 `원본 문서 불러옴: 시트 N행, 문서 섹션 M개` (못 읽으면 경고 후 `SEED=sprint`)
 - 화면 접속 → 입장 → 🎙 → 말 → 원본 Sheet/Doc 반영
 

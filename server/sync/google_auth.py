@@ -41,9 +41,18 @@ def token_path() -> Path:
 def materialize_from_env() -> None:
     """배포 환경(Railway 등)에는 파일을 못 올리므로 환경 변수 GOOGLE_TOKEN_JSON / GOOGLE_CREDENTIALS_JSON 에
     파일 내용을 그대로 넣는다 → 파일이 없을 때만 써 둔다 (토큰 갱신도 그 파일에 저장된다)."""
-    for path, var in ((token_path(), "GOOGLE_TOKEN_JSON"), (credentials_path(), "GOOGLE_CREDENTIALS_JSON")):
-        raw = os.getenv(var, "").strip()
-        if raw and not path.exists():
+    import base64
+    for path, var in ((token_path(), "GOOGLE_TOKEN"), (credentials_path(), "GOOGLE_CREDENTIALS")):
+        if path.exists():
+            continue
+        raw = os.getenv(f"{var}_JSON", "").strip().strip("'\"")  # 대시보드에서 따옴표로 감싸 넣은 경우
+        b64 = os.getenv(f"{var}_B64", "").strip()  # 붙여넣기 실수가 적은 한 줄 base64 (results/railway_token_b64.txt)
+        if b64:
+            try:
+                raw = base64.b64decode(b64).decode("utf-8")
+            except ValueError:
+                raw = ""
+        if raw.startswith("{"):
             path.write_text(raw, encoding="utf-8")
 
 
