@@ -10,7 +10,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "in=$(cat); case \"$in\" in *'git push'*|*'gh pr '*) ;; *) exit 0;; esac; for p in python3 python; do \"$p\" -c 'import sys; sys.exit(sys.version_info < (3, 9))' 2>/dev/null && { printf '%s' \"$in\" | \"$p\" \"$CLAUDE_PROJECT_DIR/scripts/pr_guard.py\" --hook pre; exit $?; }; done; exit 0",
+            "command": "in=$(cat); case \"$in\" in *'git push'*|*'gh pr '*) ;; *) exit 0;; esac; [ -f \"$CLAUDE_PROJECT_DIR/scripts/pr_guard.py\" ] || exit 0; for p in python3 python; do \"$p\" -c 'import sys; sys.exit(sys.version_info < (3, 9))' 2>/dev/null && { printf '%s' \"$in\" | \"$p\" \"$CLAUDE_PROJECT_DIR/scripts/pr_guard.py\" --hook pre; exit $?; }; done; exit 0",
             "timeout": 90
           }
         ]
@@ -22,7 +22,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "in=$(cat); case \"$in\" in *'git push'*|*'gh pr '*) ;; *) exit 0;; esac; for p in python3 python; do \"$p\" -c 'import sys; sys.exit(sys.version_info < (3, 9))' 2>/dev/null && { printf '%s' \"$in\" | \"$p\" \"$CLAUDE_PROJECT_DIR/scripts/pr_guard.py\" --hook post; exit $?; }; done; exit 0",
+            "command": "in=$(cat); case \"$in\" in *'git push'*|*'gh pr '*) ;; *) exit 0;; esac; [ -f \"$CLAUDE_PROJECT_DIR/scripts/pr_guard.py\" ] || exit 0; for p in python3 python; do \"$p\" -c 'import sys; sys.exit(sys.version_info < (3, 9))' 2>/dev/null && { printf '%s' \"$in\" | \"$p\" \"$CLAUDE_PROJECT_DIR/scripts/pr_guard.py\" --hook post; exit $?; }; done; exit 0",
             "timeout": 120
           }
         ]
