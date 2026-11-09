@@ -93,6 +93,9 @@ class Room:
 
     # ---- 발화 큐: 순서대로 하나씩 ----
     def start(self) -> None:
+        # 이전 이벤트 루프에 묶인 워커(테스트에서 서버를 다시 띄울 때)는 버리고 새 루프에서 다시 만든다
+        if self._worker is not None and self._worker.get_loop() is not asyncio.get_running_loop():
+            self._worker, self.utterance_queue = None, asyncio.Queue()
         if self._worker is None:
             self._worker = asyncio.create_task(self._utterance_worker())
 

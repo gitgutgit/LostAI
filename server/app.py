@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
@@ -112,6 +113,32 @@ async def ws_endpoint(ws: WebSocket, token: str):
 @app.get("/api/state")
 async def state():
     return get_room().snapshot()
+
+
+@app.get("/api/links")
+async def links(token: str):
+    """실제 Google 문서 바로가기. 입장한 참가자(토큰)에게만 준다 — 문서 주소는 로그·이벤트에 안 남긴다.
+    Google을 새로 부르지 않는다 (호출은 Outbox 워커만): 탭 위치는 시작 동기화 때 캐시된 값만 쓴다."""
+    if challenge.verify_token(token) is None:
+        raise HTTPException(401, "invalid token")
+    from server.sync import google_docs, google_sheets
+    sheet = None
+    if google_sheets.enabled():
+        sid = google_sheets.spreadsheet_id()
+        sheet = f"https://docs.google.com/spreadsheets/d/{sid}/edit"
+        board = next((d.title for d in get_room().state.docs.values() if d.kind == "sheet"), None)
+        gid = google_sheets._tabs.get(sid, {}).get(board) if board else None
+        if gid is not None:
+            sheet += f"#gid={gid}"
+    doc = None
+    if google_docs.enabled():
+        from server.sync.google_auth import parse_id
+        doc = f"https://docs.google.com/document/d/{parse_id(os.environ['GOOGLE_DOC_ID'])}/edit"
+        notes = next((d.title for d in get_room().state.docs.values() if d.kind == "doc"), None)
+        tab = google_docs.tab_id_for(notes) if notes else None
+        if tab:
+            doc += f"?tab={tab}"  # 회의 노트 전용 탭으로 바로
+    return {"sheet": sheet, "doc": doc, "doc_sync": getattr(google_docs, "IMPLEMENTED", False)}
 
 
 @app.get("/api/stats")
