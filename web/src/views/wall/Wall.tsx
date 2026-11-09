@@ -123,7 +123,9 @@ function Doc({ w, band, animate }: { w: WallState; band: boolean; animate: boole
   const scrolledFor = useRef("");
   useEffect(() => {
     const box = rowsRef.current;
-    if (!box || box.scrollHeight <= box.clientHeight) return;
+    // ep: 행 목록이 실제 스크롤 칸일 때(실화면, wall.css의 #stage.live #rows)만 옮긴다. 장면 모드에서도 돌면
+    // 화면 아래에 흰 띠가 생겼다(#27 뒤 wall_judge 22장 중 9장).
+    if (!box || !/auto|scroll/.test(getComputedStyle(box).overflowY) || box.scrollHeight <= box.clientHeight) return;
     const row = box.querySelector<HTMLElement>(".g.fresh, .g .fresh")?.closest<HTMLElement>(".g");
     if (!row) return;
     const key = `${d.edits}/${d.undone}/${[...box.children].indexOf(row)}`;
