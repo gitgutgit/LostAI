@@ -10,3 +10,7 @@ for key in ("GOOGLE_SHEET_ID", "GOOGLE_DOC_ID", "LINEAR_API_KEY"):
     os.environ[key] = ""
 os.environ.setdefault("AGENT_MODE", "MOCK")
 os.environ["SEED"] = "sprint"  # .env가 SEED=google(원본 모드)이어도 테스트는 시드로
+# 이벤트 로그와 화면에서 고른 문서 기록(google_source_choice.json)을 실제 results/ 와 떼어 놓는다
+import tempfile  # noqa: E402
+
+os.environ["EVENT_LOG_DIR"] = tempfile.mkdtemp(prefix="lostai_test_")

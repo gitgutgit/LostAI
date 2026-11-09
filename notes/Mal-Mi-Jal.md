@@ -23,6 +23,13 @@
 | 말 → Google Sheet | p50 440ms / p95 518ms (n=2) | — | 11-09 11:31 · MOCK, 팀 공용 Sheet | 같은 파일 |
 
 ## 진행 중
+- [ ] (새 기능, 태우 요청) 문서 고르기·새로 만들기 (시작: 12:45, 브랜치 Mal-Mi-Jal/doc-picker)
+  - 의도와 검증: `.env`·재시작 없이 화면에서 회의 원본 Sheet/Doc을 고르거나 새로 만든다. 문턱: 바꾸기 5초 안, 옛 원본은 백업과 동일하게 복원, 표 있는 문서·머리 행 없는 시트는 거절하고 회의 그대로. 기준선: .env 수정 + 재시작 (1분+)
+  - 결정(태우): Drive 목록 권한 추가 → 재로그인 / Sheet·Doc 따로 고르기 / 입장한 누구나 + 확인창
+  - [x] 서버: `server/sync/google_files.py`(목록·만들기), `server/sync/source_api.py`(API 3개), google_source load/commit 분리 + 고른 문서 기록(results/), Outbox `run_exclusive`·`hold`
+  - [x] 화면: `components/DocPicker.tsx` (캔버스 헤더). 결정 벽(주현)에는 `<DocPicker />` 한 줄 부탁 예정
+  - [x] 테스트: 가짜 Google로 바꾸기→옛 원본 복원→새 원본에 쓰기→되돌아오기, 못 쓰는 문서 거절, 새 문서 틀 (5개). 전체 49/51 (Windows 권한 2개 제외)
+  - [ ] 태우 재로그인 → 실제 목록·바꾸기·새로 만들기·복원 확인
 - [ ] (P0) STT 실제 마이크 확인 (시작: 12:05, 브랜치 Mal-Mi-Jal/stt-check)
   - [x] 오류 뒤 재시작 늦추기(0.5→4초, 5번 연속 실패면 멈춤), interim은 바뀔 때만·최대 4번/초 로그에 보냄, 오류 문구 한국어
   - [x] 지연 지표 `stt_interim_to_final` 추가 (첫 interim → final). 테스트 15/15 (SEED=sprint)

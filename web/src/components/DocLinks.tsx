@@ -4,7 +4,8 @@ import { getToken } from "../core/ws";
 
 type Links = { sheet: string | null; doc: string | null; doc_sync: boolean };
 
-export function DocLinks() {
+/** refreshKey가 바뀌면 다시 받는다 (문서 바꾸기 뒤: 문서 제목을 넘기면 된다). */
+export function DocLinks({ refreshKey = "" }: { refreshKey?: string }) {
   const [links, setLinks] = useState<Links | null>(null);
 
   useEffect(() => {
@@ -14,7 +15,7 @@ export function DocLinks() {
       .then((r) => (r.ok ? r.json() : null))
       .then(setLinks)
       .catch(() => setLinks(null));
-  }, []);
+  }, [refreshKey]);
 
   if (!links) return null;
   return (

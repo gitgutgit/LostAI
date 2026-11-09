@@ -20,8 +20,10 @@
 from __future__ import annotations
 
 import copy
+import json
 import os
 import re
+from pathlib import Path
 from typing import Any
 
 from server.model.docs import Doc, DocState, Item, Row, Section, Sheet
@@ -108,10 +110,55 @@ def parse_doc(paras: list[dict[str, Any]]) -> tuple[str, list[dict[str, Any]]]:
     return title, sections
 
 
+def choice_file() -> Path:
+    """화면에서 고른 문서 기록 (results/ → gitignore). 문서 ID라 출력·커밋하지 않는다."""
+    return Path(os.getenv("EVENT_LOG_DIR", "results")) / "google_source_choice.json"
+
+
+class SourceError(ValueError):
+    """이 문서는 회의 원본으로 못 쓴다 (화면에 그대로 보여 줄 문구)."""
+
+
+def chosen_ids() -> tuple[str, str]:
+    """회의 원본 (sheet, doc) ID. 화면에서 고른 게 있으면 그것, 없으면 .env."""
+    try:
+        c = json.loads(choice_file().read_text(encoding="utf-8"))
+        return c["sheet_id"], c["doc_id"]
+    except (OSError, ValueError, KeyError):
+        return google_auth.parse_id(os.environ["GOOGLE_SHEET_ID"]), google_auth.parse_id(os.environ["GOOGLE_DOC_ID"])
+
+
+def save_choice(sheet_id: str, doc_id: str) -> None:
+    choice_file().parent.mkdir(parents=True, exist_ok=True)
+    choice_file().write_text(json.dumps({"sheet_id": sheet_id, "doc_id": doc_id}), encoding="utf-8")
+
+
 def pull_baseline() -> DocState:
-    """원본 두 문서를 읽어 회의 시작 상태를 만든다. 순서 모델도 여기서 잡는다."""
-    S.sheet_id = google_auth.parse_id(os.environ["GOOGLE_SHEET_ID"])
-    S.doc_id = google_auth.parse_id(os.environ["GOOGLE_DOC_ID"])
+    """원본 두 문서를 읽어 회의 시작 상태를 만든다 (서버 시작 때)."""
+    global S
+    S = load(*chosen_ids())
+    return S.baseline.model_copy(deep=True)  # type: ignore[union-attr]
+
+
+def load(sheet_id: str, doc_id: str) -> SourceState:
+    """두 문서를 읽어 새 SourceState를 만든다. 지금 쓰는 S는 건드리지 않는다 (문서 바꾸기: 복원이 끝난 뒤 commit).
+    못 쓰는 문서면 SourceError. Outbox 워커 안에서만 부른다 (Google 동시 호출 금지)."""
+    global S
+    prev, S = S, SourceState()
+    try:
+        _pull(sheet_id, doc_id)
+        return S
+    finally:
+        S = prev
+
+
+def commit(st: SourceState) -> None:
+    global S
+    S = st
+
+
+def _pull(sheet_id: str, doc_id: str) -> None:
+    S.sheet_id, S.doc_id = sheet_id, doc_id
     docs: dict[str, Any] = {}
 
     meta = _sheets().get(spreadsheetId=S.sheet_id, fields="properties.title,sheets.properties(sheetId,title)").execute()
@@ -120,6 +167,10 @@ def pull_baseline() -> DocState:
     values = _sheets().values().get(spreadsheetId=S.sheet_id, range=f"'{tab['title']}'",
                                     valueRenderOption="UNFORMATTED_VALUE").execute().get("values", [])
     header = [str(h) for h in (values[0] if values else [])]
+    if not any(h.strip() for h in header):
+        raise SourceError("시트 첫 줄(열 이름)이 비어 있어요. 첫 줄에 '작업, 담당, 상태' 같은 열 이름을 넣어 주세요.")
+    if len(set(header)) != len(header) or any(not h.strip() for h in header):
+        raise SourceError("시트 첫 줄 열 이름이 비었거나 겹쳐요. 열 이름을 하나씩 다르게 채워 주세요.")
     rows = []
     for i, line in enumerate(values[1:], start=2):
         if not any(str(v).strip() for v in line):
@@ -130,6 +181,8 @@ def pull_baseline() -> DocState:
     S.numeric_cols = {c for c in header if any(isinstance(r.cells.get(c), (int, float)) and not isinstance(r.cells.get(c), bool) for r in rows)}
 
     t = _first_doc_tab(S.doc_id)
+    if any("table" in el for el in t["documentTab"]["body"]["content"]):
+        raise SourceError("문서에 표가 있어요. 표가 있으면 위치 계산이 틀어질 수 있어 회의 원본으로 못 써요.")
     S.doc_tab = t["tabProperties"]["tabId"]
     title, parsed = parse_doc(_doc_paragraphs(t))
     sections, S.sections, S.prefix, used = [], [], {}, set()
@@ -155,7 +208,6 @@ def pull_baseline() -> DocState:
     S.baseline = DocState(docs=docs)
     S.active = True
     S.hl_cells, S.hl_items = set(), set()
-    return S.baseline.model_copy(deep=True)
 
 
 # ================================================================ 시트

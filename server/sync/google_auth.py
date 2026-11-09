@@ -20,9 +20,11 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
+DRIVE_LIST_SCOPE = "https://www.googleapis.com/auth/drive.metadata.readonly"  # 문서 고르기 목록 (파일 이름·종류만)
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/documents",
+    DRIVE_LIST_SCOPE,
 ]
 
 _services: dict[tuple[str, str], Any] = {}
@@ -49,7 +51,8 @@ def get_creds(interactive: bool = True):
     tok = token_path()
     creds = None
     if tok.exists():
-        creds = Credentials.from_authorized_user_file(str(tok), SCOPES)
+        # 토큰에 실제로 받은 권한 그대로 연다 (SCOPES를 넘기면 예전 토큰의 갱신이 권한 부족으로 실패할 수 있다)
+        creds = Credentials.from_authorized_user_file(str(tok))
         if creds.expired and creds.refresh_token:
             try:
                 creds.refresh(Request())
@@ -66,6 +69,18 @@ def get_creds(interactive: bool = True):
         creds = InstalledAppFlow.from_client_secrets_file(str(cred_file), SCOPES).run_local_server(port=0)
     tok.write_text(creds.to_json(), encoding="utf-8")
     return creds
+
+
+def has_scope(scope: str) -> bool:
+    """지금 토큰이 그 권한을 받았는지 (Google 호출 없음). 예전 토큰은 Drive 목록 권한이 없다 → --relogin."""
+    import json
+    tok = token_path()
+    if not tok.exists():
+        return False
+    try:
+        return scope in (json.loads(tok.read_text(encoding="utf-8")).get("scopes") or [])
+    except ValueError:
+        return False
 
 
 def service(name: str, version: str):

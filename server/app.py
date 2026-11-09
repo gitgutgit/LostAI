@@ -55,6 +55,10 @@ async def load_google_source() -> None:
 
 app = FastAPI(title="meeting-agent", lifespan=lifespan)
 
+from server.sync.source_api import router as source_router  # noqa: E402  문서 고르기·새로 만들기
+
+app.include_router(source_router)
+
 
 # ---------------------------------------------------------------- 입장 관문
 
