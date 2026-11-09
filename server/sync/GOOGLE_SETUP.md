@@ -45,7 +45,8 @@
 | `403: access_denied` (앱이 테스트 중) | 내 Gmail이 테스트 사용자가 아님 | 관리자에게 등록 요청 |
 | `❌ 권한 없음` | 문서가 나에게 공유 안 됨 | 문서 주인에게 편집자 공유 요청 |
 | `❌ 문서를 찾을 수 없음` | ID/URL 오타, 또는 삭제된 문서 | URL 다시 복사 |
-| `API가 꺼져 있음` | GCP 프로젝트에서 Sheets/Docs API 미사용 | 관리자가 API 사용 설정 |
+| `API가 꺼져 있음` | GCP 프로젝트에서 Sheets/Docs/Drive API 미사용 | 관리자가 API 사용 설정 (Drive는 문서 고르기 목록용) |
+| 문서 고르기 "목록 권한이 없어요" | 문서 고르기 전에 받은 토큰 (Drive 목록 권한 없음) | `uv run python -m server.sync.google_auth --relogin` |
 | `invalid_grant` / 토큰 만료 | 테스트 모드 토큰은 약 7일 뒤 만료 | 자동으로 다시 로그인함. 안 되면 `--relogin` |
 | `redirect_uri_mismatch` | 클라이언트 유형이 데스크톱 앱이 아님 | 데스크톱 앱 클라이언트로 다시 발급 |
 
@@ -71,3 +72,13 @@
 - 회의 중 사람이 원본 Doc에 섹션·문단을 직접 넣으면 위치가 어긋나므로 `sync.failed`("구조가 바뀜")가 뜬다 → 리셋하거나 서버를 재시작.
 - 원본을 못 읽으면 경고 후 `SEED=sprint`(시드 문서)로 연다. 리플레이·테스트는 항상 시드 문서를 쓴다.
 - 만일을 위해 원본은 Google 문서 **버전 기록**으로도 되돌릴 수 있다.
+
+## 6. 문서 고르기 · 새로 만들기 (화면 📂 문서 바꾸기)
+
+- 서버 계정의 Drive에서 Sheet(보드)·Doc(노트)을 각각 고르거나 새로 만들어 **회의 원본을 바꾼다**. `.env` 수정·재시작이 필요 없다.
+- 필요한 것: GCP 프로젝트에서 **Google Drive API 사용**, 토큰에 Drive 메타데이터 읽기 권한(`--relogin` 한 번). 이름·종류·수정 시각만 읽는다.
+- 바꾸면 지금 회의 내용은 비워지고 지금 원본은 회의 전 상태로 복원된다 (리셋과 같은 길). 모든 참석자 화면이 같이 바뀐다.
+- 표가 있는 Doc, 첫 줄(열 이름)이 비었거나 겹치는 Sheet는 거절한다 (회의는 그대로).
+- 새로 만들기: Sheet `작업·담당·기간(일)·상태·메모`, Doc `제목 + 목표·메모·리스크`. 만든 문서는 서버 계정 Drive에 남는다 (지우기는 Drive에서 직접).
+- 고른 문서는 `results/google_source_choice.json`에 남아 서버를 다시 켜도 그 문서로 시작한다. 지우면 다시 `.env` 문서로.
+- API: `GET /api/google/files`, `GET·POST /api/google/source` (`server/sync/source_api.py`)

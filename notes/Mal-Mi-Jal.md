@@ -29,7 +29,10 @@
   - [x] 서버: `server/sync/google_files.py`(목록·만들기), `server/sync/source_api.py`(API 3개), google_source load/commit 분리 + 고른 문서 기록(results/), Outbox `run_exclusive`·`hold`
   - [x] 화면: `components/DocPicker.tsx` (캔버스 헤더). 결정 벽(주현)에는 `<DocPicker />` 한 줄 부탁 예정
   - [x] 테스트: 가짜 Google로 바꾸기→옛 원본 복원→새 원본에 쓰기→되돌아오기, 못 쓰는 문서 거절, 새 문서 틀 (5개). 전체 49/51 (Windows 권한 2개 제외)
-  - [ ] 태우 재로그인 → 실제 목록·바꾸기·새로 만들기·복원 확인
+  - [x] 태우 재로그인 (Drive 목록 권한 받음)
+  - [x] 실제 Google(MOCK): 새로 만들기로 바꾸기 6.0초, 말 → 새 Doc 리스크에 기록, 원본으로 돌아오기 4.2초, 새 Doc은 틀 그대로 복원, 팀 원본 백업과 동일
+  - [ ] 목록: GCP 프로젝트에 Google Drive API가 꺼져 있음 (403) → 태우가 콘솔에서 사용 설정 후 재확인
+  - 테스트로 만든 '[테스트] 문서 고르기 — 보드 / 회의 노트'가 태우 Drive에 남음 (지우기 권한 없음 → 직접 삭제)
 - [ ] (P0) STT 실제 마이크 확인 (시작: 12:05, 브랜치 Mal-Mi-Jal/stt-check)
   - [x] 오류 뒤 재시작 늦추기(0.5→4초, 5번 연속 실패면 멈춤), interim은 바뀔 때만·최대 4번/초 로그에 보냄, 오류 문구 한국어
   - [x] 지연 지표 `stt_interim_to_final` 추가 (첫 interim → final). 테스트 15/15 (SEED=sprint)

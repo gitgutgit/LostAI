@@ -39,6 +39,9 @@ def _auth(token: str) -> str:
 
 def _google_error(e: Exception) -> HTTPException:
     status = getattr(getattr(e, "resp", None), "status", None)
+    if status == 403 and ("has not been used" in str(e) or "SERVICE_DISABLED" in str(e)):
+        return HTTPException(409, "Google Cloud 프로젝트에서 Google Drive API가 꺼져 있어요. "
+                                  "콘솔 → API 및 서비스 → 라이브러리 → Google Drive API → 사용 (server/sync/GOOGLE_SETUP.md)")
     if status in (403, 404):
         return HTTPException(400, "문서를 열 수 없어요. 서버 계정에 편집 권한이 있는지 확인해 주세요.")
     log.warning("google source error: %s", str(e)[:200])

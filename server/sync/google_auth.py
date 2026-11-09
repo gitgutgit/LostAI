@@ -162,8 +162,10 @@ def main() -> int:
         token_path().unlink()
     print(f"credentials.json: {'있음' if credentials_path().exists() else '없음'}  ·  "
           f"token.json: {'있음' if token_path().exists() else '없음 (브라우저 로그인 진행)'}")
-    get_creds(interactive=True)
-    print("✅ Google 로그인 OK (scopes: spreadsheets, documents)")
+    creds = get_creds(interactive=True)
+    print("✅ Google 로그인 OK (scopes: " + ", ".join(s.rsplit("/", 1)[-1] for s in (creds.scopes or [])) + ")")
+    if not has_scope(DRIVE_LIST_SCOPE):
+        print("  ⚠ 문서 고르기 목록 권한 없음 → --relogin 으로 다시 로그인")
 
     sheet = parse_id(a.sheet) if a.sheet else os.getenv("GOOGLE_SHEET_ID") or None
     doc = parse_id(a.doc) if a.doc else os.getenv("GOOGLE_DOC_ID") or None
