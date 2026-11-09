@@ -1,0 +1,276 @@
+/* 렌더 v0.4 CSS 원문 (design/wireframes/facilitator_v0_3/render_v04/index.html 13~246줄). 픽셀 일치가 기준이라 고치지 않는다.
+   바꿀 때는 원본 시안을 먼저 고치고 여기로 다시 옮긴다. #controls 만 이 앱의 조작 띠에 맞췄다. */
+@import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@600;700&display=swap");
+:root{
+  --wall:#CDD6D0; --card:#FFFFFF; --ink:#17212B; --ink2:#4A5762;
+  --green:#1E7B4F; --green-lit:#3FC27F; --yellow:#F3C316; --red:#B3261B;
+  --bar:#E4E9E6; --navy:#1D2733; --navy2:#2A3644; --fresh:#FFF1B8;
+  --disp:'Barlow Condensed','Arial Narrow','Helvetica Neue',Arial,'Apple SD Gothic Neo',sans-serif;
+  --text:'Atkinson Hyperlegible','Helvetica Neue',Arial,'Apple SD Gothic Neo',sans-serif;
+  --ease:cubic-bezier(.2,.7,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#EEF0EE;color:var(--ink);font-family:var(--text)}
+#stage{position:relative;width:1920px;height:1080px;overflow:hidden;background:var(--wall);font-variant-numeric:tabular-nums}
+html.shot,html.shot body{overflow:hidden;background:var(--wall)}
+html.shot #controls,html.shot #audit{display:none}
+html.shot *,html.shot *::before,html.shot *::after{animation:none!important;transition:none!important}
+
+/* 머리줄: Today 칸 + Now */
+.head{position:absolute;top:18px;font:700 44px/52px var(--disp);color:var(--ink);white-space:nowrap}
+.head .n{color:var(--ink2);margin-left:10px}
+#slots{position:absolute;left:150px;top:16px;display:flex;gap:10px}
+.slot{width:56px;height:56px;border:3px solid #8A959E;font:700 28px/50px var(--text);text-align:center;color:var(--ink2);border-radius:2px}
+.slot.now{border:5px solid var(--ink);line-height:46px;color:var(--ink)}
+.slot.done{background:var(--ink);border-color:var(--ink);color:#fff}
+.slot.park{background:var(--yellow);border-color:var(--yellow);color:var(--ink);transform:rotate(6deg)}
+.slot.fill{animation:fill 320ms var(--ease) both}
+@keyframes fill{from{transform:scale(.4);opacity:.2}to{transform:scale(1);opacity:1}}
+#mark{position:absolute;top:24px;right:24px;font:700 28px/34px var(--text);color:var(--ink2)}
+
+/* 실시간 문서 (왼쪽 65%) */
+#doc{position:absolute;left:24px;top:96px;width:1222px;height:964px}
+.sh{position:absolute;inset:0;background:var(--card);box-shadow:0 0 0 2px rgba(23,33,43,.18)}
+#sh1{transform:translate(-8px,6px) rotate(-.9deg)}
+#sh2{transform:translate(6px,5px) rotate(.7deg)}
+#sheet{position:absolute;inset:0;background:var(--card);padding:16px 24px;box-shadow:0 0 0 2px rgba(23,33,43,.18);view-transition-name:doc}
+.dh{display:flex;justify-content:space-between;align-items:baseline;height:52px}
+.dh b{font:700 44px/52px var(--disp)}
+.dh b .m{color:var(--ink2);margin-left:12px}
+#count{font:700 28px/34px var(--text);color:var(--ink2);white-space:nowrap}
+#count i{display:inline-block;width:16px;height:16px;border-radius:50%;background:var(--red);margin-right:8px;vertical-align:1px}
+#count.bump{background:linear-gradient(var(--yellow),var(--yellow)) no-repeat left/100% 100%;color:var(--ink);padding:0 6px;animation:lit 300ms ease-out both}
+#dnote{height:40px;font:400 28px/40px var(--text);color:var(--ink2);white-space:nowrap}
+#dnote .bad{color:var(--red);font-weight:700}
+.g{display:grid;grid-template-columns:64px 280px 140px 100px 100px 74px 160px 1fr;column-gap:0;align-items:center;font:400 28px/34px var(--text);border-top:2px solid var(--bar);min-height:60px}
+#doc.ghost .g{grid-template-columns:64px 280px 100px 100px 74px 176px 176px 1fr}
+.span4>span{padding:0 8px;white-space:nowrap}
+.g>*{padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:clip}
+.g.colh{font:700 28px/34px var(--text);color:var(--ink2);min-height:44px;border-top:0}
+.g .w{color:var(--ink2)}
+.g s{color:var(--ink2);margin-right:8px;text-decoration-thickness:3px}
+.g .src{display:flex;flex-wrap:wrap;gap:4px 6px;white-space:normal;padding:4px 0 4px 8px}
+.g.tall{min-height:96px}
+.g.hl{background:linear-gradient(var(--yellow),var(--yellow)) no-repeat left/100% 100%;animation:lit 300ms ease-out both}
+.g.hl .w{color:var(--ink)}
+.g.newrow>span:nth-child(2){font-weight:700}
+.wrap2{white-space:normal!important;line-height:30px!important}
+/* 방금 고친 칸: 300 ms 빛나고 옅은 노랑이 남는다 */
+.fresh{background:var(--fresh);animation:flash 300ms ease-out both}
+@keyframes flash{from{background:var(--yellow)}to{background:var(--fresh)}}
+.g.newrow.fresh{background:var(--fresh)}
+/* 화자 + 줄 번호 칩 */
+.chip{display:inline-block;font:700 28px/34px var(--text);padding:0 8px;background:var(--bar);color:var(--ink);border-radius:2px;white-space:nowrap}
+.chip.undo{background:#fff;border:2px solid var(--ink2);color:var(--ink2);line-height:30px}
+.chip.tag{background:var(--yellow);transform:rotate(-2deg)}
+.chip.ok{background:#D9EEDF;color:var(--green)}
+.chip.red{background:#F6DAD6;color:var(--red)}
+/* 엇갈린 칸: 두 값이 나란히, 빗금 */
+.cf{grid-column:4 / 8;display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px 6px!important}
+#doc.ghost .cf{grid-column:3 / 8}
+.cf>div{background:repeating-linear-gradient(-45deg,rgba(243,195,22,.38) 0 10px,rgba(255,255,255,.0) 10px 20px);border:2px solid #C9A30E;padding:2px 8px;white-space:normal;line-height:30px}
+.cf b{font-weight:700}
+.span4{grid-column:4 / 8}
+/* 메모 줄 (칸 아래) */
+.memo{grid-column:2 / -1;display:flex;gap:10px;align-items:center;font:400 28px/34px var(--text);color:var(--ink2);padding:0 8px 8px!important;white-space:nowrap}
+.memo .mt{font-style:italic;color:var(--ink)}
+.memo.bad .mt{color:var(--red);font-style:normal;font-weight:700}
+/* 유령 값 (S6): 선택지별 끝 날짜 */
+.gh{border:2px dashed #8A959E;margin:0 4px;font-weight:700;text-align:center;opacity:.9}
+.gh.bad{color:var(--red);border-color:var(--red)}
+.gh.e{border-color:transparent}
+.gh.lit{opacity:1}
+
+/* 오른쪽 띠 (35%) */
+#cardA{position:absolute;left:1270px;top:96px;width:626px;height:240px;background:var(--card);padding:8px 20px 0;border-radius:2px;view-transition-name:qcard;z-index:5;transform:rotate(-.6deg)}
+#cardA.gone{display:none}
+#qline{font:700 56px/64px var(--disp);white-space:nowrap}
+#qline .qn{color:var(--ink2);margin-right:16px}
+.opt{position:relative;height:84px;display:flex;align-items:center;border-top:3px solid var(--wall)}
+.onum{width:52px;font:700 64px/1 var(--disp)}
+.oname{font:700 40px/44px var(--disp);white-space:nowrap}
+.osrc{font:400 28px/34px var(--text);color:var(--ink2);white-space:nowrap}
+.oleft{width:300px}
+.oside{flex:1;padding-left:14px;border-left:3px solid var(--wall);height:76px;display:flex;flex-direction:column;justify-content:center}
+.oside:empty{border-left-color:transparent}
+.cost{font:700 40px/42px var(--disp);white-space:nowrap}
+.costsub{font:400 28px/32px var(--text);white-space:nowrap}
+.costsub .bad{color:var(--red);font-weight:700}
+#idle{position:absolute;left:1270px;top:96px;width:626px;height:240px;border:3px dashed #8A959E;padding:20px;font:400 32px/40px var(--text);color:var(--ink2);display:none}
+.rf{font:400 28px/34px var(--text)}
+.rf .old{font:400 36px/42px var(--text);color:var(--ink2);text-decoration:line-through;text-decoration-thickness:3px}
+.rf .new{font:700 40px/46px var(--text);margin-top:2px}
+.rf .vt{margin-top:10px;color:var(--ink2)}
+
+#cardB{position:absolute;left:1270px;top:350px;width:626px;height:290px;background:var(--card);border-radius:2px;view-transition-name:stepcard;z-index:30;transform:rotate(.5deg)}
+#flap{position:absolute;left:20px;top:16px;display:flex;gap:4px}
+.cell{width:56px;height:88px;background:var(--bar);position:relative;font:700 76px/88px var(--disp);text-align:center;color:var(--ink);transform-origin:50% 50%}
+.cell::after{content:'';position:absolute;left:0;right:0;top:43px;height:2px;background:var(--card)}
+.cell.on{background:var(--ink);color:#fff}
+.cell.off{color:#8A959E}
+.cell.flip{animation:flip 220ms ease-in-out both}
+@keyframes flip{0%{transform:rotateX(0)}50%{transform:rotateX(-88deg)}100%{transform:rotateX(0)}}
+#bside{position:absolute;left:20px;top:112px;font:700 36px/42px var(--disp);white-space:nowrap}
+#bmsg{position:absolute;left:20px;top:158px;right:20px}
+.b40{font:700 40px/46px var(--disp)}
+.b32{font:400 32px/38px var(--text)}
+.sub{font:400 28px/34px var(--text);color:var(--ink2)}
+.ul{border-bottom:5px solid var(--ink)}
+.fc{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+
+#cardB.take{left:0;top:0;width:1920px;height:1080px;border-radius:0;transform:none}
+#cardB.take.split{background:var(--yellow)}
+#cardB.take.navy{background:var(--navy);color:#fff}
+#cardB.take #bside{display:none}
+#cardB.take #bmsg{left:96px;top:56px;width:1728px;height:968px;right:auto}
+#cardB.take #flap{left:96px;top:176px;gap:8px}
+#cardB.take .cell{width:180px;height:270px;font:700 240px/270px var(--disp)}
+#cardB.take .cell::after{top:134px}
+#cardB.take.count .cell{background:var(--bar)}
+#cardB.take.count .cell.on{background:var(--ink);color:#fff}
+#cardB.take.count .cell.off{color:#8A959E}
+#cardB.take.split .cell{background:rgba(23,33,43,.10)}
+#cardB.take.split .cell.on{background:var(--ink);color:var(--yellow)}
+#cardB.take.split .cell::after{background:var(--yellow)}
+#cardB.take.navy #flap{left:1185px;top:900px;gap:5px}
+#cardB.take.navy .cell{width:66px;height:112px;font:700 96px/112px var(--disp);background:var(--navy2)}
+#cardB.take.navy .cell::after{top:55px;background:var(--navy)}
+#cardB.take.navy .cell.on{background:#0E151D;color:#fff}
+#cardB.take.navy.conv .cell.on{color:var(--green-lit)}
+#cardB.take.navy.end #flap{top:56px}
+.t56{font:700 56px/64px var(--disp)}
+.t56 .qn{opacity:.6;margin-right:20px}
+.tp{font:400 56px/68px var(--text)}
+.mv{font:700 200px/200px var(--disp)}
+.num{display:inline-block;width:64px;height:64px;border:4px solid currentColor;text-align:center;font:700 52px/56px var(--disp);margin:0 10px;vertical-align:-8px}
+#dial{position:absolute;right:0;top:20px;width:520px;height:309px}
+.dist{position:absolute;left:0;top:560px;width:1060px;animation:late 300ms 350ms ease-out both}
+@keyframes late{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.dr{display:grid;grid-template-columns:90px 520px 1fr;align-items:center;font:400 56px/64px var(--text);height:96px;color:#C9D2DA}
+.dr .bars{display:flex;gap:12px;align-items:center}
+.dr .bars i{display:block;width:60px;height:44px;background:#C9D2DA}
+.dr .bars em{font-style:normal;font-weight:700;margin-left:12px}
+.cw{position:absolute;right:0;top:780px;font:400 32px/40px var(--text);color:#C9D2DA;text-align:right}
+.e96{font:700 96px/104px var(--disp)}
+.ecards{display:flex;gap:40px;margin-top:40px;align-items:flex-start}
+.ecards .icard{width:390px;color:var(--ink)}
+.ecards .icard:nth-child(1){transform:rotate(-2deg)}
+.ecards .icard:nth-child(2){transform:rotate(1.5deg)}
+.ecards .icard:nth-child(3){transform:rotate(-1deg)}
+.ecards .icard:nth-child(4){transform:rotate(4deg);margin-top:30px}
+.tagp{display:inline-block;background:var(--yellow);font:700 28px/34px var(--text);padding:0 8px}
+.estats{position:absolute;left:0;top:640px;display:flex;gap:80px}
+.estats .n{font:700 96px/100px var(--disp)}
+.estats .t{font:400 32px/40px var(--text);color:#C9D2DA}
+.efoot{position:absolute;left:0;top:880px;font:400 32px/40px var(--text);color:#C9D2DA}
+.icard{background:var(--card);padding:14px 18px 16px;border-radius:2px}
+.icard .qn{display:block;font:700 28px/32px var(--text);color:var(--ink2)}
+.icard .ct{display:block;font:700 40px/44px var(--disp);margin-top:2px}
+.icard .cm{display:block;font:400 28px/34px var(--text);margin-top:6px}
+.icard .cm.g{color:var(--green);font-weight:700}
+
+/* Decided / Parked: 작은 표지만 */
+#dp{position:absolute;left:1270px;top:654px;width:626px;height:116px;display:grid;grid-template-columns:300px 1fr;gap:16px}
+.dph{font:700 32px/36px var(--disp)}
+.dph .n{color:var(--ink2);margin-left:8px}
+.mk{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap}
+.mk span{display:inline-block;background:var(--card);font:700 28px/34px var(--text);padding:4px 10px;transform:rotate(-3deg)}
+.mk span:nth-child(2){transform:rotate(2deg)}
+.mk span:nth-child(3){transform:rotate(-1deg)}
+.pk{background:var(--card);padding:4px 10px;margin-top:6px;transform:rotate(3deg);font:400 28px/32px var(--text)}
+.pk b{font-weight:700}
+.empty{font:400 28px/34px var(--text);color:var(--ink2);margin-top:6px}
+
+/* 출처 줄 켜짐: 노랑이 왼쪽에서 오른쪽으로 300 ms */
+.ref{font:700 28px/34px var(--text);color:var(--ink2);margin-left:6px;white-space:nowrap;padding:0 4px}
+.lit{background:linear-gradient(var(--yellow),var(--yellow)) no-repeat left/100% 100%!important;color:var(--ink)!important;animation:lit 300ms ease-out both}
+@keyframes lit{from{background-size:0 100%}to{background-size:100% 100%}}
+
+/* 발화, 로그, 참가자 */
+#said{position:absolute;left:1270px;top:782px;width:626px;height:70px;font:400 28px/34px var(--text);overflow:hidden}
+#said b{font-weight:700;padding:0 4px}
+#log{position:absolute;left:1270px;top:860px;width:626px;height:70px;font:400 28px/34px var(--text);color:var(--ink2);overflow:hidden}
+#log b{font-weight:700;color:var(--ink)}
+#people{position:absolute;left:1270px;top:940px;width:626px;display:grid;grid-template-columns:1fr 1fr;row-gap:2px}
+.pp{display:flex;align-items:center;gap:8px;height:42px}
+.pp .nm{font:700 34px/40px var(--disp)}
+.pp .st{font:400 28px/34px var(--text);color:var(--ink2);white-space:nowrap}
+.pp .st.ok{color:var(--green);font-weight:700}
+.pp .st.again{background:var(--yellow);color:var(--ink);font-weight:700;padding:0 6px}
+.pp.turn .nm{border-bottom:5px solid var(--ink)}
+.pp .gl{width:28px;height:40px;display:none}
+.pp .gl.on{display:block}
+/* S2 꽉 채우기에서는 참가자가 크게, 카드 B 위에 */
+#stage.big #people{left:96px;top:760px;width:1728px;grid-template-columns:repeat(4,1fr);z-index:40}
+#stage.big .pp{height:120px;gap:16px}
+#stage.big .pp .gl{width:72px;height:100px}
+#stage.big .pp .nm{font:700 56px/60px var(--disp)}
+#stage.big .pp .st{font:400 36px/42px var(--text)}
+.fd{transform-origin:50% 50%}
+.fd.turn{animation:fd 250ms ease-out both}
+@keyframes fd{from{transform:rotateY(90deg)}to{transform:rotateY(0)}}
+
+/* View Transitions: 꽉 채우기 550 ms, 카드 이동 600 ms, 나머지 300 ms. 모두 700 ms 이하 */
+::view-transition-group(root),::view-transition-old(root),::view-transition-new(root){animation-duration:300ms}
+::view-transition-group(stepcard){animation-duration:550ms;animation-timing-function:var(--ease)}
+::view-transition-old(stepcard),::view-transition-new(stepcard){animation-duration:550ms;height:100%;object-fit:none;overflow:clip}
+::view-transition-group(qcard){animation-duration:600ms;animation-timing-function:var(--ease)}
+::view-transition-old(qcard),::view-transition-new(qcard){animation-duration:600ms;height:100%}
+::view-transition-group(doc){animation-duration:300ms}
+
+/* 질문 띠 (?band=1, 기본 켬): 질문이 열려 있으면 문서 머리줄이 왼쪽 질문 띠가 된다. 문서 제목은 작은 줄로 */
+#qband{display:none;font:700 96px/104px var(--disp);white-space:nowrap;overflow:hidden}
+#qband .qn{color:var(--ink2);margin-right:22px}
+#stage.band #qband{display:block}
+#stage.band .dh{height:38px}
+#stage.band .dh b{font:700 28px/34px var(--text);color:var(--ink2)}
+#stage.band .dh b .m{margin-left:8px}
+#stage.band #dnote{display:none}
+#stage.band .g{min-height:55px}
+#stage.band .g.tall{min-height:86px}
+#stage.band .g.colh{min-height:40px}
+#stage.band #cardA{height:184px;padding-top:4px}
+#stage.band #cardA #qline{display:none}
+#stage.band #cardA #qline + .opt{border-top:0}
+#stage.band #cardB{top:296px;height:344px}
+.bandonly{display:none}
+#stage.band .bandonly{display:block}
+#controls{display:flex;gap:8px;align-items:center;padding:14px 16px;font:400 16px/1.4 var(--text);flex-wrap:wrap}
+#controls button{font:700 16px var(--text);padding:6px 12px;border:1px solid #8A959E;background:#fff;cursor:pointer}
+#controls button.on{background:var(--ink);color:#fff}
+#said,#log{cursor:pointer}
+/* 회의 화면에서는 공용 styles.css도 함께 실린다. 거기서 새는 규칙만 막는다(.chip 왼쪽 여백). */
+#stage .chip{margin-left:0}
+/* 실화면(#stage.live): 창 전체가 벽이다. 마이크는 오른쪽 위 표지, Log 칸은 눌러서 회의록 전문을 여는 상자. 장면 모드 화소는 건드리지 않는다. */
+html.livewall,html.livewall body{height:100%;overflow:hidden;background:var(--wall)}
+#livewrap{position:fixed;inset:0;overflow:hidden;background:var(--wall)}
+#stage.live #mark{font:700 28px/34px var(--text);color:var(--ink2);background:none;border:2px solid transparent;padding:4px 12px;top:16px;right:12px;border-radius:2px;cursor:pointer}
+#stage.live #mark:hover{border-color:var(--ink2)}
+#stage.live #mark.on{background:var(--ink);border-color:var(--ink);color:#fff}
+#stage.live #mark i{display:inline-block;width:16px;height:16px;border-radius:50%;background:var(--red);margin-right:10px;vertical-align:1px}
+#stage.live #log{top:858px;height:74px;padding:2px 48px 2px 12px;background:var(--card);border-radius:2px}
+#stage.live #log::after{content:'\203A';position:absolute;right:14px;top:50%;transform:translateY(-52%);font:700 48px/1 var(--disp);color:var(--ink2)}
+#stage.live #log:hover{box-shadow:inset 0 0 0 3px var(--ink)}
+#stage.live #log:hover::after{color:var(--ink)}
+#stage.live #said{cursor:text}
+#stage.live #said .hint{color:var(--ink2)}
+#stage.live #sayin{display:block;width:100%;height:50px;font:400 28px/34px var(--text);color:var(--ink);background:var(--card);border:3px solid var(--ink);border-radius:2px;padding:4px 10px;outline:none}
+#stage.live #sayin:focus{box-shadow:0 0 0 4px var(--yellow)}
+#notice{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);background:var(--navy);color:#fff;font:400 24px/32px var(--text);padding:8px 16px;border-radius:2px;z-index:60}
+#minutes{position:fixed;inset:0;background:rgba(23,33,43,.55);display:grid;place-items:start center;padding:40px 16px;overflow-y:auto;z-index:100}
+#minutes .icard{width:min(980px,100%);padding:24px 28px}
+#minutes h2{font:700 56px/64px var(--disp)}
+#minutes .mrow{display:grid;grid-template-columns:72px 1fr;gap:12px;font:400 24px/32px var(--text);border-top:2px solid var(--bar);padding:8px 0}
+#minutes .mrow b{font-weight:700}
+#minutes .mch{font:400 20px/28px var(--text);color:var(--ink2)}
+#minutes .mch.reverted{text-decoration:line-through}
+/* ep: 실화면 카드 B의 긴 답(ASK): 28px 세 줄에서 자른다. 전문은 회의록(Log 상자)에 있다 */
+#stage.live .b28{font:400 28px/34px var(--text)}
+#stage.live .clamp3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+/* ep: 실화면의 긴 질문 제목과 긴 발화: 잘리는 자리에 말줄임 */
+#stage.live #qband{font-size:72px;text-overflow:ellipsis}
+#stage.live #said{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+/* ep: 서버 모드 표시(MOCK은 회색, LIVE는 빨강: 말할 때마다 모델 비용) */
+#stage.live #mark em{font-style:normal;margin-left:14px;color:var(--ink2)}
+#stage.live #mark em.paid{color:var(--red)}
+#stage.live #mark.on em{color:#fff}

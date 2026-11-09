@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { engine } from "../../capture/gestures/engine";
 import { MIN_CONFIDENCE } from "../../capture/gestures/modes";
+import { FitStage } from "../wall/FitStage";
+import "./join.css";
 
 const STEP_HOLD_MS = 600;
 
@@ -101,40 +103,55 @@ export function JoinView({ onJoined }: { onJoined: (name: string, token: string)
   const currentGesture = ch ? ch.gestures[step] : null;
   const info = currentGesture ? GESTURE_INFO[currentGesture] : null;
 
+  // ep: 화면은 렌더 v0.4 무대(1920x1080, 결정 벽과 같은 토큰과 부품). 왼쪽 큰 카드 = 카메라, 오른쪽 열 = 이름 또는 손동작 카드.
+  const total = ch ? ch.gestures.length : 3;
   return (
-    <div className="join">
-      <video ref={video} className="cam" muted playsInline />
-      {!ch ? (
-        <div className="form">
-          <input placeholder="이름" value={name} onChange={(e) => setName(e.target.value)} />
-          <button disabled={!name} onClick={begin}>카메라 켜고 시작</button>
-          {/* hs: 시간 초과 등 메시지 표시 */}
-          {msg && <p className="join-msg">{msg}</p>}
+    <FitStage>
+      <div id="stage" className="joinwall">
+        <div className="head" style={{ left: 24 }}>Join</div>
+        <div id="slots">
+          {Array.from({ length: total }, (_, i) => (
+            <div key={i} className={`slot${ch && i < step ? " done" : ch && i === step ? " now" : ""}`}>{ch ? (GESTURE_INFO[ch.gestures[i]]?.emoji ?? i + 1) : i + 1}</div>
+          ))}
         </div>
-      ) : (
-        <div className="challenge">
-          {/* hs: 단계 칩 — 이모지로 표시 */}
-          <div className="steps">{ch.gestures.map((g, i) => {
-            const gi = GESTURE_INFO[g];
-            return <span key={g + i} className={`step-chip ${i < step ? "done" : i === step ? "now" : ""}`}>
-              {gi ? gi.emoji : g}
-            </span>;
-          })}</div>
-          {/* hs: 큰 이모지 + 라벨 표시 (hand-liveness-beta 스타일) */}
-          <div className="gesture-prompt">
-            <div className="gesture-emoji">{info?.emoji ?? "❓"}</div>
-            <div className="gesture-label">{info?.ko ?? currentGesture}</div>
+        <div className="head" style={{ left: 1270 }}>{ch ? "Show your hand" : "Who are you?"}{ch && <span className="n">{`${Math.min(step + 1, total)} of ${total}`}</span>}</div>
+        <div id="mark">Hand check</div>
+
+        <div className="jcam">
+          <video ref={video} muted playsInline />
+          {!ch && <div className="jcam-off">Camera turns on when you start.</div>}
+        </div>
+
+        {!ch ? (
+          <div className="jcard">
+            <label htmlFor="jname">Name</label>
+            <input id="jname" placeholder="이름" value={name} autoFocus
+              onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && name) begin(); }} />
+            <button className="jgo" disabled={!name} onClick={begin}>카메라 켜고 시작</button>
+            {/* hs: 시간 초과 등 메시지 표시 */}
+            {msg && <p className="jmsg">{msg}</p>}
           </div>
-          {/* hs: 인식 진행 바 */}
-          <div className="hold-bar"><div style={{ width: `${Math.min(100, (hold / STEP_HOLD_MS) * 100)}%` }} /></div>
-          {/* hs: 5초 타이머 바 */}
-          <div className="time-bar"><div style={{ width: `${(timeLeft / STEP_TIMEOUT_MS) * 100}%` }} /></div>
-          <div className="time-text">{(timeLeft / 1000).toFixed(1)}초</div>
-          <button onClick={begin}>다시 시도</button>
-          {manual && <button onClick={manualJoin}>호스트가 들여보내기</button>}
-          {msg && <p className="join-msg">{msg}</p>}
-        </div>
-      )}
-    </div>
+        ) : (
+          <div className="jcard">
+            {/* hs: 큰 이모지 + 라벨 표시 (hand-liveness-beta 스타일) */}
+            <div className="jprompt">
+              <div className="jemoji">{info?.emoji ?? "❓"}</div>
+              <div className="jlabel">{info?.ko ?? currentGesture}</div>
+            </div>
+            {/* hs: 인식 진행 바 */}
+            <div className="jbar hold"><div style={{ width: `${Math.min(100, (hold / STEP_HOLD_MS) * 100)}%` }} /></div>
+            {/* hs: 단계 타이머 바 */}
+            <div className="jbar time"><div style={{ width: `${(timeLeft / STEP_TIMEOUT_MS) * 100}%` }} /></div>
+            <div className="jrow">
+              <span className="jtime">{`${(timeLeft / 1000).toFixed(1)}초`}</span>
+              <button className="jghost" onClick={begin}>다시 시도</button>
+              {manual && <button className="jghost" onClick={manualJoin}>호스트가 들여보내기</button>}
+            </div>
+            {msg && <p className="jmsg">{msg}</p>}
+          </div>
+        )}
+        <div className="jfoot">Hold each hand sign until the green bar fills. Three signs, ten seconds each.</div>
+      </div>
+    </FitStage>
   );
 }
