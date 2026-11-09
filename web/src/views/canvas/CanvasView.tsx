@@ -13,6 +13,9 @@ import { isShared, ZOOM_AUTO_OFF_MS, ZOOM_TOGGLE, HOLD_MS } from "../../capture/
 import { Viewport } from "../../capture/gestures/viewport";
 import { startStt, sttStatusText, type SttStatus } from "../../capture/stt";
 
+/** 내 웹캠 미리보기: 기본은 숨김, ?cam=1 이면 보임 (손 인식은 둘 다 동작). */
+const SHOW_CAM = new URLSearchParams(location.search).get("cam") === "1";
+
 /** 마이크 없이 발화를 넣는 입력창. 팀 테스트용이자 시연 때 STT 백업. */
 function UtteranceInput() {
   const [text, setText] = useState("");
@@ -176,7 +179,12 @@ export function CanvasView() {
       </aside>
       {v.notice && <div className="toast">{v.notice}</div>}
       {/* hs: 웹캠 미리보기 컨테이너 (PoC처럼 video를 createElement로 직접 append) */}
-      <div ref={webcamRef} style={{ position: "fixed", bottom: 8, right: 8, zIndex: 50, borderRadius: 12, overflow: "hidden", border: "2px solid #333" }} />
+      {/* 회의 화면에서는 내 웹캠을 안 보인다 (손 인식은 계속). 문서에서 빼면(display:none·DOM 제거) 브라우저가
+          영상 디코딩을 멈출 수 있어 1px 투명으로 둔다. 손동작 점검할 때는 주소에 ?cam=1 → 오른쪽 아래 미리보기. */}
+      <div ref={webcamRef} aria-hidden={!SHOW_CAM}
+           style={SHOW_CAM
+             ? { position: "fixed", bottom: 8, right: 8, zIndex: 50, borderRadius: 12, overflow: "hidden", border: "2px solid #333" }
+             : { position: "fixed", bottom: 0, right: 0, width: 1, height: 1, opacity: 0, overflow: "hidden", pointerEvents: "none" }} />
     </div>
   );
 }

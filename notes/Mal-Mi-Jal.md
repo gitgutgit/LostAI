@@ -1,11 +1,11 @@
 # Note — 태우 (Mal-Mi-Jal) · 서버·UI 메인
 
-> 마지막 업데이트: 2026-11-09 11:35
-> 한 줄 상태: 🟡 진행 중 — LIVE 지연 측정 완료: 목표 미달 (처리 p50 3.7초, 대기 포함 8초). PR 올림
+> 마지막 업데이트: 2026-11-09 12:01
+> 한 줄 상태: 🟢 진행 중 — 회의 화면 웹캠 숨김 (`Mal-Mi-Jal/hide-webcam`), PR #11 merge 대기
 > 실행: `uv run python -m server.sync.google_auth` · `uv run uvicorn server.app:app --reload --port 8000`  ·  모드: MOCK
 
 ## 현재 목표
-- 지연 PR 리뷰 → 대기 시간 줄이기 방향을 한서(77SONNY77)·팀장과 정하기 (라우터·에디터 동시 실행 P1 / 시작 시 LLM 워밍업 / ignore 빠른 길)
+- 웹캠 숨김 브라우저 확인 → 커밋. PR #11 merge되면 웹캠 PR 같이. ⚠️ 이 브랜치(main 기반)엔 원본 모드 코드가 없음 → 서버 재시작은 #11 merge 뒤에 (.env SEED=google)
 
 ## 최근 결과
 | 지표 | 값 | 목표 | 언제 · 모드 | 결과 파일 |
@@ -49,6 +49,7 @@
 - [ ] (P0) 회의방+WS / Op 엔진 / 리플레이 — 실제 흐름에서 점검
 
 ## 다른 영역 관련
+- [x] `web/src/views/canvas/CanvasView.tsx` 웹캠 미리보기(77SONNY77이 #10에서 추가) 숨김 — 내 파트 파일이지만 한서 코드라 PR에 알림 (상태: PR에 적을 것)
 - [ ] LIVE 에디터 op 선택 — '불안정한 결제 테스트 티켓 하나 추가해 줘'가 add_row(보드) 대신 create_ticket(Linear)로 감 → 보드에 안 보임. 제목 뽑기는 잘 됨('불안정한 결제 테스트') → 77SONNY77 (상태: PR 설명에 적음)
 - [ ] LIVE 지연 목표 미달 공유: 라우터 1.2초·에디터 2.2초, 첫 호출 콜드 스타트 3.5~8초 → 77SONNY77, gitgutgit (상태: PR 설명에 적음)
 - [x] `server/agent/editor.py` `_mock_edit` — (LIVE에선 제목 잘 뽑힘, MOCK만 해당) MOCK에서 '캐시 티켓 추가해줘'가 add_row 제목에 발화 원문 그대로 들어감 → 77SONNY77 (상태: 요청 전. LIVE 에디터면 제목을 뽑아 줄 것으로 예상, 확인 필요)
@@ -57,6 +58,8 @@
 
 ## 완료
 ### 2026-11-09
+- [x] (12:01) 팀 문서의 예전 별도 탭 삭제: Sheet '스프린트 24 보드', Doc '회의 노트' (내용이 시드뿐인 것 확인 후, 사용자 요청). 남은 탭: 시트1 / Tab 1
+- [x] (12:01) 회의 화면 웹캠 미리보기 숨김 — `CanvasView.tsx` (1px 투명, 손 인식 계속, `?cam=1`이면 보임). #10(77SONNY77)이 넣은 미리보기
 - [x] (P1) Google Docs 동기화 — `server/sync/google_docs.py`: Doc 안 전용 탭 '회의 노트'(addDocumentTab)만 미러링, 기존 탭 안 건드림. 제목2·글머리·변경 항목 노랑·'· 누가' 회색. `tests/test_google_docs.py` 3개. 화면 📝 버튼은 전용 탭으로 바로 열림
 - [x] 팀 공용 Sheet/Doc으로 `.env` 교체 (편집 권한 확인). Sheet는 별도 탭 '스프린트 24 보드'에만 씀
 - [x] (P0) B 화면 보드·노트 탭 브라우저 확인 (사용자 확인: 잘 뜸, 12:45). 카메라·마이크는 테스트 환경 없어 미확인
