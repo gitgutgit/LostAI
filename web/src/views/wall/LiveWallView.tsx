@@ -12,7 +12,7 @@ import { useGesture } from "../../capture/gestures/useGesture"; // hs: 제스처
 import { changeHeadline } from "../../lib/changeText";
 import { Wall } from "./Wall";
 import { Moai } from "../brand/Moai";
-import { lastVoteSeq, liveWall } from "./live";
+import { lastCloseSeq, lastVoteSeq, liveWall } from "./live";
 import { FitStage } from "./FitStage";
 import { sayAs } from "./puppets";
 import { DocLinks } from "../../components/DocLinks";
@@ -97,6 +97,9 @@ export function LiveWallView({ me }: { me?: string }) {
   useEffect(() => { if (voteSeq < hideRaw) setHideTakeUpTo(-1); }, [voteSeq, hideRaw]);
   // ep: 질문 카드 띠(한 칸에 값이 둘 → 질문이 열려 화면이 띠 배치로 바뀜)도 같은 방식으로 평상시 화면으로 돌아간다.
   // 접은 질문은 서버에 그대로 열려 있고 행의 'Q1 open' 표지로 남는다. 다른 질문이 열리면 다시 띠로 뜬다.
+  // gitgutgit: 회의 끝(CLOSED) 화면은 자동으로 닫지 않는다. 버튼으로 접으면 그 '회의 끝' 발화까지 숨긴다.
+  const [hideCloseUpTo, setHideCloseUpTo] = useState(-1);
+  const closeSeq = lastCloseSeq(v);
   const [hiddenQ, setHiddenQ] = useState("");
   const evCount = useRef(0); // 리셋(이벤트 목록이 줄어듦)이면 접어 둔 질문 기억을 버린다
   useEffect(() => { if (v.events.length < evCount.current) setHiddenQ(""); evCount.current = v.events.length; }, [v.events.length]);
@@ -124,18 +127,20 @@ export function LiveWallView({ me }: { me?: string }) {
   }, []);
 
   if (!v.state) return <FitStage><div id="stage"><div className="head" style={{ left: 24 }}>Connecting…</div></div></FitStage>;
-  const w0 = liveWall(v, me, hideTakeUpTo);
+  const w0 = liveWall(v, me, hideTakeUpTo, closeSeq < hideCloseUpTo ? -1 : hideCloseUpTo);
+  const isClosed = w0.cardB.take === "navy end";
   const qKey = w0.cardA ? `${w0.cardA.q} ${w0.cardA.title}` : "";
   const qHidden = !!qKey && qKey === hiddenQ && !w0.cardB.take;
   const w = qHidden ? { ...w0, cardA: null, idle: [`${w0.cardA!.q} is still open.`, "Say an option, or call a vote, to bring it back."] } : w0;
   const band = !!w.cardA && !w.cardB.take;
   // 평상시 화면으로 돌아가기: 표결 전체화면이 우선, 그다음 질문 띠. key가 바뀌면 카운트다운이 처음부터 다시 돈다.
-  const back = w.cardB.take ? { key: `take ${voteSeq}`, go: () => setHideTakeUpTo(voteSeq) }
+  const back = isClosed ? null : w.cardB.take ? { key: `take ${voteSeq}`, go: () => setHideTakeUpTo(voteSeq) }
     : band ? { key: `q ${qKey}`, go: () => setHiddenQ(qKey) } : null;
 
   return (
     <FitStage overlay={<>
       {back && <BackCountdown key={back.key} onBack={back.go} />}
+      {isClosed && <button id="back-normal" onClick={() => setHideCloseUpTo(closeSeq)} title="끝 화면을 접고 회의 화면으로">✕ 회의 화면으로</button>}
       {minutes && <Minutes onClose={() => setMinutes(false)} />}
       {v.notice && <div id="notice">{v.notice}</div>}
       {/* ep: Google Sheet, Doc 바로가기 + 테스트 대본 선택(임시). 무대(1920x1080) 배치는 건드리지 않게 창 왼쪽 아래 층에 둔다. 문서가 바뀌면(제목) 다시 받는다 */}

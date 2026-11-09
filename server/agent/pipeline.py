@@ -51,7 +51,8 @@ async def handle_utterance(room: "Room", ev: Event) -> None:
         await room.emit("agent.progress", "agent", refs,
                         {"stage": "done", "label": label, "ms": int((room.now() - ev.ts) * 1000)})
 
-    if votes.vote_id is not None and (n := vote_pick(text) or vote_pick_loose(text)) is not None:
+    # gitgutgit: 찬반 카드(선택지가 찬성/반대뿐) 표결이면 '좋아요/보통/싫어요'도 한 표(3/2/1).
+    if votes.vote_id is not None and (n := vote_pick(text) or vote_pick_loose(text) or votes.rating_word(text)) is not None:
         await votes.cast_by_voice(room, speaker, n)
         await done("vote")
         return
