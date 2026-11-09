@@ -1,0 +1,97 @@
+{
+  "docs": {
+    "board": {
+      "kind": "sheet",
+      "title": "Sprint 24 board",
+      "columns": [
+        "Ticket",
+        "estimate",
+        "owner",
+        "status"
+      ],
+      "rows": [
+        {
+          "row_id": "r_pay_412_csv_export",
+          "cells": {
+            "Ticket": "PAY-412 CSV export",
+            "estimate": "",
+            "owner": "",
+            "status": "candidate"
+          }
+        },
+        {
+          "row_id": "r_pay_415_saved_filters",
+          "cells": {
+            "Ticket": "PAY-415 saved filters",
+            "estimate": "",
+            "owner": "",
+            "status": "candidate"
+          }
+        },
+        {
+          "row_id": "r_pay_419_sso_via_saml",
+          "cells": {
+            "Ticket": "PAY-419 SSO via SAML",
+            "estimate": "",
+            "owner": "",
+            "status": "candidate"
+          }
+        },
+        {
+          "row_id": "r_pay_421_empty_states",
+          "cells": {
+            "Ticket": "PAY-421 empty states",
+            "estimate": 5,
+            "owner": "",
+            "status": "candidate"
+          }
+        },
+        {
+          "row_id": "r_pay_423_api_rate_limiter",
+          "cells": {
+            "Ticket": "PAY-423 API rate limiter",
+            "estimate": 8,
+            "owner": "",
+            "status": "candidate"
+          }
+        },
+        {
+          "row_id": "r_pay_427_onboarding_modal",
+          "cells": {
+            "Ticket": "PAY-427 onboarding modal",
+            "estimate": "",
+            "owner": "",
+            "status": "candidate"
+          }
+        }
+      ]
+    },
+    "notes": {
+      "kind": "doc",
+      "title": "Sprint 24 planning notes",
+      "sections": [
+        {
+          "section_id": "s_dec",
+          "heading": "Decisions",
+          "binding": "decisions",
+          "items": []
+        },
+        {
+          "section_id": "s_risk",
+          "heading": "Risks",
+          "binding": "risks",
+          "items": []
+        },
+        {
+          "section_id": "s_act",
+          "heading": "Actions",
+          "binding": "actions",
+          "items": []
+        }
+      ]
+    }
+  },
+  "conflicts": [],
+  "tickets": [],
+  "provenance": {}
+}

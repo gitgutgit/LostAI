@@ -15,6 +15,7 @@ import { lastVoteSeq, liveWall } from "./live";
 import { FitStage } from "./FitStage";
 import { sayAs } from "./puppets";
 import { DocLinks } from "../../components/DocLinks";
+import { TestSeedPicker } from "../../components/TestSeedPicker";
 
 const BACK_AFTER_SEC = 5;
 
@@ -126,8 +127,8 @@ export function LiveWallView({ me }: { me?: string }) {
       {back && <BackCountdown key={back.key} onBack={back.go} />}
       {minutes && <Minutes onClose={() => setMinutes(false)} />}
       {v.notice && <div id="notice">{v.notice}</div>}
-      {/* ep: Google Sheet, Doc 바로가기. 무대(1920x1080) 배치는 건드리지 않게 창 왼쪽 아래 층에 둔다. 문서가 바뀌면(제목) 다시 받는다 */}
-      <div id="wall-tools"><DocLinks refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} /></div>
+      {/* ep: Google Sheet, Doc 바로가기 + 테스트 대본 선택(임시). 무대(1920x1080) 배치는 건드리지 않게 창 왼쪽 아래 층에 둔다. 문서가 바뀌면(제목) 다시 받는다 */}
+      <div id="wall-tools"><DocLinks refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} /><TestSeedPicker /></div>
     </>}>
       <Wall w={w} band={band} animate onOpenMinutes={() => setMinutes(true)}
         live={{ mic, onMic: toggleMic, gesture, onGesture: () => setGesture(!gesture), connected: v.connected, typing, onType: () => setTyping(true), onTypeEnd: () => setTyping(false), // hs: gesture 토글 전달
