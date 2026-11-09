@@ -9,7 +9,7 @@ import { cellIndex, docTabCounts, timeline } from "../../core/viewmodels";
 import { useRoom } from "../../core/store";
 import { send } from "../../core/ws";
 import { engine } from "../../capture/gestures/engine";
-import { isShared, ZOOM_AUTO_OFF_MS, ZOOM_TOGGLE, HOLD_MS } from "../../capture/gestures/modes";
+import { isShared, HOLD_MS } from "../../capture/gestures/modes"; // hs: ZOOM_AUTO_OFF_MS, ZOOM_TOGGLE 제거 (PoC 방식은 모드 토글 안 씀)
 import { Viewport } from "../../capture/gestures/viewport";
 import { startStt, sttStatusText, type SttStatus } from "../../capture/stt";
 
@@ -40,88 +40,79 @@ export function CanvasView() {
   const [mic, setMic] = useState<null | (() => void)>(null);
   const [stt, setStt] = useState<SttStatus>({ kind: "off" });
   const [interim, setInterim] = useState("");
-  const [zoom, setZoom] = useState(false);
+  // hs: zoom 상태 제거 — PoC 방식은 항상 제스처 활성, 모드 토글 없음
   const canvasRef = useRef<HTMLDivElement>(null);
-  const webcamRef = useRef<HTMLDivElement>(null); // hs: 웹캠 컨테이너
   const viewport = useMemo(() => new Viewport(() => canvasRef.current), []);
   const cells = cellIndex(v);
   const counts = docTabCounts(v, seen);
 
-  // hs: PoC pa_hs_gesture_api.js start() 방식 그대로
-  // hs: video를 createElement로 직접 생성 → getUserMedia → loadeddata 대기 → engine.start
+  // hs: PoC pa_hs_gesture_api.js start() 방식 — video는 숨김(화면에 안 보임)
   useEffect(() => {
     let stream: MediaStream | null = null;
     let vid: HTMLVideoElement | null = null;
+    let cancelled = false; // hs: StrictMode 이중 실행 방어
     (async () => {
-      // hs: PoC와 동일하게 video 요소 직접 생성
       vid = document.createElement("video");
       vid.autoplay = true;
       vid.playsInline = true;
       vid.muted = true;
-      vid.style.cssText = "width:160px;display:block;transform:scaleX(-1);";
+      vid.style.cssText = "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;"; // hs: 숨김
+      document.body.appendChild(vid);
 
-      // hs: PoC와 동일하게 getUserMedia
       stream = await navigator.mediaDevices.getUserMedia(
         { video: { width: 640, height: 480, facingMode: "user" } }
       );
+      if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
       vid.srcObject = stream;
-
-      // hs: PoC와 동일하게 loadeddata 대기
       await new Promise<void>(r => vid!.addEventListener("loadeddata", () => r(), { once: true }));
+      if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
 
-      // hs: 웹캠 미리보기에 붙이기
-      webcamRef.current?.appendChild(vid);
-
-      // hs: 엔진 시작
       engine.mode = "default";
       await engine.start(vid);
     })();
     return () => {
+      cancelled = true;
       engine.stop();
       stream?.getTracks().forEach(t => t.stop());
       if (vid?.parentNode) vid.parentNode.removeChild(vid);
     };
   }, []);
 
-  // 손 신호: 기본 모드는 공유 신호만 서버로, 확대 모드는 내 화면만.
-  // hs: 검지 커서 + 줌은 항상 동작 (PoC pa_hs 방식 — 줌 모드 토글 불필요)
+  // hs: PoC pa_hs_gesture_api 모드 로직 그대로:
+  // hs: Pointing_Up → 커서 이동 (줌 크기 유지)
+  // hs: Closed_Fist → 커서 고정, 최소(1x)
+  // hs: Open_Palm → 커서 고정, 최대(2x)
+  // hs: 그 외(손가락 벌림) → 커서 고정(마지막 위치), 연속 줌
   useEffect(() => {
     let lastSent = "";
     let lastSeen = performance.now();
-    viewport.showCursor(true); // hs: 캔버스 진입 시 커서 켜기
     return engine.subscribe((f) => {
       const now = performance.now();
+      if (f.pointer) lastSeen = now;
 
-      // hs: 검지 포인터 — 항상 추적
-      if (f.pointer) {
-        lastSeen = now;
-        viewport.moveCursor(f.pointer); // hs: 커서 위치
-        viewport.showCursor(true);
-        viewport.setPointer(f.pointer, now); // hs: 줌 기준점 + 머물기 클릭
-      } else {
+      if (!f.pointer) {
         viewport.showCursor(false); // hs: 손 안 보이면 커서 숨김
-      }
-
-      // hs: 제스처별 줌 (PoC pa_hs_gesture_api 로직)
-      if (f.gesture === "Closed_Fist" && f.confidence > 0.6) {
-        viewport.snapMin(); // hs: 주먹 → 최소(1x)
+      } else if (f.gesture === "Pointing_Up" && f.confidence > 0.5) {
+        // hs: 검지 = 커서 이동, 줌 크기 유지
+        viewport.moveCursor(f.pointer);
+        viewport.showCursor(true);
+        viewport.setPointer(f.pointer, now); // hs: 줌 기준점 저장
+      } else if (f.gesture === "Closed_Fist" && f.confidence > 0.6) {
+        // hs: 주먹 = 커서 고정, 최소(1x)
+        viewport.showCursor(true);
+        viewport.snapMin();
       } else if (f.gesture === "Open_Palm" && f.confidence > 0.6) {
-        viewport.snapMax(); // hs: 손바닥 → 최대(2x)
+        // hs: 손바닥 = 커서 고정, 최대(2x)
+        viewport.showCursor(true);
+        viewport.snapMax();
       } else if (f.openness != null) {
-        viewport.setOpenness(f.openness); // hs: 손 벌림/오므림 → 연속 줌
+        // hs: 손가락 벌림/오므림 = 커서 고정(마지막 위치), 연속 줌
+        viewport.showCursor(true);
+        viewport.setOpenness(f.openness);
       }
-
-      // hs: 기존 줌 모드 자동 해제
-      if (engine.mode === "zoom" && now - lastSeen > ZOOM_AUTO_OFF_MS) { engine.mode = "default"; setZoom(false); }
 
       // 기존 공유 신호 (엄지 등 → 서버)
       if (!f.gesture || f.hold_ms < HOLD_MS) { lastSent = ""; return; }
-      if (f.gesture === ZOOM_TOGGLE && lastSent !== ZOOM_TOGGLE) {
-        lastSent = ZOOM_TOGGLE;
-        engine.mode = engine.mode === "zoom" ? "default" : "zoom";
-        setZoom(engine.mode === "zoom");
-        return;
-      }
       if (isShared(engine.mode, f.gesture) && lastSent !== f.gesture) {
         lastSent = f.gesture;
         send({ kind: "gesture", payload: { kind: f.gesture, confidence: f.confidence, hold_ms: f.hold_ms } });
@@ -142,9 +133,7 @@ export function CanvasView() {
         }}>{mic ? "🎙 끄기" : "🎙 켜기"}</button>
         <span className={`stt ${stt.kind}`}>{sttStatusText(stt)}</span>
         <DocLinks />
-        <button onClick={() => { engine.mode = zoom ? "default" : "zoom"; setZoom(!zoom); if (zoom) viewport.resetScale(); }}>
-          {zoom ? "확대 모드 끄기" : "확대 모드"}
-        </button>
+        {/* hs: 줌 모드 토글 버튼 제거 — PoC 방식은 제스처로 항상 동작 */}
       </header>
       <main>
         <nav className="tabs">
@@ -175,8 +164,6 @@ export function CanvasView() {
         </div>
       </aside>
       {v.notice && <div className="toast">{v.notice}</div>}
-      {/* hs: 웹캠 미리보기 컨테이너 (PoC처럼 video를 createElement로 직접 append) */}
-      <div ref={webcamRef} style={{ position: "fixed", bottom: 8, right: 8, zIndex: 50, borderRadius: 12, overflow: "hidden", border: "2px solid #333" }} />
     </div>
   );
 }
