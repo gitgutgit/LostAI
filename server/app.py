@@ -20,6 +20,7 @@ from server.auth import challenge  # noqa: E402
 from server.events import ClientMessage  # noqa: E402
 from server.gestures.fastpath import handle_gesture  # noqa: E402
 from server.room import get_room  # noqa: E402
+from server.common.warmup import schedule_warmup  # noqa: E402
 from server.sync.outbox import outbox  # noqa: E402
 
 log = logging.getLogger(__name__)
@@ -31,6 +32,7 @@ async def lifespan(_: FastAPI):
     room.start()
     outbox.start()
     outbox.enqueue_full_sync(room)  # 외부 문서를 시드 상태로 맞추고 Google 연결도 미리 데움
+    schedule_warmup(room.state)     # LIVE면 라우터·에디터 미리 호출 (첫 발화 콜드 스타트 제거)
     yield
 
 
@@ -190,6 +192,7 @@ async def reset():
     await room.emit("room.reset", "server", {}, {})
     await room.broadcast(room.snapshot())
     outbox.enqueue_full_sync(room)
+    schedule_warmup(room.state)  # 시연 직전 리셋 → 프롬프트 캐시(약 5분)를 다시 데움
     return {"ok": True}
 
 
