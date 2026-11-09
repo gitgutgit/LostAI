@@ -81,12 +81,17 @@
 
 **`web/src/views/canvas/CanvasView.tsx`**
 - PoC `pa_hs_gesture_api.js` start() 방식 그대로 이식:
-  - `document.createElement("video")` 로 video 직접 생성 (JSX ref 아님)
+  - `document.createElement("video")` 로 video 직접 생성, **숨김**(화면에 안 보임)
   - `getUserMedia` → `loadeddata` 대기 → `engine.start(vid)` 순서
-  - video를 webcam 컨테이너 div에 appendChild
+  - `cancelled` 플래그로 React StrictMode 이중 실행 방어
   - unmount 시 `engine.stop()` + 스트림 정리 + video DOM 제거
-- 인증 후 바로 동작 (기존 "브이로 줌 모드 켜기" 불필요)
-- 검지 포인터: hold_ms 체크 없이 항상 추적, `moveCursor()` + `showCursor()` 호출
+- PoC 모드 로직 적용:
+  - **Pointing_Up** → 커서 이동 (`moveCursor`), 줌 크기 유지
+  - **Closed_Fist** → 커서 고정, `snapMin()` 최소(1x)
+  - **Open_Palm** → 커서 고정, `snapMax()` 최대(2x)
+  - **그 외(손 벌림)** → 커서 고정(마지막 위치), `setOpenness()` 연속 줌
+- 줌 모드 토글 버튼 제거 (제스처로 항상 동작)
+- 웹캠 미리보기 제거 (화면에 안 보임)
 - Closed_Fist(confidence>0.6) → `snapMin()` (최소)
 - Open_Palm(confidence>0.6) → `snapMax()` (최대)
 - 그 외 → `setOpenness()` (손 벌림/오므림 → 연속 줌)
