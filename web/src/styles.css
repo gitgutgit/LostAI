@@ -65,3 +65,7 @@ a.btn:hover { border-color: var(--accent); } .btn.off { opacity: .45; cursor: de
   font: 13px/1.4 system-ui, sans-serif; box-shadow: 0 2px 8px rgba(0, 0, 0, .12); opacity: .92; }
 #wall-tools:empty { display: none; }
 #wall-tools .doc-links { margin-left: 0; }
+/* 테스트 대본 선택 (임시) */
+.seed-picker { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.seed-picker select { font-size: 13px; max-width: 260px; }
+.seed-picker-err { color: var(--bad); font-size: 12px; }

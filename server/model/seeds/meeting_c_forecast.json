@@ -1,0 +1,94 @@
+{
+  "docs": {
+    "board": {
+      "kind": "sheet",
+      "title": "Q4 forecast (amounts in $K, Q4 target $1.4M)",
+      "columns": [
+        "Deal",
+        "Q3",
+        "Q4",
+        "stage",
+        "probability"
+      ],
+      "rows": [
+        {
+          "row_id": "r_halvorsen_freight",
+          "cells": {
+            "Deal": "Halvorsen Freight",
+            "Q3": "",
+            "Q4": 410,
+            "stage": "best case",
+            "probability": "60%"
+          }
+        },
+        {
+          "row_id": "r_brightwater_health",
+          "cells": {
+            "Deal": "Brightwater Health",
+            "Q3": "",
+            "Q4": 300,
+            "stage": "commit",
+            "probability": ""
+          }
+        },
+        {
+          "row_id": "r_kestrel_mining",
+          "cells": {
+            "Deal": "Kestrel Mining",
+            "Q3": "",
+            "Q4": 220,
+            "stage": "commit",
+            "probability": ""
+          }
+        },
+        {
+          "row_id": "r_tavora_logistics",
+          "cells": {
+            "Deal": "Tavora Logistics",
+            "Q3": "",
+            "Q4": 120,
+            "stage": "pipeline",
+            "probability": ""
+          }
+        },
+        {
+          "row_id": "r_olander_credit_union",
+          "cells": {
+            "Deal": "Olander Credit Union",
+            "Q3": "",
+            "Q4": 150,
+            "stage": "best case",
+            "probability": "70%"
+          }
+        }
+      ]
+    },
+    "notes": {
+      "kind": "doc",
+      "title": "Q4 forecast call notes",
+      "sections": [
+        {
+          "section_id": "s_dec",
+          "heading": "Decisions",
+          "binding": "decisions",
+          "items": []
+        },
+        {
+          "section_id": "s_risk",
+          "heading": "Risks",
+          "binding": "risks",
+          "items": []
+        },
+        {
+          "section_id": "s_act",
+          "heading": "Actions",
+          "binding": "actions",
+          "items": []
+        }
+      ]
+    }
+  },
+  "conflicts": [],
+  "tickets": [],
+  "provenance": {}
+}

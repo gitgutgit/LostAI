@@ -1,0 +1,79 @@
+{
+  "docs": {
+    "board": {
+      "kind": "sheet",
+      "title": "Line 4 status",
+      "columns": [
+        "Station",
+        "status",
+        "defects",
+        "owner"
+      ],
+      "rows": [
+        {
+          "row_id": "r_op20_bearing_press",
+          "cells": {
+            "Station": "OP20 bearing press",
+            "status": "running",
+            "defects": 0,
+            "owner": ""
+          }
+        },
+        {
+          "row_id": "r_op30_gasket_and_cover",
+          "cells": {
+            "Station": "OP30 gasket and cover",
+            "status": "running",
+            "defects": 0,
+            "owner": ""
+          }
+        },
+        {
+          "row_id": "r_op40_cover_bolt_torque",
+          "cells": {
+            "Station": "OP40 cover bolt torque",
+            "status": "running",
+            "defects": 0,
+            "owner": ""
+          }
+        },
+        {
+          "row_id": "r_op50_leak_test",
+          "cells": {
+            "Station": "OP50 leak test",
+            "status": "on hold",
+            "defects": 0,
+            "owner": ""
+          }
+        }
+      ]
+    },
+    "notes": {
+      "kind": "doc",
+      "title": "Line 4 stop response",
+      "sections": [
+        {
+          "section_id": "s_free1",
+          "heading": "Containment",
+          "binding": null,
+          "items": []
+        },
+        {
+          "section_id": "s_free2",
+          "heading": "Root cause",
+          "binding": null,
+          "items": []
+        },
+        {
+          "section_id": "s_act",
+          "heading": "Actions",
+          "binding": "actions",
+          "items": []
+        }
+      ]
+    }
+  },
+  "conflicts": [],
+  "tickets": [],
+  "provenance": {}
+}

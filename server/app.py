@@ -8,6 +8,7 @@ import json
 import logging
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -207,14 +208,48 @@ async def stats():
             "events": len(room.events)}
 
 
+SEED_DIR = Path(__file__).parent / "model" / "seeds"
+
+
+def _seed_names() -> list[str]:
+    return sorted(p.stem for p in SEED_DIR.glob("*.json"))
+
+
+@app.get("/api/seeds")
+async def seeds():
+    """테스트용 시드(대본 시작 상태) 목록과 지금 쓰는 시드. 원본 문서 모드(SEED=google)에서는 바꿀 수 없다."""
+    from server.sync import google_source
+    out = []
+    for name in _seed_names():
+        try:
+            data = json.loads((SEED_DIR / f"{name}.json").read_text(encoding="utf-8"))
+            title = next((d.get("title") for d in data.get("docs", {}).values() if d.get("kind") == "sheet"), name)
+        except (OSError, ValueError):
+            title = name
+        out.append({"name": name, "title": title})
+    return {"current": get_room().seed_name, "seeds": out, "locked": google_source.active()}
+
+
+class ResetBody(BaseModel):
+    seed: str | None = None  # 주면 이 시드로 바꿔서 시작 (테스트용)
+
+
 @app.post("/api/reset")
-async def reset():
+async def reset(body: ResetBody | None = None):
     """회의 내용을 시드로 되돌린다. 접속 중인 화면은 끊지 않고 새 스냅샷을 받는다.
 
     원본 문서 모드면 회의 중 적용된 변경을 역순으로 되돌려 Google 원본도 회의 시작 전으로 (Outbox 줄 맨 앞에서).
+    body.seed를 주면 그 시드로 바꿔서 시작한다 (테스트 대본 선택). 원본 문서 모드에서는 거절한다.
     """
     from server.sync import google_source
     room = get_room()
+    seed = body.seed if body else None
+    if seed and seed != room.seed_name:
+        if google_source.active():
+            raise HTTPException(409, "원본 문서 모드(SEED=google)에서는 시드를 바꿀 수 없음")
+        if seed not in _seed_names():
+            raise HTTPException(404, f"seed not found: {seed}")
+        room.seed_name = seed  # 아래 room.reset()이 이 이름으로 시드를 다시 읽는다
     old_changes = await room.reset()  # 워커·타이머를 멈춘 뒤의 변경 목록 → 그 사이 적용된 것도 빠지지 않는다
     await room.emit("room.reset", "server", {}, {})
     await room.broadcast(room.snapshot())

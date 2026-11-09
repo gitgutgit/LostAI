@@ -1,0 +1,67 @@
+{
+  "docs": {
+    "board": {
+      "kind": "sheet",
+      "title": "Senior backend debrief scorecard (1 to 4)",
+      "columns": [
+        "Candidate",
+        "system design",
+        "coding",
+        "communication",
+        "culture add",
+        "overall"
+      ],
+      "rows": [
+        {
+          "row_id": "r_ellery",
+          "cells": {
+            "Candidate": "Ellery",
+            "system design": "",
+            "coding": "",
+            "communication": "",
+            "culture add": "",
+            "overall": ""
+          }
+        },
+        {
+          "row_id": "r_castell",
+          "cells": {
+            "Candidate": "Castell",
+            "system design": "",
+            "coding": "",
+            "communication": "",
+            "culture add": "",
+            "overall": ""
+          }
+        }
+      ]
+    },
+    "notes": {
+      "kind": "doc",
+      "title": "Senior backend debrief notes",
+      "sections": [
+        {
+          "section_id": "s_dec",
+          "heading": "Decisions",
+          "binding": "decisions",
+          "items": []
+        },
+        {
+          "section_id": "s_risk",
+          "heading": "Concerns",
+          "binding": "risks",
+          "items": []
+        },
+        {
+          "section_id": "s_act",
+          "heading": "Next steps",
+          "binding": "actions",
+          "items": []
+        }
+      ]
+    }
+  },
+  "conflicts": [],
+  "tickets": [],
+  "provenance": {}
+}
