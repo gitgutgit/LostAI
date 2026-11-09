@@ -45,7 +45,13 @@ function lineIndex(events: MeetingEvent[]): Map<string, { n: number; who: string
   return m;
 }
 
-export function liveWall(v: RoomView, me?: string): WallState {
+/** 가장 최근 표결 이벤트(vote.opened, vote.closed)의 seq. 전체화면 표결 화면(카운트다운, 결과)은 이 이벤트에서 나온다. */
+export function lastVoteSeq(v: RoomView): number {
+  return [...v.events].reverse().find((e) => e.type === "vote.opened" || e.type === "vote.closed")?.seq ?? -1;
+}
+
+/** hideTakeUpTo: 이 seq까지의 표결 이벤트로 생긴 전체화면 표결 화면은 닫힌 것으로 보고 평소 카드로 그린다 (평상시 화면 버튼, 5초 카운트다운). */
+export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1): WallState {
   const s = v.state;
   const lines = lineIndex(v.events);
   const L = (ch?: Change | null) => (ch?.utt_id && lines.get(ch.utt_id) ? `L${lines.get(ch.utt_id)!.n}` : "");
@@ -167,16 +173,17 @@ export function liveWall(v: RoomView, me?: string): WallState {
   const vOpen = lastOf((e) => e.type === "vote.opened");
   const vClosed = lastOf((e) => e.type === "vote.closed");
   const voting = vOpen && (!vClosed || vClosed.seq < vOpen.seq);
+  const countShown = !!voting && vOpen!.seq > hideTakeUpTo;
   const lastAgent = lastOf((e) => e.type === "agent.progress" || e.type === "ask.answered" || e.type === "change.failed" || e.type === "change.applied" || e.type === "change.reverted");
   const stage = lastAgent?.type === "agent.progress" ? str(lastAgent.payload.stage) : "";
   let cardB: CardB = { flap: "LISTENING", side: stage === "editing" ? "writing" : stage === "routing" ? "heard" : "", msg: { kind: "headline", big: ["Writing what the team says"], sub: ["Small talk is ignored. Any edit can be undone."], subTop: 4 } };
   if (v.paused) cardB = { flap: "PAUSED", msg: { kind: "headline", big: ["Paused"], sub: ["Show the T sign again to resume."], subTop: 4 } };
-  else if (voting) {
+  else if (countShown) {
     const cast = v.events.filter((e) => e.type === "vote.cast" && e.refs.vote_id === vOpen!.refs.vote_id).length;
     cardB = { flap: "3 2 1", off: [0, 4], take: "count", msg: { kind: "countdown", q: q ? qOf(q) : "Q", title: q?.topic ?? "Vote", prompt: `Show fingers to your camera, or say 1 or 2. ${cast} read.` } };
   } else if (vClosed && Object.keys((vClosed.payload.votes ?? {}) as object).length === 0 && (!lastAgent || vClosed.seq > lastAgent.seq)) {
     cardB = { flap: "NO VOTE", msg: { kind: "headline", big: ["No hands read"], sub: ["Say 1 or 2, or show fingers, then call the vote again."], subTop: 4 } };
-  } else if (vClosed && (!lastAgent || vClosed.seq > lastAgent.seq)) {
+  } else if (vClosed && vClosed.seq > hideTakeUpTo && (!lastAgent || vClosed.seq > lastAgent.seq)) {
     const votes = Object.values((vClosed.payload.votes ?? {}) as Record<string, number>);
     const tally = new Map<number, number>();
     votes.forEach((n) => tally.set(n, (tally.get(n) ?? 0) + 1));
@@ -233,7 +240,7 @@ export function liveWall(v: RoomView, me?: string): WallState {
     decidedMarks: decided.map(qOf),
     parked: [],
     said, log, people, turn: turn >= 0 ? turn : undefined,
-    glyph: voting ? "cam" : "", big: !!voting, lit,
+    glyph: voting ? "cam" : "", big: countShown, lit,
   };
 }
 
