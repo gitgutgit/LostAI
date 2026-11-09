@@ -95,8 +95,8 @@ export function LiveWallView({ me }: { me?: string }) {
   };
   useEffect(() => () => stopMic.current?.(), []);
 
-  // hs: 제스처 커스텀 훅 — 버튼으로 활성화할 때만 동작
-  useGesture(() => document.getElementById("livewrap"), gesture);
+  // hs: 제스처 커스텀 훅 — 버튼으로 활성화, Thumb_Down 3초로 끄기
+  useGesture(() => document.getElementById("livewrap"), gesture, () => setGesture(false));
 
   // 키: M 마이크, F 전체 화면 (입력칸에 쓰는 중이면 무시)
   useEffect(() => {

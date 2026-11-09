@@ -6,12 +6,15 @@ import { isShared, HOLD_MS } from "./modes";
 import { Viewport } from "./viewport";
 import { send } from "../../core/ws";
 
+const THUMB_DOWN_OFF_MS = 3000; // hs: Thumb_Down 3초 유지 → Gesture Off
+
 /**
  * hs: 제스처 제어 훅. enabled가 true일 때만 카메라+엔진+포인터+줌이 동작한다.
  * @param getEl 줌 대상 HTMLElement를 반환하는 함수 (없으면 null)
  * @param enabled 제스처 활성화 여부 (기본 true)
+ * @param onDisable Thumb_Down 3초로 제스처 끌 때 호출되는 콜백
  */
-export function useGesture(getEl: () => HTMLElement | null, enabled = true) {
+export function useGesture(getEl: () => HTMLElement | null, enabled = true, onDisable?: () => void) {
   const viewport = useMemo(() => new Viewport(getEl), []);
 
   // hs: enabled가 true일 때만 카메라+엔진 시작, false면 정리
@@ -29,7 +32,7 @@ export function useGesture(getEl: () => HTMLElement | null, enabled = true) {
       vid.autoplay = true;
       vid.playsInline = true;
       vid.muted = true;
-      vid.style.cssText = "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;";
+      vid.style.cssText = "position:fixed;bottom:8px;right:8px;width:160px;border-radius:12px;transform:scaleX(-1);z-index:50;border:2px solid #333;";
       document.body.appendChild(vid);
 
       stream = await navigator.mediaDevices.getUserMedia(
@@ -53,27 +56,46 @@ export function useGesture(getEl: () => HTMLElement | null, enabled = true) {
   }, [enabled]);
 
   // hs: PoC 모드 로직 — enabled일 때만 동작
+  // hs: 손가락 2개 이상 = 줌(커서 고정), 1개 이하 = 커서 이동, Fist = 최소, Palm = 최대
   useEffect(() => {
     if (!enabled) return;
     let lastSent = "";
     return engine.subscribe((f) => {
       const now = performance.now();
 
+      // hs: 제스처 이름에서 손가락 개수 추출 (Fingers_0 ~ Fingers_5)
+      const fingerMatch = f.gesture?.match(/^Fingers_(\d)$/);
+      const fingers = fingerMatch ? Number(fingerMatch[1]) : null;
+      // hs: 2개 이상 펴져있거나, Victory/ILoveYou 등 멀티핑거 제스처 → 줌 모드
+      const isZoom = (fingers != null && fingers >= 2) || f.gesture === "Victory" || f.gesture === "ILoveYou";
+
       if (!f.pointer) {
         viewport.showCursor(false);
-      } else if (f.gesture === "Pointing_Up" && f.confidence > 0.5) {
-        viewport.moveCursor(f.pointer);
-        viewport.showCursor(true);
-        viewport.setPointer(f.pointer, now);
       } else if (f.gesture === "Closed_Fist" && f.confidence > 0.6) {
+        // hs: 주먹 → 커서 고정 + 최소
         viewport.showCursor(true);
         viewport.snapMin();
       } else if (f.gesture === "Open_Palm" && f.confidence > 0.6) {
+        // hs: 손바닥 → 커서 고정 + 최대
         viewport.showCursor(true);
         viewport.snapMax();
-      } else if (f.openness != null) {
+      } else if (isZoom && f.openness != null) {
+        // hs: 손가락 2개+ → 커서 완전 고정, 줌만 적용
         viewport.showCursor(true);
         viewport.setOpenness(f.openness);
+      } else {
+        // hs: 손가락 0~1개 → 커서 이동
+        viewport.moveCursor(f.pointer);
+        viewport.showCursor(true);
+        viewport.setPointer(f.pointer, now);
+      }
+
+      // hs: Thumb_Down 3초 유지 → Gesture Off + 화면 디폴트 사이즈
+      if (f.gesture === "Thumb_Down" && f.hold_ms >= THUMB_DOWN_OFF_MS && onDisable) {
+        viewport.resetScale();
+        viewport.showCursor(false);
+        onDisable();
+        return;
       }
 
       if (!f.gesture || f.hold_ms < HOLD_MS) { lastSent = ""; return; }
@@ -82,7 +104,7 @@ export function useGesture(getEl: () => HTMLElement | null, enabled = true) {
         send({ kind: "gesture", payload: { kind: f.gesture, confidence: f.confidence, hold_ms: f.hold_ms } });
       }
     });
-  }, [viewport, enabled]);
+  }, [viewport, enabled, onDisable]);
 
   return viewport;
 }
