@@ -41,7 +41,7 @@ function Cell({ row, k, val }: { row: DocRow; k: CellKey; val: CellVal }) {
   const style: CSSProperties | undefined = delay ? { animationDelay: `${delay}ms` } : undefined;
   return (
     <span className={`${fresh ? "fresh" : ""}${wrap ? " wrap2" : ""}`} style={style}>
-      {val.old !== undefined && <s>{val.old}</s>}{val.br && <br />}{val.v}
+      {/* hs: 이전 값 취소선 제거 — 새 값만 표시 */}{val.br && <br />}{val.v}
     </span>
   );
 }
