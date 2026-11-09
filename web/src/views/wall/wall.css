@@ -290,3 +290,10 @@ html.livewall,html.livewall body{height:100%;overflow:hidden;background:var(--wa
 #stage.live .pp .st{flex-shrink:0}
 #stage.live #idle{overflow:hidden}
 #stage.live #people{column-gap:16px}
+/* ep: 행이 종이 높이를 넘으면 행 목록만 세로로 스크롤한다(열 머리줄은 위에 고정). 방금 고친 행으로는 Wall.tsx가 자동으로 옮긴다 */
+#stage.live #sheet{display:flex;flex-direction:column}
+#stage.live #rows{flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;scrollbar-width:thin}
+#stage.live #rows .g.colh{position:sticky;top:0;z-index:1;background:var(--card)}
+/* ep: 출처 칩이 칸보다 길면 칩 안에서 말줄임, 전문은 마우스를 올리면 보인다 */
+#stage.live .g .src{min-width:0}
+#stage.live .g .src .chip{max-width:100%;overflow:hidden;text-overflow:ellipsis}

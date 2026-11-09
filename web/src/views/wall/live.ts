@@ -58,9 +58,11 @@ export function liveWall(v: RoomView, me?: string): WallState {
   // ---------------------------------------------------------------- 문서
   // ep: 문서 칸의 주인은 시트(보드)다. 노트 문서(결정, 리스크, 액션, 메모)는 이번 회의에서 고친 항목만 보드 아래에 덧붙인다.
   // 시트가 없는 방이면 마지막으로 고친 노트 문서(없으면 첫 노트 문서)를 통째로 보인다.
-  const freshKey = fresh?.targets[0]?.split("/")[0];
+  const lastDocKey = s ? [...v.events].reverse()
+    .map((e) => (e.type === "change.applied" ? (e.payload as Change).targets[0]?.split("/")[0] : undefined))
+    .find((k) => !!k && s.docs[k]?.kind === "doc") : undefined;
   const notesEntry: [string, Doc] | undefined = !s ? undefined
-    : freshKey && s.docs[freshKey]?.kind === "doc" ? [freshKey, s.docs[freshKey] as Doc]
+    : lastDocKey ? [lastDocKey, s.docs[lastDocKey] as Doc]
     : (Object.entries(s.docs).find(([, d]) => d.kind === "doc") as [string, Doc] | undefined);
   const sheetEntry = s ? Object.entries(s.docs).find(([, d]) => d.kind === "sheet") : undefined;
   const sheetKey = sheetEntry?.[0] ?? "";
@@ -133,16 +135,21 @@ export function liveWall(v: RoomView, me?: string): WallState {
   const fitPx = (texts: string[], min: number, max: number) => Math.min(max, Math.max(min, ...texts.map(textPx)));
   const fit = (texts: string[], min: number, max: number) => `${fitPx(texts, min, max)}px`;
   const LIMIT: Record<"o" | "s" | "e" | "d" | "st", [number, number]> = { o: [100, 220], s: [90, 170], e: [90, 170], d: [70, 120], st: [100, 220] };
-  // 종이 안쪽 폭 1174px(1222 - 좌우 24). 항목 열에 최소 360px를 남기고, 고정 열(첫 번호 열 제외)이 넘치면 가장 넓은 열부터 같은 상한까지 깎는다.
-  const gridOf = (fixed: number[], itemAt: number) => {
-    const room = 1174 - 360 - fixed[0];
-    const rest = fixed.slice(1);
-    let cap = Math.max(...rest, 0);
-    while (rest.reduce((a, w) => a + Math.min(w, cap), 0) > room && cap > 60) cap -= 2;
-    const px = [fixed[0], ...rest.map((w) => Math.min(w, cap))].map((w) => `${w}px`);
-    px.splice(itemAt, 0, "minmax(360px, 1fr)");
-    return px.join(" ");
+  // 종이 안쪽 폭 1174px(1222 - 좌우 24). 항목 열에 최소 360px를 남기고, 가운데 열이 넘치면 가장 넓은 열부터 같은 상한까지 깎되
+  // 열마다 제 최소 폭 아래로는 깎지 않는다. 출처 열은 칩이 말줄임으로 끝나기 전에 지키고, 그래도 넘칠 때만 160px까지 줄인다.
+  const SRC_MIN = 160;
+  const gridOf = (first: number, mid: [number, number][], src: number) => {
+    const sum = (cap: number) => mid.reduce((a, [w, min]) => a + Math.max(min, Math.min(w, cap)), 0);
+    let cap = Math.max(...mid.map(([w]) => w), 0);
+    while (sum(cap) > 1174 - 360 - first - src && cap > 60) cap -= 2;
+    const srcW = Math.max(SRC_MIN, Math.min(src, 1174 - 360 - first - sum(cap)));
+    return [`${first}px`, "minmax(360px, 1fr)", ...mid.map(([w, min]) => `${Math.max(min, Math.min(w, cap))}px`), `${srcW}px`].join(" ");
   };
+  // 출처 열 폭: 칩이 둘 이상인 행은 높은 행(96px)이라 칩이 두 줄까지 들어간다. 가장 긴 칩과 칩 폭 합의 절반 중 큰 쪽(칸 왼쪽 여백 8px).
+  const srcFit = (rs: DocRow[]) => Math.min(300, Math.max(SRC_MIN, ...rs.map((r) => {
+    const ws = r.src.map((c) => textPx(c.t));
+    return Math.max(0, ...ws, Math.ceil((ws.reduce((a, w) => a + w + 6, 0)) / 2)) + 8;
+  })));
 
   let docTitle = sheet?.title ?? "Doc", docSub = "", docCols = cols ? KEYS.map((k) => cols[k] ?? HEAD[k]) : undefined;
   let docHide: CellKey[] = cols ? (["o", "s", "e", "d", "st"] as const).filter((k) => !cols[k]) : [];
@@ -151,8 +158,8 @@ export function liveWall(v: RoomView, me?: string): WallState {
     // 보드 아래: 노트 문서마다 이번 회의에서 고친 항목
     if (s) for (const [nk, nd] of Object.entries(s.docs)) if (nd.kind === "doc") docRows = [...docRows, ...noteRows(nk, nd as Doc, true)];
     const colText = (k: (typeof KEYS)[number]) => [cols[k] ?? HEAD[k], ...docRows.map((r) => (k === "w" ? r.w : str((r[k as CellKey] as CellVal).v)))];
-    const srcPx = fitPx(docRows.map((r) => r.src.map((c) => c.t).join("  ")), 160, 300);
-    docGrid = gridOf([fitPx(colText("w"), 64, 200), ...(["o", "s", "e", "d", "st"] as const).filter((k) => cols[k]).map((k) => fitPx(colText(k), ...LIMIT[k])), srcPx], 1);
+    const mid = (["o", "s", "e", "d", "st"] as const).filter((k) => cols[k]).map((k): [number, number] => [fitPx(colText(k), ...LIMIT[k]), LIMIT[k][0]]);
+    docGrid = gridOf(fitPx(colText("w"), 64, 200), mid, srcFit(docRows));
   } else if (notesEntry) {
     const [nk, nd] = notesEntry;
     docRows = noteRows(nk, nd, false);
