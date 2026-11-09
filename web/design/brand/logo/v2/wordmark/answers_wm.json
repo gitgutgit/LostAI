@@ -1,0 +1,482 @@
+[
+ {
+  "v": "v0",
+  "surface": "light",
+  "h": 64,
+  "run": 0,
+  "answer": "MOAT",
+  "hit": false
+ },
+ {
+  "v": "v0",
+  "surface": "light",
+  "h": 64,
+  "run": 1,
+  "answer": "MOAT",
+  "hit": false
+ },
+ {
+  "v": "v0",
+  "surface": "light",
+  "h": 64,
+  "run": 2,
+  "answer": "MOAT",
+  "hit": false
+ },
+ {
+  "v": "v0",
+  "surface": "light",
+  "h": 24,
+  "run": 0,
+  "answer": "MOA",
+  "hit": false
+ },
+ {
+  "v": "v0",
+  "surface": "light",
+  "h": 24,
+  "run": 1,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v0",
+  "surface": "light",
+  "h": 24,
+  "run": 2,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v0",
+  "surface": "dark",
+  "h": 64,
+  "run": 0,
+  "answer": "MOA",
+  "hit": false
+ },
+ {
+  "v": "v0",
+  "surface": "dark",
+  "h": 64,
+  "run": 1,
+  "answer": "MOAT",
+  "hit": false
+ },
+ {
+  "v": "v0",
+  "surface": "dark",
+  "h": 64,
+  "run": 2,
+  "answer": "MOAT",
+  "hit": false
+ },
+ {
+  "v": "v0",
+  "surface": "dark",
+  "h": 24,
+  "run": 0,
+  "answer": "MOAT",
+  "hit": false
+ },
+ {
+  "v": "v0",
+  "surface": "dark",
+  "h": 24,
+  "run": 1,
+  "answer": "MOA",
+  "hit": false
+ },
+ {
+  "v": "v0",
+  "surface": "dark",
+  "h": 24,
+  "run": 2,
+  "answer": "MOA",
+  "hit": false
+ },
+ {
+  "v": "v1",
+  "surface": "light",
+  "h": 64,
+  "run": 0,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v1",
+  "surface": "light",
+  "h": 64,
+  "run": 1,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v1",
+  "surface": "light",
+  "h": 64,
+  "run": 2,
+  "answer": "MOA",
+  "hit": false
+ },
+ {
+  "v": "v1",
+  "surface": "light",
+  "h": 24,
+  "run": 0,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v1",
+  "surface": "light",
+  "h": 24,
+  "run": 1,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v1",
+  "surface": "light",
+  "h": 24,
+  "run": 2,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v1",
+  "surface": "dark",
+  "h": 64,
+  "run": 0,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v1",
+  "surface": "dark",
+  "h": 64,
+  "run": 1,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v1",
+  "surface": "dark",
+  "h": 64,
+  "run": 2,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v1",
+  "surface": "dark",
+  "h": 24,
+  "run": 0,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v1",
+  "surface": "dark",
+  "h": 24,
+  "run": 1,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v1",
+  "surface": "dark",
+  "h": 24,
+  "run": 2,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v2",
+  "surface": "light",
+  "h": 64,
+  "run": 0,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v2",
+  "surface": "light",
+  "h": 64,
+  "run": 1,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v2",
+  "surface": "light",
+  "h": 64,
+  "run": 2,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v2",
+  "surface": "light",
+  "h": 24,
+  "run": 0,
+  "answer": "MOAT",
+  "hit": false
+ },
+ {
+  "v": "v2",
+  "surface": "light",
+  "h": 24,
+  "run": 1,
+  "answer": "MOAT",
+  "hit": false
+ },
+ {
+  "v": "v2",
+  "surface": "light",
+  "h": 24,
+  "run": 2,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v2",
+  "surface": "dark",
+  "h": 64,
+  "run": 0,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v2",
+  "surface": "dark",
+  "h": 64,
+  "run": 1,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v2",
+  "surface": "dark",
+  "h": 64,
+  "run": 2,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v2",
+  "surface": "dark",
+  "h": 24,
+  "run": 0,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v2",
+  "surface": "dark",
+  "h": 24,
+  "run": 1,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v2",
+  "surface": "dark",
+  "h": 24,
+  "run": 2,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v3",
+  "surface": "light",
+  "h": 64,
+  "run": 0,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v3",
+  "surface": "light",
+  "h": 64,
+  "run": 1,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v3",
+  "surface": "light",
+  "h": 64,
+  "run": 2,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v3",
+  "surface": "light",
+  "h": 24,
+  "run": 0,
+  "answer": "MOAT",
+  "hit": false
+ },
+ {
+  "v": "v3",
+  "surface": "light",
+  "h": 24,
+  "run": 1,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v3",
+  "surface": "light",
+  "h": 24,
+  "run": 2,
+  "answer": "MOAT",
+  "hit": false
+ },
+ {
+  "v": "v3",
+  "surface": "dark",
+  "h": 64,
+  "run": 0,
+  "answer": "MOA",
+  "hit": false
+ },
+ {
+  "v": "v3",
+  "surface": "dark",
+  "h": 64,
+  "run": 1,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v3",
+  "surface": "dark",
+  "h": 64,
+  "run": 2,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v3",
+  "surface": "dark",
+  "h": 24,
+  "run": 0,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v3",
+  "surface": "dark",
+  "h": 24,
+  "run": 1,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v3",
+  "surface": "dark",
+  "h": 24,
+  "run": 2,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v4",
+  "surface": "light",
+  "h": 64,
+  "run": 0,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v4",
+  "surface": "light",
+  "h": 64,
+  "run": 1,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v4",
+  "surface": "light",
+  "h": 64,
+  "run": 2,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v4",
+  "surface": "light",
+  "h": 24,
+  "run": 0,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v4",
+  "surface": "light",
+  "h": 24,
+  "run": 1,
+  "answer": "MOA",
+  "hit": false
+ },
+ {
+  "v": "v4",
+  "surface": "light",
+  "h": 24,
+  "run": 2,
+  "answer": "MOA",
+  "hit": false
+ },
+ {
+  "v": "v4",
+  "surface": "dark",
+  "h": 64,
+  "run": 0,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v4",
+  "surface": "dark",
+  "h": 64,
+  "run": 1,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v4",
+  "surface": "dark",
+  "h": 64,
+  "run": 2,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v4",
+  "surface": "dark",
+  "h": 24,
+  "run": 0,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v4",
+  "surface": "dark",
+  "h": 24,
+  "run": 1,
+  "answer": "MOAI",
+  "hit": true
+ },
+ {
+  "v": "v4",
+  "surface": "dark",
+  "h": 24,
+  "run": 2,
+  "answer": "MOAI",
+  "hit": true
+ }
+]

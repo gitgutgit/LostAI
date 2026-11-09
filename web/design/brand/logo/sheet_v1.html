@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>MOAI marks v1</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&display=block" rel="stylesheet">
+<style>
+:root{--wall:#CDD6D0;--card:#FFFFFF;--ink:#17212B;--ink2:#4A5762;--yellow:#F3C316;--navy:#1D2733;--bar:#E4E9E6}
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1600px;height:1000px;background:var(--wall);color:var(--ink);font-family:'Atkinson Hyperlegible',sans-serif;padding:32px 40px}
+h2{font:700 28px/34px 'Barlow Condensed';color:var(--ink2);margin:0 0 12px}
+.row{display:flex;gap:28px;align-items:center;margin-bottom:28px}
+.card{background:var(--card);padding:24px 32px;box-shadow:0 0 0 2px rgba(23,33,43,.18)}
+.wm{font:700 120px/1 'Barlow Condensed';letter-spacing:2px;display:flex;align-items:flex-end}
+.ai{background:var(--yellow);padding:0 8px;margin-left:6px}
+.navy{background:var(--navy);color:#fff}
+.wm svg{height:96px;width:auto;margin-left:6px;margin-bottom:4px}
+.acro{font:500 40px/48px 'Barlow Condensed'}
+.acro b{font-weight:700;font-size:48px}
+.faces{display:flex;gap:20px}
+.face{background:var(--card);width:180px;padding:12px;text-align:center;box-shadow:0 0 0 2px rgba(23,33,43,.18)}
+.face svg{width:140px;height:140px}
+.face p{font:700 22px/26px 'Barlow Condensed';margin-top:6px}
+.face small{font:400 16px/20px 'Atkinson Hyperlegible';color:var(--ink2)}
+</style></head><body>
+
+<svg width="0" height="0" style="position:absolute">
+ <defs>
+  <!-- silhouette on 64 grid -->
+  <g id="sil"><rect x="20" y="4" width="24" height="44"/><rect x="12" y="16" width="4" height="24"/><rect x="48" y="16" width="4" height="24"/><path d="M12 60L16 48H48L52 60Z"/></g>
+  <mask id="mT"><rect width="64" height="64" fill="#fff"/><g fill="#000"><rect x="24" y="16" width="16" height="4"/><rect x="28" y="20" width="8" height="12"/><rect x="28" y="40" width="8" height="4"/></g></mask>
+  <!-- expression masks: brows, eyes, nose, mouth -->
+  <mask id="mListen"><rect width="64" height="64" fill="#fff"/><g fill="#000"><rect x="22" y="14" width="8" height="3"/><rect x="34" y="14" width="8" height="3"/><rect x="24" y="19" width="5" height="4"/><rect x="35" y="19" width="5" height="4"/><rect x="30" y="18" width="4" height="15"/><rect x="27" y="40" width="10" height="3"/></g></mask>
+  <mask id="mWrite"><rect width="64" height="64" fill="#fff"/><g fill="#000"><rect x="22" y="17" width="8" height="3"/><rect x="34" y="17" width="8" height="3"/><rect x="24" y="22" width="5" height="2"/><rect x="35" y="22" width="5" height="2"/><rect x="30" y="18" width="4" height="15"/><rect x="27" y="40" width="10" height="3"/></g></mask>
+  <mask id="mPause"><rect width="64" height="64" fill="#fff"/><g fill="#000"><rect x="22" y="14" width="8" height="3"/><rect x="24" y="19" width="5" height="4"/><rect x="35" y="18" width="5" height="5"/><rect x="30" y="18" width="4" height="15"/><rect x="29" y="40" width="6" height="3"/></g></mask>
+  <mask id="mVote"><rect width="64" height="64" fill="#fff"/><g fill="#000"><rect x="22" y="14" width="8" height="3"/><rect x="34" y="14" width="8" height="3"/><rect x="24" y="21" width="5" height="1.5"/><rect x="35" y="21" width="5" height="1.5"/><rect x="30" y="18" width="4" height="15"/><rect x="27" y="40" width="10" height="3"/></g></mask>
+  <mask id="mDone"><rect width="64" height="64" fill="#fff"/><g fill="#000"><rect x="22" y="14" width="8" height="3"/><rect x="34" y="14" width="8" height="3"/><path d="M24 22L26.5 19.5L29 22" stroke="#000" stroke-width="1.6" fill="none"/><path d="M35 22L37.5 19.5L40 22" stroke="#000" stroke-width="1.6" fill="none"/><rect x="30" y="18" width="4" height="15"/><path d="M27 40Q32 44 37 40" stroke="#000" stroke-width="2.2" fill="none"/></g></mask>
+ </defs>
+</svg>
+
+<h2>Wordmark (Barlow Condensed 700, screen tokens)</h2>
+<div class="row">
+ <div class="card"><div class="wm">MO<span class="ai">AI</span></div></div>
+ <div class="card"><div class="wm">MOA<svg viewBox="12 4 40 56"><g fill="#17212B" mask="url(#mT)"><use href="#sil"/></g></svg></div></div>
+ <div class="card navy"><div class="wm">MOA<svg viewBox="12 4 40 56"><g fill="#FFFFFF" mask="url(#mT)"><use href="#sil"/></g></svg></div></div>
+ <div class="card"><div class="acro"><div><b>M</b>eet</div><div><b>O</b>bject</div><div><b>A</b>gree</div><div><b>I</b>nk</div></div></div>
+</div>
+
+<h2>Mascot states (one face, only brows, eyes, mouth change)</h2>
+<div class="faces">
+ <div class="face"><svg viewBox="0 0 64 64"><g fill="#17212B" mask="url(#mListen)"><use href="#sil"/></g></svg><p>Listening</p><small>default, says nothing</small></div>
+ <div class="face"><svg viewBox="0 0 64 64"><g fill="#17212B" mask="url(#mWrite)"><use href="#sil"/></g></svg><p>Writing</p><small>eyes down to the doc</small></div>
+ <div class="face"><svg viewBox="0 0 64 64"><g fill="#17212B" mask="url(#mPause)"><use href="#sil"/></g><rect x="34" y="10" width="9" height="3" fill="#F3C316" transform="rotate(-14 38 11)"/></svg><p>Paused: conflict</p><small>one brow up, stops writing</small></div>
+ <div class="face"><svg viewBox="0 0 64 64"><g fill="#17212B" mask="url(#mVote)"><use href="#sil"/></g></svg><p>Vote</p><small>eyes shut, recommends nothing</small></div>
+ <div class="face"><svg viewBox="0 0 64 64"><g transform="rotate(6 32 60)"><g fill="#17212B" mask="url(#mDone)"><use href="#sil"/></g></g></svg><p>Decided</p><small>one nod, writes it back</small></div>
+</div>
+</body></html>

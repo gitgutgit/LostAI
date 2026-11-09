@@ -1,0 +1,60 @@
+{"speaker": "Ines", "text": "Okay, um, let's- let's start, I've got a hard stop at, uh, quarter past so we're not running over again. So capacity. Ravi, you're out Friday?", "delay": 3.0}
+{"speaker": "Owen", "text": "Yeah.", "delay": 3.9}
+{"speaker": "Ravi", "text": "Yeah, Friday and, uh- and Monday actually, it's the-", "delay": 4.97}
+{"speaker": "Ines", "text": "Right, okay, so we lose like a day and a half, two days- so I'm thinking twenty-eight points, maybe thirty. Not the thirty-four we did last time.", "delay": 2.8}
+{"speaker": "Owen", "text": "Thirty-three.", "delay": 8.6}
+{"speaker": "Ines", "text": "Thirty-three, whatever. Um, first one, CSV export, PAY-412. Owen, you looked at it?", "delay": 0.5}
+{"speaker": "Owen", "text": "Yeah, I- I poked at it. The export job's already there from the reports thing, so it's mostly just the query. I don't think it's-", "delay": 4.53}
+{"speaker": "Mika", "text": "Mm-hmm.", "delay": 5.0}
+{"speaker": "Ines", "text": "Okay, let's just poker it. On three. One, two, three.", "delay": 3.03}
+{"speaker": "Owen", "text": "Three.", "delay": 3.53, "gesture": "Fingers_3"}
+{"speaker": "Ravi", "text": "Five.", "delay": 0.1, "gesture": "Fingers_5"}
+{"speaker": "Mika", "text": "Three.", "delay": 0.15, "gesture": "Fingers_3"}
+{"speaker": "Ines", "text": "Ravi, five?", "delay": 0.8}
+{"speaker": "Ravi", "text": "Yeah, because the big accounts, like some of them have eighty, ninety thousand invoices, and the browser just- it just dies. So it has to be async, we email them a link or whatever, and that's, uh, a whole thing with the notification serv-", "delay": 0.87}
+{"speaker": "Mika", "text": "Right.", "delay": 8.07}
+{"speaker": "Owen", "text": "Oh. Oh, yeah, okay, I was thinking sync. If it's async, yeah, that's more.", "delay": 6.3}
+{"speaker": "Ines", "text": "Okay, re-vote. Same thing, on three.", "delay": 4.77}
+{"speaker": "Owen", "text": "Five.", "delay": 2.2, "gesture": "Fingers_5"}
+{"speaker": "Ravi", "text": "Five.", "delay": 0.05, "gesture": "Fingers_5"}
+{"speaker": "Mika", "text": "Uh, three. I don't really know the backend part.", "delay": 0.2, "gesture": "Fingers_3"}
+{"speaker": "Ines", "text": "That's fine. Okay, uh, five, let's call it five.", "delay": 3.1}
+{"speaker": "Ines", "text": "And, um, Owen owns it, Ravi you're pairing with him on the download link UI-", "delay": 3.3}
+{"speaker": "Ravi", "text": "Yep, five's right.", "delay": 1.75, "gesture": "Thumb_Up"}
+{"speaker": "Ines", "text": "-so that's, um, five of our twenty-eight gone. Next is saved filters, PAY-415, the one Mika's been, uh, mocking up, and I wanted to get the per-user thing settled before we-", "delay": 3.35}
+{"speaker": "Ravi", "text": "Okay.", "delay": 1.24}
+{"speaker": "Owen", "text": "No, the owner's me, not Ravi.", "delay": 1.86, "gesture": "Thumb_Down"}
+{"speaker": "Mika", "text": "So that's the thing, um, the panel's done, but is it per user or shared with the whole workspace? Because shared means a whole permissions mo-", "delay": 6.83}
+{"speaker": "Owen", "text": "Per user. Please.", "delay": 8.37}
+{"speaker": "Ines", "text": "Yeah, per user for now. Shared can be a follow-up.", "delay": 1.1}
+{"speaker": "Ravi", "text": "Mm-hmm.", "delay": 1.67}
+{"speaker": "Ravi", "text": "And filters is a three. I mean two if the table component already does saved state, which it- it doesn't. So three.", "delay": 1.96}
+{"speaker": "Ines", "text": "Okay, um, put Ravi's number in for filters. Then SSO, PAY-419, which, uh, sales keeps pinging me about.", "delay": 7.53}
+{"speaker": "Mika", "text": "Sorry, what's the board say for CSV export, who's on it now?", "delay": 6.2}
+{"speaker": "Owen", "text": "So SAML. That's an eight, at least, and we still don't have a sandbox from the identity provider, so I can't even- I can't test it.", "delay": 4.3}
+{"speaker": "Ines", "text": "Yeah.", "delay": 6.07}
+{"speaker": "Ravi", "text": "I mean, if we pull SSO out of the sprint we're at- what, twenty-two? No, twenty-four, with the rate limiter as an eight. Way under.", "delay": 2.9}
+{"speaker": "Ines", "text": "Yeah. Yeah, I think we kind of have to. Um, fist of five on that. Pulling SSO, committing to the rest. One, two, three.", "delay": 8.53}
+{"speaker": "Ines", "text": "Four.", "delay": 8.3, "gesture": "Fingers_4"}
+{"speaker": "Owen", "text": "Four.", "delay": 0.1, "gesture": "Fingers_4"}
+{"speaker": "Ravi", "text": "Five.", "delay": 0.05, "gesture": "Fingers_5"}
+{"speaker": "Mika", "text": "Two.", "delay": 0.3, "gesture": "Fingers_2"}
+{"speaker": "Mika", "text": "Yeah, I'm the two. It's not SSO, it's the empty states. They're a five but the illustrations aren't- nobody's started them, and if they slip we ship blank tables again, like last time.", "delay": 0.6}
+{"speaker": "Ines", "text": "Mm-hmm.", "delay": 6.6}
+{"speaker": "Mika", "text": "So honestly, move the onboarding modal to next sprint and I'm- I'm a four.", "delay": 4.5}
+{"speaker": "Ines", "text": "Okay. That's fair, yeah, let's do that.", "delay": 4.87}
+{"speaker": "Ravi", "text": "Yeah.", "delay": 1.63}
+{"speaker": "Ines", "text": "So pull the SSO ticket off the board.", "delay": 1.0}
+{"speaker": "Ines", "text": "And the onboarding modal's moving to next sprint, can you update that on the board too? And then- then we're at-", "delay": 3.07}
+{"speaker": "Owen", "text": "Yeah, that's right.", "delay": 1.75, "gesture": "Thumb_Up"}
+{"speaker": "Ines", "text": "-um, thirteen, plus the rate limiter, PAY-423, which- Owen, I have that as an eight from last sprint, is that still-", "delay": 5.35}
+{"speaker": "Mika", "text": "No, not empty states, undo that.", "delay": 1.05, "gesture": "Thumb_Down"}
+{"speaker": "Owen", "text": "Uh, honestly it's a five now, I did the token bucket part last sprint. Oh, and heads up, platform's, uh, freezing gateway config till Wednesday, so it can't hit staging before Wednesday.", "delay": 5.65}
+{"speaker": "Ines", "text": "Oh, nice. Okay so thirteen and five is eighteen, and then the- the flaky test stuff Ravi was-", "delay": 10.77}
+{"speaker": "Ravi", "text": "That, the five, put that in.", "delay": 1.5}
+{"speaker": "Ravi", "text": "Yeah, we should make a ticket for the flaky checkout test, it's failed like four times this week on-", "delay": 4.2}
+{"speaker": "Owen", "text": "Yeah.", "delay": 4.75}
+{"speaker": "Ines", "text": "Okay, um, make a ticket for the flaky checkout test, assign it to Ravi, two points.", "delay": 1.38}
+{"speaker": "Mika", "text": "Can you put what Owen said a minute ago, the Wednesday freeze thing, under Risks?", "delay": 5.63}
+{"speaker": "Ravi", "text": "Sorry, what did we land on for filters, per user or shared?", "delay": 5.4}
+{"speaker": "Ines", "text": "Okay, so that's twenty-two- no, twenty with the flaky one, which is under, which, honestly, good. Um, thanks all.", "delay": 4.4}

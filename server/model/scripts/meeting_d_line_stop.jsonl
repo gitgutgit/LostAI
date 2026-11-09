@@ -1,0 +1,60 @@
+{"speaker": "Rhea", "text": "Okay, uh, let's- let's go, we've been down forty minutes. Tomasz, where are we on fifty?", "delay": 4.0}
+{"speaker": "Tomasz", "text": "Yeah, so leak test is failing on the cover joint. Um, I've got twelve, thirteen fails since five-forty- no, sorry, eleven. Eleven confirmed, two were retests.", "delay": 6.4}
+{"speaker": "Rhea", "text": "Yeah.", "delay": 9.7}
+{"speaker": "Tomasz", "text": "Out of about forty housings. And it's the cover bolts, they're under-torque. I put a wrench on three of them and they- they break loose at like eight newton-meters. Spec's twelve.", "delay": 0.8}
+{"speaker": "Dele", "text": "Mm-hmm.", "delay": 4.2}
+{"speaker": "Dele", "text": "Yeah, that's the gun. Forty's nut runner, spindle two, it threw a, uh, a transducer fault Thursday and somebody cleared it and- and kept-", "delay": 7.3}
+{"speaker": "Rhea", "text": "Somebody cleared it?", "delay": 8.8}
+{"speaker": "Kurt", "text": "Sorry, sorry. Uh, Kurt, Norrvik Seals, I was over at receiving. Uh, this is the cover leak?", "delay": 1.1}
+{"speaker": "Rhea", "text": "Yeah. Okay, um, containment first. Forty goes on hold, fifty stays on hold, and Dele, forty's yours.", "delay": 6.8}
+{"speaker": "Priya", "text": "Mm-hmm.", "delay": 3.0}
+{"speaker": "Rhea", "text": "And everything since five-forty, uh, wherever it is, finished goods, the dock, it all goes in the red cage. Hundred percent re- re-torque and retest on the bench tester before anything ships.", "delay": 3.8}
+{"speaker": "Tomasz", "text": "Yeah, forty on hold, keep that.", "delay": 1.2, "gesture": "Thumb_Up"}
+{"speaker": "Kurt", "text": "Five-forty. Not- not earlier, 'cause if it's the gun you'd see it from Thursday.", "delay": 10.8}
+{"speaker": "Dele", "text": "Yeah no, it ran clean Thursday and Friday. I pulled the, uh, the tor- torque trace this morning, it's flat till about five-forty, five-forty-five.", "delay": 5.2}
+{"speaker": "Priya", "text": "Hang on, show me what it just put for forty.", "delay": 2.5}
+{"speaker": "Tomasz", "text": "Mm, I'm not- I'm not sold it's the gun, though. Eight newton-meters residual is exactly what you get when a gasket takes a set. Soft gasket, the clamp load just, uh, decays and-", "delay": 6.5}
+{"speaker": "Priya", "text": "Mm-hmm.", "delay": 3.5}
+{"speaker": "Kurt", "text": "It's not the gasket. Same lot since Monday. Put the root cause down as the gun, it's the transducer, he- he just said-", "delay": 8.6}
+{"speaker": "Rhea", "text": "Hang on, hang on. Kurt, you- you just walked up. Dele, what's the gun doing right now?", "delay": 8.6}
+{"speaker": "Tomasz", "text": "No, take that back out, root cause isn't decided.", "delay": 1.0, "gesture": "Thumb_Down"}
+{"speaker": "Dele", "text": "Right now it's locked out, red-tagged. I wanna swap spindle two with the spare off line two and run a, um, a joint-rate check on the rig before it goes back-", "delay": 5.8}
+{"speaker": "Rhea", "text": "Yeah, do it.", "delay": 11.5}
+{"speaker": "Dele", "text": "Okay.", "delay": 1.5}
+{"speaker": "Rhea", "text": "Okay, real quick, fingers. How sure are we it's the gun and not the- the gasket, five is it's the gun.", "delay": 1.0}
+{"speaker": "Dele", "text": "Four.", "delay": 8.4, "gesture": "Fingers_4"}
+{"speaker": "Tomasz", "text": "Uh, two.", "delay": 0.1, "gesture": "Fingers_2"}
+{"speaker": "Priya", "text": "Three.", "delay": 0.1, "gesture": "Fingers_3"}
+{"speaker": "Kurt", "text": "Five.", "delay": 0.1, "gesture": "Fingers_5"}
+{"speaker": "Rhea", "text": "So, uh, that's a three. And Kurt, you didn't badge in at the gate, so you're- you're not in the count. Gun's the lead, gasket's not ruled out.", "delay": 1.3}
+{"speaker": "Kurt", "text": "Right.", "delay": 10.5}
+{"speaker": "Tomasz", "text": "So honestly I'd add the gasket lot to root cause anyway, as- as open. I'm not ruling it-", "delay": 0.8}
+{"speaker": "Rhea", "text": "Yeah. Add the gasket lot to root cause, as open.", "delay": 7.2}
+{"speaker": "Kurt", "text": "Yeah, I'll send the durometer certs for, um, the last two lots. Um, today, by end of-", "delay": 4.2}
+{"speaker": "Rhea", "text": "Okay.", "delay": 6.5}
+{"speaker": "Kurt", "text": "And honestly somebody should open a ticket with your calibration lab, not with-", "delay": 0.8}
+{"speaker": "Rhea", "text": "Nobody's opened anything with you, Kurt. Uh, open a ticket with the calibration lab for spin- spindle two, Dele's on it.", "delay": 4.9}
+{"speaker": "Dele", "text": "Yep.", "delay": 8.0}
+{"speaker": "Tomasz", "text": "Oh and twenty's fine, by the way. If we put twenty on hold too, we've got no parts to prove out forty on, so-", "delay": 0.8}
+{"speaker": "Dele", "text": "I mean, uh, the press on twenty's been seating bearings kinda funny. If I just jumper the curtain for a minute I can watch it cycle and-", "delay": 9.0}
+{"speaker": "Priya", "text": "Timeout. Safety hold, nobody jumpers that curtain.", "delay": 7.5, "gesture": "T_Shape"}
+{"speaker": "Priya", "text": "No. You wanna watch it cycle, it's lockout first, guard off, then inch mode with a second person on the button. That's not a dis- that's not a discussion.", "delay": 2.9}
+{"speaker": "Rhea", "text": "Mm-hmm.", "delay": 8.5}
+{"speaker": "Dele", "text": "Okay.", "delay": 2.4}
+{"speaker": "Rhea", "text": "Yeah. Put twenty on hold too. Nobody's in that press till it's locked out, and, uh, Priya, you're with him.", "delay": 0.7}
+{"speaker": "Tomasz", "text": "Okay, and- and the cage. That fail count from before, the eleven, make it fourteen. Three more off the cage retest.", "delay": 8.0}
+{"speaker": "Dele", "text": "What did it just put for twenty?", "delay": 1.0}
+{"speaker": "Priya", "text": "Fourteen. Jeez, that's, uh, out of fifty-something, that's not-", "delay": 7.2}
+{"speaker": "Rhea", "text": "Yeah, fourteen's right.", "delay": 0.4, "gesture": "Thumb_Up"}
+{"speaker": "Rhea", "text": "Okay. Fingers. Restart forty on the spare spindle once Dele's check passes, uh, five is go.", "delay": 3.4}
+{"speaker": "Dele", "text": "Five.", "delay": 6.5, "gesture": "Fingers_5"}
+{"speaker": "Tomasz", "text": "Three.", "delay": 0.2, "gesture": "Fingers_3"}
+{"speaker": "Priya", "text": "Four.", "delay": 0.1, "gesture": "Fingers_4"}
+{"speaker": "Rhea", "text": "Four-ish. Okay, we restart forty after the check, with Tomasz on the leak tester for the first, uh, first fifty off.", "delay": 1.2}
+{"speaker": "Priya", "text": "Who's on the calibration ticket again?", "delay": 8.4}
+{"speaker": "Rhea", "text": "Um, and the cage. Release it today if the retest is clean, or- or hold it till Kurt's certs land? Five is release.", "delay": 3.1}
+{"speaker": "Tomasz", "text": "One.", "delay": 9.1, "gesture": "Fingers_1"}
+{"speaker": "Kurt", "text": "Five.", "delay": 0.1, "gesture": "Fingers_5"}
+{"speaker": "Priya", "text": "Uh, two.", "delay": 0.2, "gesture": "Fingers_2"}
+{"speaker": "Rhea", "text": "Yeah, that's a hold. Cage stays put till the certs are in.", "delay": 1.2}
+{"speaker": "Rhea", "text": "What've we got for containment? Read it back.", "delay": 5.5}

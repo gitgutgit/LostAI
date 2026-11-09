@@ -1,6 +1,6 @@
 # Note: 주현 (ProfessionalSeaweedDevourer), 기능 서브, 서버 UI 서브
 
-> 마지막 업데이트: 2026-11-09 13:06
+> 마지막 업데이트: 2026-11-09 14:10
 > 한 줄 상태: 🟢 진행 중: 입장 화면과 입장 뒤 회의 화면이 모두 창 전체를 차지하는 렌더 v0.4 무대가 됐다(벽 밖 조작 띠 없음). 서버 상태 대 화면 27/27 유지
 > 실행: `uv run pytest -q`, `uv run python -m server.replay fixtures/sample_sprint.jsonl`, 모드: MOCK
 
@@ -11,6 +11,7 @@
 ## 최근 결과
 | 지표 | 값 | 목표 | 언제, 모드 | 결과 파일 |
 |---|---|---|---|---|
+| 말로 하는 표결 발동, 블라인드 시나리오 14개 x 3회 (`eval/vote_live.py`) | 최종본 42/42, 카드 선택지 2~4개 42/42, 표결 열리기까지 p50 2.2초 최대 4.3초. main 기준선 30/42(찬성/반대 표결, 연속 두 번 표결 0/12) | 39/42 이상, 카드 100% | 11-09 14:00, LIVE haiku 라우터, sonnet 에디터 | `results/ProfessionalSeaweedDevourer_vote_live_*.jsonl` |
 | 전체 화면: 창 크기 4종 x 화면 2종(입장, 회의) | 8/8: 무대가 창 한 변을 꽉 채움, 남는 띠 벽색 아닌 화소 0, 벽 밖 보이는 요소 0 | 전부 | 11-09 11:30, MOCK 8001 | 판정 스크립트 shots.py는 로컬 임시 폴더 |
 | 1인 회의 리허설 `tests/test_one_person.py` | 계약 이벤트 25종 중 20종 실제 발생, 제외 4(Google 동기화 3, 지연 반영 버림 1), 빈칸 1(participant.rejected를 서버가 안 냄). 전체 시험 8/8, 6초 | 제외 말고 전부 | 11-09 12:05, MOCK | `uv run pytest -q` |
 | 말로 여는 질문 카드와 표결(MOCK 흐름 7단계) | 질문 카드 열림, '투표하죠'로 표결 열림, 말로 3표, 마감 뒤 결과 화면, 노트 문서 표, 긴 답 3줄 자르기 모두 확인 | 전부 | 11-09 11:52, MOCK 8001 | 로컬 임시 폴더 vote.py |
@@ -22,11 +23,19 @@
 | 실서버 WS 발화 6줄 | applied 1, reverted 1, failed 1, 변경 없음 3 | 없음 | 11-09 10:25, MOCK | `results/events_main_1109_102520.jsonl` |
 
 ## 진행 중
+- [ ] [기능] (P2, Eric 13:36 허가) 표결 발동 조건과 프롬프트 기능별 분리 (시작: 13:36, 브랜치 `ProfessionalSeaweedDevourer/vote-trigger`)
+  - 의도와 검증: 진짜 목표 = 시연에서 고르기 질문이나 '투표하죠'를 말하면 선택지 붙은 질문 카드가 뜨고 표가 맞는 질문에 쌓인다. 판단 밖 검증 = 프롬프트를 안 읽은 작성자의 블라인드 시나리오 14개 x 3회 LIVE, 문턱 39/42 이상과 카드 선택지 2~4개 100%. 기준선(main, LIVE) 30/42, 실사용 11:56 선택지 0개 카드 1건
+  - [x] `server/agent/vote_trigger.py`: 한 표, 맨 부르기(부르는 말과 군말을 빼면 남는 게 없음), 주제 붙은 부르기, 고르기 질문 판정을 한 곳에. 파이프라인, MOCK 라우터, MOCK 에디터가 같이 씀
+  - [x] 파이프라인: 열린 질문 중 가장 최근 것으로 표결(전에는 첫 것 → 두 번째 표결이 옛 질문으로 열림), 주제 붙은 부르기는 라우터 LLM 건너뜀, 카드 선택지 2개 미만이면 찬성/반대로 채움, 이번 발화가 만든 질문으로 표결
+  - [x] 프롬프트 분리: `prompts.py`는 진입점, `prompts_router.py`, `prompts_editor.py`, `prompts_vote.py`, `prompts_asker.py`(구조는 PoC shared/prompts.py)
+  - [x] 시험: `tests/test_vote_trigger.py`(판정 사례, 한 회의 두 번 표결), 전체 108개 MOCK 통과
+  - [x] 코드 리뷰 반영: '투표하지 말죠', '투표 결과 뭐였지?'는 표결 부르기 아님, 변경 실패면 표결 안 엶, 표결 중 '2번에 투표할게요'와 'I vote 2'는 한 표, 'No one.'은 표 아님, 선택지 1개 카드는 주장을 지우지 않고 반대만 붙임
+  - [ ] 남은 것: 서술형 고르기('화요일에 할지 목요일에 할지 아직 안 정했잖아요')를 라우터가 가끔 ignore → 다음 '투표하죠'가 LLM 길로 가 2초(결과는 맞음). 'Honestly they all work. Let's vote.'처럼 군말이 긴 부르기도 LLM 길
 - [ ] [서버 UI] (P1) MOAI 로고, 마스코트 반영 (시작: 11:46, 브랜치 `ProfessionalSeaweedDevourer/brand-moai`, 그 위 `brand-moai-wall`)
   - [x] 브랜드 기본기(brand-moai): 마스코트 컴포넌트 `web/src/views/brand/`, 입장 화면 오른쪽 위 워드마크, 탭 제목 MOAI, 파비콘. 라이트판만(다크판은 저우선, Eric 12:53)
   - [x] 결정 벽 상태 표시등(brand-moai-wall): 마스코트가 글자판(플립) 9칸 바로 옆에 선다(Eric 13:07, 처음엔 오른쪽 위 마이크 단추 안이었음). 마이크 꺼짐 = 헤드폰 없는 흐린 석상. 무대 전체 카드에서는 함께 커지고, 남색 카드에서는 상태 색 석상. 렌더 v0.4 원본 먼저 고침. live.ts, wall.css 는 안 건드림(#19와 겹침 회피)
   - [x] 판정: 장면 22장 앱 대 새 원본 0화소, 바뀐 곳은 플립 옆 마스코트 상자 안뿐. 표시등 대 벽 카드 54개 상태 불일치 0(`web/scripts/moai_wall_check.ts`)
-  - [ ] push, draft PR 둘은 Eric 검수 뒤. 기획과 숫자: meeting-agent-poc `design/brand/moai_brand_apply_plan_ko_20261109.md` 11절
+  - [x] push, draft PR #40 (Eric 14:03 허가, 두 브랜치를 한 PR로). main의 #39(회의 화면 장면 전환)와 겹친 LiveWallView 한 줄은 둘 다 살림. 기획과 숫자: `web/design/brand/` 반영 계획 11절
 - [ ] [서버 UI] (P0) 결정 벽 화면 = 렌더 v0.4 그대로 (시작: 10:38, 브랜치 `ProfessionalSeaweedDevourer/minutes-card`)
   - [x] 시안 CSS 원문 이식 `web/src/views/wall/wall.css`, 뷰 모델 `types.ts`, 무대 `Wall.tsx`, 장면 11개 `scenes.ts`, 화면 `WallView.tsx`
   - [x] `?view=wall`이면 공용 styles.css를 싣지 않게 `web/src/main.tsx` 분기
@@ -61,6 +70,8 @@
 - [x] (P0) 리포 받기, `uv sync`, `npm install`, `.env`(MOCK) 만들기, 시험, 리플레이, 실서버, 화면 실행 확인
 
 ## 메모
+- 11-09 13:55 이후 기준 변경: 프롬프트를 `server/agent/prompts_*.py`로 나누고 라우터 라벨 정의, 에디터 op 설명, 표결 절을 다시 씀. 표결 부르기는 라우터 LLM을 건너뜀(capture). 라우터 정확도, 지연 숫자는 이 시각 전후 비교 불가 → 77SONNY77에게 알림 필요
+- 11-09 13:49 채점 개정 1건: s10, s11(열린 표결 중 다시 부르기)은 채점기가 표를 내고 마감을 기다려 시나리오 뜻과 달랐다. 표결을 열어 둔 채 다음 대사를 보내도록 고쳐 재실행(새 코드, 기준선 모두 3/3). 채점 규칙 자체는 그대로
 - 11-09 12:30 PR 초안 둘: #15 음성 표결과 1인 리허설 시험(기능), #16 UI 전체를 결정 벽으로 교체(입장, 회의, 전체 화면, 1인 시험). 둘은 서로 독립. ready는 Eric 검토 뒤.
 - 11-09 11:50 이후 기준 변경: `server/agent/prompts.py` 라우터(고르기 질문, 표결 부르기 = capture), 에디터(open_conflict 규칙), Asker(답 60자 이내). 라우터 정확도와 지연 숫자는 이 시각 전후 비교 불가 → 77SONNY77에게 알림 필요.
 - `/api/reset`이 표결 상태(`server/gestures/votes.py` 전역 votes)를 지우지 않는다. 표결 중 초기화하면 마감 타이머가 옛 방에 vote.closed를 낸다(서버 파트 app.py, Mal-Mi-Jal).

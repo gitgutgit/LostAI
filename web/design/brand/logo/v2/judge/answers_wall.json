@@ -1,0 +1,212 @@
+[
+ {
+  "cond": "A",
+  "state": "listening",
+  "run": 0,
+  "answer": "Listening intently",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "listening",
+  "run": 1,
+  "answer": "Now listening",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "listening",
+  "run": 2,
+  "answer": "Listening intently",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "writing",
+  "run": 0,
+  "answer": "Writing writing",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "writing",
+  "run": 1,
+  "answer": "Writing",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "writing",
+  "run": 2,
+  "answer": "Writing",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "paused",
+  "run": 0,
+  "answer": "Paused: conflict",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "paused",
+  "run": 1,
+  "answer": "Paused conflict",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "paused",
+  "run": 2,
+  "answer": "Paused: conflict",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "vote",
+  "run": 0,
+  "answer": "Reading votes",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "vote",
+  "run": 1,
+  "answer": "Collecting votes",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "vote",
+  "run": 2,
+  "answer": "Reading cameras",
+  "hit": false
+ },
+ {
+  "cond": "A",
+  "state": "decided",
+  "run": 0,
+  "answer": "Decision recorded.",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "decided",
+  "run": 1,
+  "answer": "Decision recorded.",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "decided",
+  "run": 2,
+  "answer": "Decision recorded",
+  "hit": true
+ },
+ {
+  "cond": "B",
+  "state": "listening",
+  "run": 0,
+  "answer": "Now listening",
+  "hit": true
+ },
+ {
+  "cond": "B",
+  "state": "listening",
+  "run": 1,
+  "answer": "Now listening",
+  "hit": true
+ },
+ {
+  "cond": "B",
+  "state": "listening",
+  "run": 2,
+  "answer": "Now listening",
+  "hit": true
+ },
+ {
+  "cond": "B",
+  "state": "writing",
+  "run": 0,
+  "answer": "Taking notes",
+  "hit": true
+ },
+ {
+  "cond": "B",
+  "state": "writing",
+  "run": 1,
+  "answer": "Parking decision",
+  "hit": false
+ },
+ {
+  "cond": "B",
+  "state": "writing",
+  "run": 2,
+  "answer": "Writing notes",
+  "hit": true
+ },
+ {
+  "cond": "B",
+  "state": "paused",
+  "run": 0,
+  "answer": "Asking question",
+  "hit": true
+ },
+ {
+  "cond": "B",
+  "state": "paused",
+  "run": 1,
+  "answer": "Asking question",
+  "hit": true
+ },
+ {
+  "cond": "B",
+  "state": "paused",
+  "run": 2,
+  "answer": "Asking questions.",
+  "hit": true
+ },
+ {
+  "cond": "B",
+  "state": "vote",
+  "run": 0,
+  "answer": "Reading cameras",
+  "hit": false
+ },
+ {
+  "cond": "B",
+  "state": "vote",
+  "run": 1,
+  "answer": "Reading cameras",
+  "hit": false
+ },
+ {
+  "cond": "B",
+  "state": "vote",
+  "run": 2,
+  "answer": "Reading cameras",
+  "hit": false
+ },
+ {
+  "cond": "B",
+  "state": "decided",
+  "run": 0,
+  "answer": "Writing notes",
+  "hit": false
+ },
+ {
+  "cond": "B",
+  "state": "decided",
+  "run": 1,
+  "answer": "Writing notes",
+  "hit": false
+ },
+ {
+  "cond": "B",
+  "state": "decided",
+  "run": 2,
+  "answer": "Writing notes",
+  "hit": false
+ }
+]

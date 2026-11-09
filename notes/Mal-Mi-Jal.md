@@ -23,6 +23,13 @@
 | 말 → Google Sheet | p50 440ms / p95 518ms (n=2) | — | 11-09 11:31 · MOCK, 팀 공용 Sheet | 같은 파일 |
 
 ## 진행 중
+- [ ] (P0 시연) Railway 배포 — 2시까지 (시작: 13:05, 브랜치 Mal-Mi-Jal/railway)
+  - 의도와 검증: 회의 서버 하나를 https로 → 팀원·다른 노트북이 같은 회의·원본 문서·마이크. 문턱: /health OK, 원본 로그, 다른 노트북에서 말 → 원본 반영
+  - 결정(태우): Railway만 원본(SEED=google), 내 PC 서버는 sprint로 / LIVE
+  - [x] `server/deploy/Dockerfile`(화면 빌드 + 서버, requirements는 uv.lock에서 고정 버전 export), `RAILWAY.md`
+  - [x] 서버가 화면(web/dist)도 냄, GOOGLE_TOKEN_JSON 변수 → token.json, 종료 신호 때 원본 복원(restore_on_shutdown, 테스트 추가 50/52)
+  - railway.exe는 이 PC 보안 정책이 막음 → 대시보드 + GitHub 연결
+  - [ ] 태우: 대시보드 프로젝트·변수·도메인 → 배포 로그 확인
 - [ ] (새 기능, 태우 요청) 문서 고르기·새로 만들기 (시작: 12:45, 브랜치 Mal-Mi-Jal/doc-picker)
   - 의도와 검증: `.env`·재시작 없이 화면에서 회의 원본 Sheet/Doc을 고르거나 새로 만든다. 문턱: 바꾸기 5초 안, 옛 원본은 백업과 동일하게 복원, 표 있는 문서·머리 행 없는 시트는 거절하고 회의 그대로. 기준선: .env 수정 + 재시작 (1분+)
   - 결정(태우): Drive 목록 권한 추가 → 재로그인 / Sheet·Doc 따로 고르기 / 입장한 누구나 + 확인창

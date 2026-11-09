@@ -4,13 +4,14 @@ TODO(P1): 라우터와 에디터 동시 시작, interim 텍스트로 미리 라�
 """
 from __future__ import annotations
 
-import re
 import time
 from typing import TYPE_CHECKING
 
 from server.agent.asker import ask
 from server.agent.editor import edit
 from server.agent.router import route
+from server.agent.vote_trigger import (is_bare_vote_call, is_vote_call, normalize_vote_ops,
+                                       question_from_ops, vote_pick, vote_pick_loose)
 from server.events import Event
 from server.gestures.votes import votes
 
@@ -18,14 +19,16 @@ if TYPE_CHECKING:
     from server.room import Room
 
 
-# ep: 말로 하는 표결. 표결 부르기('투표하죠')는 열린 질문이 있으면 LLM 없이 바로 표결을 열고,
-# 없으면 라우터, 에디터가 질문(open_conflict)부터 만든 뒤 연다. 표결 중 '2번' 같은 한마디는 한 표로 센다.
-VOTE_CALL = re.compile(r"(투표|표결|다수결|손 ?들어|\bvote\b|voting)", re.IGNORECASE)
-VOTE_PICK = re.compile(r"^\s*(?:[^:]{1,12}:\s*)?([1-4])\s*(번|표|번이요|번요|번이에요)?\s*[.!]?\s*$")
+# ep: 말로 하는 표결. 발동 조건은 server/agent/vote_trigger.py 에 모여 있다.
+# - 표결 중 '2번' 같은 한마디 → LLM 없이 한 표.
+# - 선택지도 주제도 없는 맨 부르기('투표하죠') + 열린 질문 → LLM 없이 가장 최근 질문으로 표결.
+# - 주제나 선택지가 붙은 부르기 → 라우터를 건너뛰고(capture) 에디터가 질문 카드를 만든 뒤 그 질문으로 표결.
+#   에디터가 '이미 같은 질문이 있다'며 카드를 안 만들면 가장 최근 질문으로 표결.
 
 
 def _open_question(room: "Room") -> str | None:
-    q = next((c for c in room.state.conflicts if not c.resolved), None)
+    """해소 안 된 질문 중 가장 최근 것. 표결 마감은 질문을 닫지 않으므로 첫 것을 고르면 옛 질문으로 다시 열린다."""
+    q = next((c for c in reversed(room.state.conflicts) if not c.resolved), None)
     return q.topic if q else None
 
 
@@ -48,18 +51,20 @@ async def handle_utterance(room: "Room", ev: Event) -> None:
         await room.emit("agent.progress", "agent", refs,
                         {"stage": "done", "label": label, "ms": int((room.now() - ev.ts) * 1000)})
 
-    if votes.vote_id is not None and (m := VOTE_PICK.match(text)):
-        await votes.cast_by_voice(room, speaker, int(m.group(1)))
+    if votes.vote_id is not None and (n := vote_pick(text) or vote_pick_loose(text)) is not None:
+        await votes.cast_by_voice(room, speaker, n)
         await done("vote")
         return
-    if VOTE_CALL.search(text) and (q := _open_question(room)) is not None:
+    vote_call = is_vote_call(text)
+    if vote_call and is_bare_vote_call(text) and (q := _open_question(room)) is not None:
         await votes.open_by_voice(room, speaker, q)
         await done("vote")
         return
 
     await room.emit("agent.progress", "agent", refs, {"stage": "routing"})
     t0 = time.perf_counter()
-    label = await route(text, transcript)
+    # 표결 부르기는 언제나 질문 카드로 가므로 라우터 LLM을 건너뛴다(지연 1~2초 절약, 오분류 없음).
+    label = "capture" if vote_call else await route(text, transcript)
     route_ms = _ms(t0)
     await room.emit("agent.routed", "agent", refs, {"label": label, "ms": route_ms})
 
@@ -77,12 +82,21 @@ async def handle_utterance(room: "Room", ev: Event) -> None:
 
     await room.emit("agent.progress", "agent", refs, {"stage": "editing"})
     t1 = time.perf_counter()
-    ops = await edit(text, speaker, room.state, transcript, label)
+    # 키워드는 표결 부르기일 때만 넘긴다(edit을 바꿔 끼우는 시험 대역이 옛 서명이어도 돌게).
+    ops = await (edit(text, speaker, room.state, transcript, label, vote_call=True) if vote_call
+                 else edit(text, speaker, room.state, transcript, label))
     edit_ms = _ms(t1)
+    ops = normalize_vote_ops(ops, speaker, text)
+    asked = question_from_ops(ops)
+    failed = False
     if ops:
-        await room.changes.propose(ops, requested_by=speaker, utt_id=utt_id, via="voice",
-                                   reason=f"{speaker}: {text[:60]}",
-                                   latency_ms={"route": route_ms, "edit": edit_ms})
-        if VOTE_CALL.search(text) and (q := _open_question(room)) is not None:
+        ch = await room.changes.propose(ops, requested_by=speaker, utt_id=utt_id, via="voice",
+                                        reason=f"{speaker}: {text[:60]}",
+                                        latency_ms={"route": route_ms, "edit": edit_ms})
+        failed = ch is not None and ch.status == "failed"
+    if vote_call and not failed:
+        # 이번 발화가 질문 카드를 만들었으면 그 질문(지연 반영이면 아직 상태에 없으므로 op에서 읽는다),
+        # 카드를 안 만들었으면(같은 질문이 이미 열려 있음) 가장 최근 질문.
+        if (q := asked or _open_question(room)) is not None:
             await votes.open_by_voice(room, speaker, q)
     await done(label)

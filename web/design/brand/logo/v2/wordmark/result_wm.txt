@@ -1,0 +1,5 @@
+v0 fail | light64 0/3 [MOAT, MOAT, MOAT] | light24 2/3 [MOA, MOAI, MOAI] | dark64 0/3 [MOA, MOAT, MOAT] | dark24 0/3 [MOAT, MOA, MOA]
+v1 fail | light64 2/3 [MOAI, MOAI, MOA] | light24 3/3 [MOAI, MOAI, MOAI] | dark64 3/3 [MOAI, MOAI, MOAI] | dark24 3/3 [MOAI, MOAI, MOAI]
+v2 fail | light64 3/3 [MOAI, MOAI, MOAI] | light24 1/3 [MOAT, MOAT, MOAI] | dark64 3/3 [MOAI, MOAI, MOAI] | dark24 3/3 [MOAI, MOAI, MOAI]
+v3 fail | light64 3/3 [MOAI, MOAI, MOAI] | light24 1/3 [MOAT, MOAI, MOAT] | dark64 2/3 [MOA, MOAI, MOAI] | dark24 3/3 [MOAI, MOAI, MOAI]
+v4 fail | light64 3/3 [MOAI, MOAI, MOAI] | light24 1/3 [MOAI, MOA, MOA] | dark64 3/3 [MOAI, MOAI, MOAI] | dark24 3/3 [MOAI, MOAI, MOAI]

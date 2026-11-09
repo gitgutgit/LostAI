@@ -1,0 +1,6 @@
+cond state      hits  answers
+A    listening  2/3 PASS  Listening intently | Listening intently | Writing rows
+A    writing    3/3 PASS  Writing notes | Writing (the small figure beside the PARKED board holds a pen and notepad). | Taking notes
+A    paused     3/3 PASS  Asking questions | Asking questions | Asking questions
+A    vote       0/3 fail  Reading cameras | Reading cards | Reading cameras
+A    decided    2/3 PASS  Thumbs voting | Thumbs up | Placing letters

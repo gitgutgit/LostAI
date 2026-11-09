@@ -1,0 +1,13 @@
+state       size  hits  answers
+listening     64  1/3 fail  Transcribing Speech | Typing, listening. | Transcribing Live
+listening     32  0/3 fail  Taking notes | Transcribing audio | Transcribing speech
+writing       64  3/3 PASS  Typing, listening | Taking notes | Typing, listening
+writing       32  3/3 PASS  Typing notes | Reading document | Typing notes
+paused        64  0/3 fail  Recording audio | Recording audio | Recording audio
+paused        32  0/3 fail  Taking notes | Taking notes | Taking notes
+vote-wig      64  0/3 fail  Taking notes | Taking notes | Taking notes
+vote-wig      32  0/3 fail  Actively listening | Listening actively | Recording audio
+vote-frown    64  0/3 fail  Listening intently | Listening intently | Listening quietly
+vote-frown    32  0/3 fail  Actively listening | Actively listening | Standing by
+decided       64  2/3 PASS  Typing notes | Typing, approving. | Typing, approving.
+decided       32  0/3 fail  Taking notes | Taking notes | Taking notes

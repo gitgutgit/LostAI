@@ -21,10 +21,12 @@ from server.auth import challenge  # noqa: E402
 from server.events import ClientMessage  # noqa: E402
 from server.gestures.fastpath import handle_gesture  # noqa: E402
 from server.room import get_room  # noqa: E402
+from server.demo import demo  # noqa: E402
 from server.common.warmup import schedule_warmup  # noqa: E402
 from server.sync.outbox import outbox  # noqa: E402
 
 log = logging.getLogger(__name__)
+_WEB_DIST = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web", "dist")  # 배포 때 화면 빌드
 
 
 @asynccontextmanager
@@ -36,6 +38,27 @@ async def lifespan(_: FastAPI):
     outbox.enqueue_full_sync(room)  # 외부 문서를 시드 상태로 맞추고 Google 연결도 미리 데움
     schedule_warmup(room.state)     # LIVE면 라우터·에디터 미리 호출 (첫 발화 콜드 스타트 제거)
     yield
+    await restore_on_shutdown()
+
+
+async def restore_on_shutdown(timeout: float = 25.0) -> None:
+    """원본 모드에서 서버가 꺼질 때(Ctrl+C, Railway 재배포의 SIGTERM) 회의 중 변경을 되돌려 원본을 회의 전으로.
+    안 하면 다음 시작 때 회의 중 변경까지 원본으로 읽힌다. 강제 종료(kill -9)에는 못 돈다 → 끄기 전 리셋이 가장 확실."""
+    import asyncio
+    from server.sync import google_source
+    if not google_source.active():
+        return
+    room = get_room()
+    active = [c.model_dump() for c in room.changes.changes.values() if c.status in ("applied", "approved")]
+    if not active:
+        return
+    log.warning("서버 종료: 회의 중 변경 %d개를 원본에서 되돌리는 중", len(active))
+    outbox.enqueue_restore(room, active)
+    try:
+        await asyncio.wait_for(outbox.queue.join(), timeout)
+        log.warning("서버 종료: 원본 복원 끝")
+    except asyncio.TimeoutError:
+        log.error("서버 종료: 원본 복원이 %.0f초 안에 안 끝남 → Google 문서 버전 기록으로 확인", timeout)
 
 
 async def load_google_source() -> None:
@@ -243,6 +266,7 @@ async def reset(body: ResetBody | None = None):
     """
     from server.sync import google_source
     room = get_room()
+    await demo.stop()  # 재생 중이던 대본이 새 회의에 말하지 않게
     seed = body.seed if body else None
     if seed and seed != room.seed_name:
         if google_source.active():
@@ -261,6 +285,44 @@ async def reset(body: ResetBody | None = None):
     return {"ok": True}
 
 
+@app.get("/api/demo")
+async def demo_status():
+    """지금 시드의 데모 대본 줄 수와 재생 상태 (대본이 없으면 lines 0)."""
+    return demo.status(get_room().seed_name)
+
+
+class DemoBody(BaseModel):
+    speed: float = 1.0
+
+
+@app.post("/api/demo/start")
+async def demo_start(body: DemoBody | None = None):
+    """회의를 처음 상태로 되돌린 뒤 지금 시드의 대본을 자동 재생한다 (server/demo.py)."""
+    room = get_room()
+    if demo.status(room.seed_name)["lines"] == 0:
+        raise HTTPException(404, f"no demo script for seed: {room.seed_name}")
+    await reset(None)
+    speed = min(4.0, max(0.25, body.speed if body else 1.0))
+    return {"ok": True, "lines": demo.start(room, speed)}
+
+
+@app.post("/api/demo/stop")
+async def demo_stop():
+    await demo.stop()
+    return {"ok": True}
+
+
 @app.get("/health")
 async def health():
-    return {"ok": True}
+    """배포 확인용: 비밀 값은 없이 있다/없다만."""
+    from server.sync import google_auth, google_source
+    return {"ok": True, "image": os.getenv("LOSTAI_IMAGE", "local"), "web": os.path.isdir(_WEB_DIST),
+            "google_token": google_auth.token_path().exists() or bool(os.getenv("GOOGLE_TOKEN_JSON") or os.getenv("GOOGLE_TOKEN_B64")),
+            "source": google_source.active(), "seed": get_room().seed_name}
+
+
+# ---- 배포(Railway 등): 빌드된 화면(web/dist)을 같은 서버가 내보낸다. 개발 때는 Vite(5173)가 프록시하므로 없음.
+# API·WebSocket 라우트가 먼저 잡히고, 나머지 경로만 화면 파일로 간다 (맨 마지막에 둔다).
+if os.path.isdir(_WEB_DIST):
+    from fastapi.staticfiles import StaticFiles
+    app.mount("/", StaticFiles(directory=_WEB_DIST, html=True), name="web")

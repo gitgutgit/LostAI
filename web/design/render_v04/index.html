@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decision Wall 시안 v0.4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* v0.4: 평상시에는 실시간 WBS 문서가 왼쪽 65%, 오른쪽 띠 35%에 카드 A, 카드 B, Decided/Parked, 발화, 로그, 참가자.
+   표결 순간(S2, S4, S7, S9)은 v0.3처럼 카드 B가 무대 전체로 커진다. 색, 글자판, 곡선은 v0.3 그대로. */
+:root{
+  --wall:#CDD6D0; --card:#FFFFFF; --ink:#17212B; --ink2:#4A5762;
+  --green:#1E7B4F; --green-lit:#3FC27F; --yellow:#F3C316; --red:#B3261B;
+  --bar:#E4E9E6; --navy:#1D2733; --navy2:#2A3644; --fresh:#FFF1B8;
+  --disp:'Barlow Condensed','Arial Narrow','Helvetica Neue',Arial,'Apple SD Gothic Neo',sans-serif;
+  --text:'Atkinson Hyperlegible','Helvetica Neue',Arial,'Apple SD Gothic Neo',sans-serif;
+  --ease:cubic-bezier(.2,.7,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#EEF0EE;color:var(--ink);font-family:var(--text)}
+#stage{position:relative;width:1920px;height:1080px;overflow:hidden;background:var(--wall);font-variant-numeric:tabular-nums}
+html.shot,html.shot body{overflow:hidden;background:var(--wall)}
+html.shot #controls,html.shot #audit{display:none}
+html.shot *,html.shot *::before,html.shot *::after{animation:none!important;transition:none!important}
+
+/* 머리줄: Today 칸 + Now */
+.head{position:absolute;top:18px;font:700 44px/52px var(--disp);color:var(--ink);white-space:nowrap}
+.head .n{color:var(--ink2);margin-left:10px}
+#slots{position:absolute;left:150px;top:16px;display:flex;gap:10px}
+.slot{width:56px;height:56px;border:3px solid #8A959E;font:700 28px/50px var(--text);text-align:center;color:var(--ink2);border-radius:2px}
+.slot.now{border:5px solid var(--ink);line-height:46px;color:var(--ink)}
+.slot.done{background:var(--ink);border-color:var(--ink);color:#fff}
+.slot.park{background:var(--yellow);border-color:var(--yellow);color:var(--ink);transform:rotate(6deg)}
+.slot.fill{animation:fill 320ms var(--ease) both}
+@keyframes fill{from{transform:scale(.4);opacity:.2}to{transform:scale(1);opacity:1}}
+#mark{position:absolute;top:24px;right:24px;font:700 28px/34px var(--text);color:var(--ink2)}
+
+/* 실시간 문서 (왼쪽 65%) */
+#doc{position:absolute;left:24px;top:96px;width:1222px;height:964px}
+.sh{position:absolute;inset:0;background:var(--card);box-shadow:0 0 0 2px rgba(23,33,43,.18)}
+#sh1{transform:translate(-8px,6px) rotate(-.9deg)}
+#sh2{transform:translate(6px,5px) rotate(.7deg)}
+#sheet{position:absolute;inset:0;background:var(--card);padding:16px 24px;box-shadow:0 0 0 2px rgba(23,33,43,.18);view-transition-name:doc}
+.dh{display:flex;justify-content:space-between;align-items:baseline;height:52px}
+.dh b{font:700 44px/52px var(--disp)}
+.dh b .m{color:var(--ink2);margin-left:12px}
+#count{font:700 28px/34px var(--text);color:var(--ink2);white-space:nowrap}
+#count i{display:inline-block;width:16px;height:16px;border-radius:50%;background:var(--red);margin-right:8px;vertical-align:1px}
+#count.bump{background:linear-gradient(var(--yellow),var(--yellow)) no-repeat left/100% 100%;color:var(--ink);padding:0 6px;animation:lit 300ms ease-out both}
+#dnote{height:40px;font:400 28px/40px var(--text);color:var(--ink2);white-space:nowrap}
+#dnote .bad{color:var(--red);font-weight:700}
+.g{display:grid;grid-template-columns:64px 280px 140px 100px 100px 74px 160px 1fr;column-gap:0;align-items:center;font:400 28px/34px var(--text);border-top:2px solid var(--bar);min-height:60px}
+#doc.ghost .g{grid-template-columns:64px 280px 100px 100px 74px 176px 176px 1fr}
+.span4>span{padding:0 8px;white-space:nowrap}
+.g>*{padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:clip}
+.g.colh{font:700 28px/34px var(--text);color:var(--ink2);min-height:44px;border-top:0}
+.g .w{color:var(--ink2)}
+.g s{color:var(--ink2);margin-right:8px;text-decoration-thickness:3px}
+.g .src{display:flex;flex-wrap:wrap;gap:4px 6px;white-space:normal;padding:4px 0 4px 8px}
+.g.tall{min-height:96px}
+.g.hl{background:linear-gradient(var(--yellow),var(--yellow)) no-repeat left/100% 100%;animation:lit 300ms ease-out both}
+.g.hl .w{color:var(--ink)}
+.g.newrow>span:nth-child(2){font-weight:700}
+.wrap2{white-space:normal!important;line-height:30px!important}
+/* 방금 고친 칸: 300 ms 빛나고 옅은 노랑이 남는다 */
+.fresh{background:var(--fresh);animation:flash 300ms ease-out both}
+@keyframes flash{from{background:var(--yellow)}to{background:var(--fresh)}}
+.g.newrow.fresh{background:var(--fresh)}
+/* 화자 + 줄 번호 칩 */
+.chip{display:inline-block;font:700 28px/34px var(--text);padding:0 8px;background:var(--bar);color:var(--ink);border-radius:2px;white-space:nowrap}
+.chip.undo{background:#fff;border:2px solid var(--ink2);color:var(--ink2);line-height:30px}
+.chip.tag{background:var(--yellow);transform:rotate(-2deg)}
+.chip.ok{background:#D9EEDF;color:var(--green)}
+.chip.red{background:#F6DAD6;color:var(--red)}
+/* 엇갈린 칸: 두 값이 나란히, 빗금 */
+.cf{grid-column:4 / 8;display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px 6px!important}
+#doc.ghost .cf{grid-column:3 / 8}
+.cf>div{background:repeating-linear-gradient(-45deg,rgba(243,195,22,.38) 0 10px,rgba(255,255,255,.0) 10px 20px);border:2px solid #C9A30E;padding:2px 8px;white-space:normal;line-height:30px}
+.cf b{font-weight:700}
+.span4{grid-column:4 / 8}
+/* 메모 줄 (칸 아래) */
+.memo{grid-column:2 / -1;display:flex;gap:10px;align-items:center;font:400 28px/34px var(--text);color:var(--ink2);padding:0 8px 8px!important;white-space:nowrap}
+.memo .mt{font-style:italic;color:var(--ink)}
+.memo.bad .mt{color:var(--red);font-style:normal;font-weight:700}
+/* 유령 값 (S6): 선택지별 끝 날짜 */
+.gh{border:2px dashed #8A959E;margin:0 4px;font-weight:700;text-align:center;opacity:.9}
+.gh.bad{color:var(--red);border-color:var(--red)}
+.gh.e{border-color:transparent}
+.gh.lit{opacity:1}
+
+/* 오른쪽 띠 (35%) */
+#cardA{position:absolute;left:1270px;top:96px;width:626px;height:240px;background:var(--card);padding:8px 20px 0;border-radius:2px;view-transition-name:qcard;z-index:5;transform:rotate(-.6deg)}
+#cardA.gone{display:none}
+#qline{font:700 56px/64px var(--disp);white-space:nowrap}
+#qline .qn{color:var(--ink2);margin-right:16px}
+.opt{position:relative;height:84px;display:flex;align-items:center;border-top:3px solid var(--wall)}
+.onum{width:52px;font:700 64px/1 var(--disp)}
+.oname{font:700 40px/44px var(--disp);white-space:nowrap}
+.osrc{font:400 28px/34px var(--text);color:var(--ink2);white-space:nowrap}
+.oleft{width:300px}
+.oside{flex:1;padding-left:14px;border-left:3px solid var(--wall);height:76px;display:flex;flex-direction:column;justify-content:center}
+.oside:empty{border-left-color:transparent}
+.cost{font:700 40px/42px var(--disp);white-space:nowrap}
+.costsub{font:400 28px/32px var(--text);white-space:nowrap}
+.costsub .bad{color:var(--red);font-weight:700}
+#idle{position:absolute;left:1270px;top:96px;width:626px;height:240px;border:3px dashed #8A959E;padding:20px;font:400 32px/40px var(--text);color:var(--ink2);display:none}
+.rf{font:400 28px/34px var(--text)}
+.rf .old{font:400 36px/42px var(--text);color:var(--ink2);text-decoration:line-through;text-decoration-thickness:3px}
+.rf .new{font:700 40px/46px var(--text);margin-top:2px}
+.rf .vt{margin-top:10px;color:var(--ink2)}
+
+#cardB{position:absolute;left:1270px;top:350px;width:626px;height:290px;background:var(--card);border-radius:2px;view-transition-name:stepcard;z-index:30;transform:rotate(.5deg)}
+#flap{position:absolute;left:20px;top:16px;display:flex;gap:4px}
+.cell{width:56px;height:88px;background:var(--bar);position:relative;font:700 76px/88px var(--disp);text-align:center;color:var(--ink);transform-origin:50% 50%}
+.cell::after{content:'';position:absolute;left:0;right:0;top:43px;height:2px;background:var(--card)}
+.cell.on{background:var(--ink);color:#fff}
+.cell.off{color:#8A959E}
+.cell.flip{animation:flip 220ms ease-in-out both}
+@keyframes flip{0%{transform:rotateX(0)}50%{transform:rotateX(-88deg)}100%{transform:rotateX(0)}}
+#bside{position:absolute;left:20px;top:112px;font:700 36px/42px var(--disp);white-space:nowrap}
+#bmsg{position:absolute;left:20px;top:158px;right:20px}
+.b40{font:700 40px/46px var(--disp)}
+.b32{font:400 32px/38px var(--text)}
+.sub{font:400 28px/34px var(--text);color:var(--ink2)}
+.ul{border-bottom:5px solid var(--ink)}
+.fc{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+
+#cardB.take{left:0;top:0;width:1920px;height:1080px;border-radius:0;transform:none}
+#cardB.take.split{background:var(--yellow)}
+#cardB.take.navy{background:var(--navy);color:#fff}
+#cardB.take #bside{display:none}
+#cardB.take #bmsg{left:96px;top:56px;width:1728px;height:968px;right:auto}
+#cardB.take #flap{left:96px;top:176px;gap:8px}
+#cardB.take .cell{width:180px;height:270px;font:700 240px/270px var(--disp)}
+#cardB.take .cell::after{top:134px}
+#cardB.take.count .cell{background:var(--bar)}
+#cardB.take.count .cell.on{background:var(--ink);color:#fff}
+#cardB.take.count .cell.off{color:#8A959E}
+#cardB.take.split .cell{background:rgba(23,33,43,.10)}
+#cardB.take.split .cell.on{background:var(--ink);color:var(--yellow)}
+#cardB.take.split .cell::after{background:var(--yellow)}
+#cardB.take.navy #flap{left:1185px;top:900px;gap:5px}
+#cardB.take.navy .cell{width:66px;height:112px;font:700 96px/112px var(--disp);background:var(--navy2)}
+#cardB.take.navy .cell::after{top:55px;background:var(--navy)}
+#cardB.take.navy .cell.on{background:#0E151D;color:#fff}
+#cardB.take.navy.conv .cell.on{color:var(--green-lit)}
+#cardB.take.navy.end #flap{top:56px}
+.t56{font:700 56px/64px var(--disp)}
+.t56 .qn{opacity:.6;margin-right:20px}
+.tp{font:400 56px/68px var(--text)}
+.mv{font:700 200px/200px var(--disp)}
+.num{display:inline-block;width:64px;height:64px;border:4px solid currentColor;text-align:center;font:700 52px/56px var(--disp);margin:0 10px;vertical-align:-8px}
+#dial{position:absolute;right:0;top:20px;width:520px;height:309px}
+.dist{position:absolute;left:0;top:560px;width:1060px;animation:late 300ms 350ms ease-out both}
+@keyframes late{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.dr{display:grid;grid-template-columns:90px 520px 1fr;align-items:center;font:400 56px/64px var(--text);height:96px;color:#C9D2DA}
+.dr .bars{display:flex;gap:12px;align-items:center}
+.dr .bars i{display:block;width:60px;height:44px;background:#C9D2DA}
+.dr .bars em{font-style:normal;font-weight:700;margin-left:12px}
+.cw{position:absolute;right:0;top:780px;font:400 32px/40px var(--text);color:#C9D2DA;text-align:right}
+.e96{font:700 96px/104px var(--disp)}
+.ecards{display:flex;gap:40px;margin-top:40px;align-items:flex-start}
+.ecards .icard{width:390px;color:var(--ink)}
+.ecards .icard:nth-child(1){transform:rotate(-2deg)}
+.ecards .icard:nth-child(2){transform:rotate(1.5deg)}
+.ecards .icard:nth-child(3){transform:rotate(-1deg)}
+.ecards .icard:nth-child(4){transform:rotate(4deg);margin-top:30px}
+.tagp{display:inline-block;background:var(--yellow);font:700 28px/34px var(--text);padding:0 8px}
+.estats{position:absolute;left:0;top:640px;display:flex;gap:80px}
+.estats .n{font:700 96px/100px var(--disp)}
+.estats .t{font:400 32px/40px var(--text);color:#C9D2DA}
+.efoot{position:absolute;left:0;top:880px;font:400 32px/40px var(--text);color:#C9D2DA}
+.icard{background:var(--card);padding:14px 18px 16px;border-radius:2px}
+.icard .qn{display:block;font:700 28px/32px var(--text);color:var(--ink2)}
+.icard .ct{display:block;font:700 40px/44px var(--disp);margin-top:2px}
+.icard .cm{display:block;font:400 28px/34px var(--text);margin-top:6px}
+.icard .cm.g{color:var(--green);font-weight:700}
+
+/* Decided / Parked: 작은 표지만 */
+#dp{position:absolute;left:1270px;top:654px;width:626px;height:116px;display:grid;grid-template-columns:300px 1fr;gap:16px}
+.dph{font:700 32px/36px var(--disp)}
+.dph .n{color:var(--ink2);margin-left:8px}
+.mk{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap}
+.mk span{display:inline-block;background:var(--card);font:700 28px/34px var(--text);padding:4px 10px;transform:rotate(-3deg)}
+.mk span:nth-child(2){transform:rotate(2deg)}
+.mk span:nth-child(3){transform:rotate(-1deg)}
+.pk{background:var(--card);padding:4px 10px;margin-top:6px;transform:rotate(3deg);font:400 28px/32px var(--text)}
+.pk b{font-weight:700}
+.empty{font:400 28px/34px var(--text);color:var(--ink2);margin-top:6px}
+
+/* 출처 줄 켜짐: 노랑이 왼쪽에서 오른쪽으로 300 ms */
+.ref{font:700 28px/34px var(--text);color:var(--ink2);margin-left:6px;white-space:nowrap;padding:0 4px}
+.lit{background:linear-gradient(var(--yellow),var(--yellow)) no-repeat left/100% 100%!important;color:var(--ink)!important;animation:lit 300ms ease-out both}
+@keyframes lit{from{background-size:0 100%}to{background-size:100% 100%}}
+
+/* 발화, 로그, 참가자 */
+#said{position:absolute;left:1270px;top:782px;width:626px;height:70px;font:400 28px/34px var(--text);overflow:hidden}
+#said b{font-weight:700;padding:0 4px}
+#log{position:absolute;left:1270px;top:860px;width:626px;height:70px;font:400 28px/34px var(--text);color:var(--ink2);overflow:hidden}
+#log b{font-weight:700;color:var(--ink)}
+#people{position:absolute;left:1270px;top:940px;width:626px;display:grid;grid-template-columns:1fr 1fr;row-gap:2px}
+.pp{display:flex;align-items:center;gap:8px;height:42px}
+.pp .nm{font:700 34px/40px var(--disp)}
+.pp .st{font:400 28px/34px var(--text);color:var(--ink2);white-space:nowrap}
+.pp .st.ok{color:var(--green);font-weight:700}
+.pp .st.again{background:var(--yellow);color:var(--ink);font-weight:700;padding:0 6px}
+.pp.turn .nm{border-bottom:5px solid var(--ink)}
+.pp .gl{width:28px;height:40px;display:none}
+.pp .gl.on{display:block}
+/* S2 꽉 채우기에서는 참가자가 크게, 카드 B 위에 */
+#stage.big #people{left:96px;top:760px;width:1728px;grid-template-columns:repeat(4,1fr);z-index:40}
+#stage.big .pp{height:120px;gap:16px}
+#stage.big .pp .gl{width:72px;height:100px}
+#stage.big .pp .nm{font:700 56px/60px var(--disp)}
+#stage.big .pp .st{font:400 36px/42px var(--text)}
+.fd{transform-origin:50% 50%}
+.fd.turn{animation:fd 250ms ease-out both}
+@keyframes fd{from{transform:rotateY(90deg)}to{transform:rotateY(0)}}
+
+/* View Transitions: 꽉 채우기 550 ms, 카드 이동 600 ms, 나머지 300 ms. 모두 700 ms 이하 */
+::view-transition-group(root),::view-transition-old(root),::view-transition-new(root){animation-duration:300ms}
+::view-transition-group(stepcard){animation-duration:550ms;animation-timing-function:var(--ease)}
+::view-transition-old(stepcard),::view-transition-new(stepcard){animation-duration:550ms;height:100%;object-fit:none;overflow:clip}
+::view-transition-group(qcard){animation-duration:600ms;animation-timing-function:var(--ease)}
+::view-transition-old(qcard),::view-transition-new(qcard){animation-duration:600ms;height:100%}
+::view-transition-group(doc){animation-duration:300ms}
+
+/* 질문 띠 (?band=1, 기본 켬): 질문이 열려 있으면 문서 머리줄이 왼쪽 질문 띠가 된다. 문서 제목은 작은 줄로 */
+#qband{display:none;font:700 96px/104px var(--disp);white-space:nowrap;overflow:hidden}
+#qband .qn{color:var(--ink2);margin-right:22px}
+#stage.band #qband{display:block}
+#stage.band .dh{height:38px}
+#stage.band .dh b{font:700 28px/34px var(--text);color:var(--ink2)}
+#stage.band .dh b .m{margin-left:8px}
+#stage.band #dnote{display:none}
+#stage.band .g{min-height:55px}
+#stage.band .g.tall{min-height:86px}
+#stage.band .g.colh{min-height:40px}
+#stage.band #cardA{height:184px;padding-top:4px}
+#stage.band #cardA #qline{display:none}
+#stage.band #cardA #qline + .opt{border-top:0}
+#stage.band #cardB{top:296px;height:344px}
+.bandonly{display:none}
+#stage.band .bandonly{display:block}
+#controls{display:flex;gap:8px;align-items:center;padding:14px 16px;font:400 16px/1.4 var(--text);flex-wrap:wrap}
+#controls button{font:700 16px var(--text);padding:6px 12px;border:1px solid #8A959E;background:#fff;cursor:pointer}
+#controls button.on{background:var(--ink);color:#fff}
+#audit{padding:0 16px 16px;font:14px/1.4 monospace}
+
+/* MOAI status light (2026-11-09): verbatim copy of LostAI web/src/views/brand/moai.css. Change it there and here together. */
+/* MOAI status light. The glow carries the state, and so do the face and the prop, so colour is never
+   the only signal. The statue takes the surrounding text colour and glows in the measured wall colours
+   (render v0.4). Light surfaces only: every screen that shows the statue today is the light decision wall.
+   The dark set (statue painted in its state colour) is designed but deferred, see
+   web/design/brand/moai_brand_apply_plan_ko_20261109.md section 9 and 11-9. */
+.moai-light {
+  --moai-listening: #3FC27F; /* green: listening */
+  --moai-writing: #F3C316;   /* highlighter yellow: the colour of freshly written text on the wall */
+  --moai-paused: #B3261B;    /* red: writing stopped */
+  --moai-vote: #FFFFFF;      /* white light: the room is deciding */
+  --moai-decided: #1E7B4F;   /* deep green: done */
+  display: inline-flex; align-items: center; gap: 8px;
+  font-weight: 700; white-space: nowrap;
+}
+.moai-light.off { opacity: .45; }
+.moai-word { font-size: 14px; letter-spacing: .02em; }
+
+.moai {
+  overflow: visible; color: currentColor; transition: filter .25s ease;
+  filter: drop-shadow(0 0 3px var(--moai-c)) drop-shadow(0 0 1px var(--moai-c));
+}
+.moai-wig { fill: #FFFFFF; stroke: currentColor; stroke-width: 2.4px; }
+.moai-listening { --moai-c: var(--moai-listening); }
+.moai-writing   { --moai-c: var(--moai-writing); }
+.moai-paused    { --moai-c: var(--moai-paused); }
+.moai-vote      { --moai-c: var(--moai-vote); }
+.moai-decided   { --moai-c: var(--moai-decided); }
+.moai-light.off .moai { filter: none; }
+
+/* decided: one nod, then still */
+.moai-decided { transform-origin: 50% 90%; animation: moai-nod .36s cubic-bezier(.2,.7,.2,1) 1; }
+@keyframes moai-nod { 0% { transform: rotate(0); } 45% { transform: translateY(2px) rotate(-6deg); } 100% { transform: rotate(0); } }
+@media (prefers-reduced-motion: reduce) { .moai-decided { animation: none; } .moai { transition: none; } }
+
+.moai-wordmark { display: block; }
+
+/* decision wall: the statue stands right after the nine flap cells (card B), at about two thirds of the
+   cell height. The flap word already names the state, so no word here. Positions are measured from
+   wall.css: normal card cells 56x88 end at x 556 of 626; full-stage cells 180x270 end at x 1780 of 1920;
+   navy end-card cells 66x112 end at x 1819 of 1920. */
+#flap .moai-light { align-self: center; margin-left: 4px; }
+#cardB.take #flap .moai { width: 120px; height: 120px; }
+#cardB.take.navy #flap .moai { width: 84px; height: 84px; }
+/* navy cards are a fixed dark surface: the statue takes its state colour (the designed dark set, plan
+   section 9) instead of a white statue with a glow, which was rejected (Eric 12:45) */
+#cardB.take.navy #flap .moai-light {
+  --moai-listening: #5cae82; --moai-writing: #c9a640; --moai-paused: #ec8273; --moai-vote: #a598dc; --moai-decided: #4aa877;
+}
+#cardB.take.navy #flap .moai { color: var(--moai-c); filter: drop-shadow(0 0 2px color-mix(in srgb, var(--moai-c) 45%, transparent)); }
+#cardB.take.navy #flap .moai-wig { fill: #c9c3ba; stroke: var(--navy); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="head" style="left:24px">Today</div>
+  <div id="slots"><div class="slot" id="q1">Q1</div><div class="slot" id="q2">Q2</div><div class="slot" id="q3">Q3</div><div class="slot" id="q4">Q4</div></div>
+  <div class="head" style="left:430px" id="prog">1 of 4 decided</div>
+  <div class="head" style="left:1270px">Now<span class="n" id="hNow">Q2 of 4</span></div>
+  <div id="mark">시안 v0.4</div>
+
+  <div id="doc">
+    <div class="sh" id="sh1"></div><div class="sh" id="sh2"></div>
+    <div id="sheet">
+      <div id="qband"></div>
+      <div class="dh"><b>WBS<span class="m">Mobile order app v1.0</span></b><span id="count"></span></div>
+      <div id="dnote"></div>
+      <div id="rows"></div>
+    </div>
+  </div>
+
+  <div id="idle">No open question.<br>Listening and writing to the WBS.</div>
+  <div id="cardA"></div>
+
+  <div id="cardB"><div id="flap"></div><div id="bside"></div><div id="bmsg"></div></div>
+
+  <div id="dp">
+    <div><div class="dph">Decided<span class="n" id="hDec">1</span></div><div class="mk" id="dmk"></div></div>
+    <div><div class="dph">Parked<span class="n" id="hPark">0</span></div><div id="pmk"></div></div>
+  </div>
+
+  <div id="said"></div>
+  <div id="log"></div>
+
+  <div id="people">
+    <div class="pp" id="p0"><svg class="gl" viewBox="0 0 72 100"></svg><div class="nm">Jiwon</div><div class="st"></div></div>
+    <div class="pp" id="p1"><svg class="gl" viewBox="0 0 72 100"></svg><div class="nm">Mina</div><div class="st"></div></div>
+    <div class="pp" id="p2"><svg class="gl" viewBox="0 0 72 100"></svg><div class="nm">Junho</div><div class="st"></div></div>
+    <div class="pp" id="p3"><svg class="gl" viewBox="0 0 72 100"></svg><div class="nm">Haeun</div><div class="st"></div></div>
+  </div>
+</div>
+
+<div id="controls"></div>
+<pre id="audit"></pre>
+
+<script>
+// 내용: data/poc_a_wbs_long.json (L2..L24, 화자 지원 Jiwon, 민아 Mina, 준호 Junho, 하은 Haeun),
+// data/poc_a_wbs_seed.json (1.3, 1.5, 2.1, 2.11, 2.12, 3.1..3.5 행). 날짜는 TEAM_CLAUDE_DESIGN_v1.md 7절 CPM 기대값.
+const ORDER = ['d1','d2','s2','s3','s4','s5','s6','s7','s8','r1','s9'];
+const R = (r) => `<span class="ref" data-r="${r}">${r}</span>`;
+const C = (t, r, cls) => `<span class="chip ${cls||''}"${r ? ` data-r="${r}"` : ''}>${t}</span>`;
+const $ = (id) => document.getElementById(id);
+const SHOT = location.search.includes('shot');
+const QP = new URLSearchParams(location.search);
+const BAND = QP.get('band') !== '0';      // 질문 띠, 기본 켬
+const CUT = QP.get('cut') || '';            // 줄인 모양 견본: rewrite | fact | revoice
+const FACTNEW = QP.get('fact') === 'new';   // 사실 점검 전체 모양 견본: 새 사실이 문서 메모로
+let cur = -1;
+
+// 문서에 실제로 쓴 횟수 (화면마다 누적). NOTES.md 표와 같다.
+const EDITS = {d1:6,d2:9,s2:9,s3:9,s4:9,s5:9,s6:9,s7:9,s8:13,r1:20,s9:22};
+
+// 시드 행 (영어 표기). s,e = 시작, 끝 (MM-DD), d = 기간(작업일)
+const BASE = [
+  {w:'1.3', t:'Feature spec', o:'Jiwon', s:'11-16', e:'11-20', d:'5', st:'60%'},
+  {w:'1.5', t:'UI wireframe', o:'Mina', s:'11-16', e:'11-20', d:'5', st:'40%'},
+  {w:'2.1', t:'Cloud and network', o:'Junho', s:'11-19', e:'11-23', d:'3', st:'To do'},
+  {w:'2.11', t:'Payment screen', o:'Mina', s:'12-16', e:'12-21', d:'4', st:'To do'},
+  {w:'2.12', t:'Admin page', o:'Seoyeon', s:'12-03', e:'12-10', d:'6', st:'To do'},
+  {w:'3.1', t:'Unit test', o:'Taeho', s:'12-16', e:'12-18', d:'3', st:'To do'},
+  {w:'3.2', t:'Integration test', o:'Haeun', s:'12-22', e:'12-28', d:'5', st:'To do'},
+  {w:'3.3', t:'Perf and load test', o:'Junho', s:'12-29', e:'12-31', d:'3', st:'To do'},
+  {w:'3.4', t:'UAT', o:'Haeun', s:'01-01', e:'01-07', d:'5', st:'To do'},
+  {w:'3.5', t:'Launch prep', o:'Jiwon', s:'01-08', e:'01-14', d:'5', st:'To do'},
+];
+
+function docRows(id){
+  const k = ORDER.indexOf(id);
+  const rows = BASE.map(r => Object.assign({src:[], fresh:{}, memo:null}, r));
+  const by = (w) => rows.find(r => r.w===w);
+  // d1: L3, L4 (잘못 들음 18%, Jiwon이 되돌림), L5, L6, L12
+  by('1.3').st = '90%'; by('1.3').src = [C('Jiwon L3','L3')];
+  by('1.5').st = '<s>18%</s>80%'; by('1.5').src = [C('Mina L4','L4'), C('undone by Jiwon','','undo')];
+  by('2.1').st = 'In progress'; by('2.1').src = [C('Junho L5','L5')];
+  const r32 = by('3.2'); r32.d = '10'; r32.e = '01-04'; r32.src = [C('Haeun L6','L6')];
+  if (k===0){ r32.d = '<s>5</s>10'; r32.fresh = {d:1,e:1}; }
+  const wh = {w:'2.13', t:'Payment webhook', o:'Junho', s:'', e:'', d:'3', st:'To do', src:[C('Junho L12','L12')], fresh:{}, memo:null, newrow:true, rowfresh:k===0};
+  rows.splice(rows.indexOf(by('2.12'))+1, 0, wh);
+  if (k===0) by('3.3').vt = true;      // 카드 A가 이 칸에서 떠오른다 (d1 -> d2)
+  // d2 이후: 3.3 엇갈림, 3.5 메모 (L11 캠페인)
+  if (k>=1 && k<8){
+    const r = by('3.3'); r.cf = true; r.src = [C('Q2 open','','tag')]; r.tall = true;
+    if (k===5) r.hl = true;
+  }
+  if (k>=1){ const r = by('3.5'); r.memo = {t:'Campaign 01-14', c:C('Mina L11','L11'), bad:true}; }
+  if (FACTNEW && k>=1 && k<8){ const r = by('3.4'); r.memo = {t:'UAT needs payment test data (example)', c:C('new fact, Haeun','','tag')}; r.fresh = {}; }
+  if (k===6){ // 유령 값: 선택지별 끝 날짜 (CPM, 7절)
+    by('3.2').gh = ['01-04','01-04'];
+    by('3.3').gh = ['12-24','01-07'];
+    by('3.4').gh = ['01-11','01-14'];
+    by('3.5').gh = ['01-18','01-21']; by('3.5').ghbad = true;
+  }
+  if (k>=8){ // Q2 결정: 순차(FS). 3.3, 3.4, 3.5 재계산
+    const r = by('3.3'); r.vt = (k===8);
+    r.s = '01-05'; r.e = '01-07'; r.src = [C('Haeun L16','L16')];
+    r.memo = CUT==='revoice' ? null : {t:'Running it alongside integration would launch earlier.', c:C('Junho L7, confirmed','L7','ok')};
+    const a = by('3.4'), b = by('3.5');
+    a.s='01-08'; a.e='01-14'; b.s='01-15'; b.e='01-21'; b.src=[C('Haeun L10','L10')];
+    if (k===8){
+      r.s = '<s>12-29</s><br>01-05'; r.e = '<s>12-31</s><br>01-07'; r.fresh = {s:0,e:0}; r.tall = true;
+      a.s = '<s>01-01</s><br>01-08'; a.e = '<s>01-07</s><br>01-14'; a.fresh = {s:200,e:200}; a.tall = true;
+      b.s = '<s>01-08</s><br>01-15'; b.e = '<s>01-14</s><br>01-21'; b.fresh = {s:400,e:400}; b.tall = true;
+      rows.splice(0, 1); // 1.3은 위로 넘어감
+    }
+  }
+  if (k>=9){ // L13~L19 뒤, Q4
+    rows.splice(0, 3); // 1.3, 1.5, 2.1은 위로 넘어감
+    by('2.12').st = 'v1.1'; by('2.12').src = [C('Jiwon L13','L13')];
+    const p = by('2.11'); p.d = '3'; p.o = 'Mina, Seoyeon'; p.wrapO = true; p.src = [C('Mina L14','L14'), C('Jiwon L15','L15')];
+    by('3.5').memo = {t:'Beta 01-14, launch 01-21', c:C('Jiwon L17','L17')};
+    by('3.3').memo = null; by('3.3').src = [C('Haeun L16','L16'), C('memo L7','L7','ok')];
+    rows.push({w:'4.1', t:'Order event logging', o:'Junho', s:'', e:'', d:'2', st:'To do', src:[C('Junho L19','L19')], fresh:{}, memo:null, newrow:true});
+    rows.push({w:'4.2', t:'Revenue dashboard', o:'Junho', s:'', e:'', d:'4', st:'Parked', src:[C('Junho L19','L19'), C('Jiwon L20','L20')], fresh:{st:0}, newrow:true,
+      memo:{t:'After launch. Owner Junho. Q4 parked.', c:''}, hl:false});
+  }
+  return rows;
+}
+
+function cellHTML(r, key, val){
+  const f = r.fresh && (key in r.fresh);
+  const st = f && r.fresh[key] ? ` style="animation-delay:${r.fresh[key]}ms"` : '';
+  return `<span class="${f ? 'fresh' : ''}${(key==='o' && r.wrapO) || String(val).includes('<br>') ? ' wrap2' : ''}"${st}>${val}</span>`;
+}
+
+function renderDoc(id){
+  const k = ORDER.indexOf(id), ghost = (id==='s6');
+  $('doc').className = ghost ? 'ghost' : '';
+  const rows = docRows(id);
+  let h = ghost
+    ? `<div class="g colh"><span>WBS</span><span>Task</span><span>Start</span><span>End</span><span>Days</span><span>1 parallel</span><span>2 after</span><span>Source</span></div>`
+    : `<div class="g colh"><span>WBS</span><span>Task</span><span>Owner</span><span>Start</span><span>End</span><span>Days</span><span>State</span><span>Source</span></div>`;
+  for (const r of rows){
+    const cls = ['g']; if (r.hl) cls.push('hl'); if (r.newrow) cls.push('newrow'); if (r.rowfresh) cls.push('fresh'); if (r.tall || (r.src.length>1)) cls.push('tall');
+    let mid;
+    if (r.cf){
+      mid = `<div class="cf" id="c33"><div><b>Junho L7</b> ${R('L7')}<br>with 3.2</div><div><b>Jiwon L8</b> ${R('L8')}<br>after 3.2</div></div>`;
+      if (ghost) mid = `<div class="cf" id="c33" style="grid-column:3 / 6"><div>${R('L7')}<br>with</div><div>${R('L8')}<br>after</div></div>`
+        + `<span class="gh">${r.gh[0]}</span><span class="gh">${r.gh[1]}</span>`;
+    } else if (ghost){
+      const g = r.gh;
+      mid = cellHTML(r,'s',r.s) + cellHTML(r,'e',r.e) + cellHTML(r,'d',r.d)
+        + (g ? `<span class="gh${r.ghbad?' bad':''}">${g[0]}</span><span class="gh${r.ghbad?' bad':''}">${g[1]}${r.ghbad ? R('L10') : ''}</span>` : `<span class="gh e"></span><span class="gh e"></span>`);
+    } else if (r.vt && !r.cf){
+      mid = `<div class="span4" id="c33" style="display:grid;grid-template-columns:100px 100px 74px 160px;padding:0">${cellHTML(r,'s',r.s)}${cellHTML(r,'e',r.e)}${cellHTML(r,'d',r.d)}${cellHTML(r,'st',r.st)}</div>`;
+    } else {
+      mid = cellHTML(r,'s',r.s) + cellHTML(r,'e',r.e) + cellHTML(r,'d',r.d) + cellHTML(r,'st',r.st);
+    }
+    const owner = ghost ? '' : cellHTML(r,'o',r.o);
+    h += `<div class="${cls.join(' ')}"><span class="w">${r.w}</span><span>${r.t}</span>${owner}${mid}<span class="src">${(ghost ? r.src.slice(0,1) : r.src).join('')}</span>`;
+    if (r.memo) h += `<div class="memo${r.memo.bad?' bad':''}${(k===8 && r.w==='3.3') ? ' fresh' : ''}"><span class="mt">${r.memo.t}</span>${r.memo.c}</div>`;
+    h += `</div>`;
+  }
+  $('rows').innerHTML = h;
+  // 카드 A와 3.3 칸이 같은 view-transition-name을 주고받는다 (d1 -> d2 떠오름, s7 -> s8 내려앉음)
+  const c = $('c33'); if (c) c.style.viewTransitionName = (k===0 || k===8) ? 'qcard' : 'none';
+  const n = EDITS[id] - (CUT==='revoice' && k>=8 ? 1 : 0) + (FACTNEW && k>=1 ? 1 : 0);
+  $('count').innerHTML = `<i></i>Live  ${n} edits written, 1 undone`;
+  $('dnote').innerHTML = id==='s6'
+    ? `Values from current data (CPM, workdays). <span class="bad">Campaign 01-14</span> ${R('L11')}`
+    : id==='d1' ? `Last: L12 added row 2.13. L2 ignored: small talk.`
+    : k>=9 ? `Rows 1.x and 2.1 above. Q2 written to 3.3, 3.4, 3.5.`
+    : `Each edit shows who said it and the line.`;
+}
+
+// 카드 A
+const Q2A = (s1, s2) => `<div id="qline"><span class="qn">Q2</span>Perf test: when?</div>
+  <div class="opt"><div class="onum">1</div><div class="oleft"><div class="oname">In parallel</div><div class="osrc">with 3.2. Junho ${R('L7')}</div></div><div class="oside">${s1||''}</div></div>
+  <div class="opt"><div class="onum">2</div><div class="oleft"><div class="oname">After integration</div><div class="osrc">as in WBS. Jiwon ${R('L8')}</div></div><div class="oside">${s2||''}</div></div>`;
+const COST1 = `<div class="cost">Launch 01-18</div><div class="costsub"><span class="bad">Breaks 01-14</span>${R('L11')}</div>`;
+const COST2 = `<div class="cost">Launch 01-21${R('L10')}</div><div class="costsub"><span class="bad">Breaks 01-14</span>${R('L11')}</div>`;
+const Q4A = `<div id="qline"><span class="qn">Q4</span>Revenue dashboard</div>
+  <div class="rf"><div class="old">Build it in v1.0?</div><div class="new">Needed on launch day?</div>
+  <div class="vt">Vote 1 scattered. Rewritten. Vote 2 scattered.</div></div>`;
+
+const Q4A_CUT = `<div id="qline"><span class="qn">Q4</span>Revenue dashboard</div>
+  <div class="rf"><div class="new">Build it in v1.0?</div>
+  <div class="vt">Vote 1 scattered. Vote 2 scattered.</div></div>`;
+
+const SAY = {
+  L2: `<b>L2 Junho</b> Sure, let me share my laptop screen.`,
+  L12:`<b>L12 Junho</b> Add a payment webhook task. Backend, me, 3 days.`,
+  L7: `<b>L7 Junho</b> I can run the perf test alongside integration.`,
+  L10:`<b>L10 Haeun</b> Then launch lands on January 21.`,
+  L11:`<b>L11 Mina</b> Too late. Marketing booked the campaign for January 14.`,
+  L16:`<b>L16 Haeun</b> Perf test after integration, as Jiwon said.`,
+  L20:`<b>L20 Jiwon</b> The dashboard can wait until after launch. Park it.`,
+  L24:`<b>L24 Jiwon</b> That is it for today. Thanks, everyone.`,
+};
+
+const D1 = `<div class="icard"><span class="qn">Q1</span><span class="ct">Integration test: 10 days</span><span class="cm g">4 thumbs</span><span class="cm">0 votes moved ${R('L6')}</span></div>`;
+const D2 = `<div class="icard"><span class="qn">Q2</span><span class="ct">Perf test after integration</span><span class="cm g">4 thumbs ${R('L16')}</span><span class="cm">2 votes moved</span></div>`;
+const D3 = `<div class="icard"><span class="qn">Q3</span><span class="ct">Beta 01-14, launch 01-21</span><span class="cm g">4 thumbs</span><span class="cm">${R('L17')}</span></div>`;
+const P4 = `<div class="icard p"><span class="qn">Q4</span><span class="ct">Revenue dashboard</span><span class="cm"><span class="tagp">Parked</span></span><span class="cm"><b>Owner Junho</b>, after launch ${R('L20')}</span></div>`;
+
+// MOAI status light per scene, right after the nine flap cells (Eric 13:07). Markup is renderToStaticMarkup of LostAI MoaiStatic
+// (web/scripts/moai_markup.tsx), so the app and this source draw the same SVG. State follows the live rule:
+// vote open > open question (paused) > just decided > writing > listening.
+const MOAI = {"listening": "<span class=\"moai-light\" role=\"status\" aria-label=\"Listening\"><svg class=\"moai moai-listening\" viewBox=\"0 0 64 64\" width=\"56\" height=\"56\" aria-hidden=\"true\" focusable=\"false\"><defs><mask id=\"mfR1\"><rect width=\"64\" height=\"64\" fill=\"#fff\"></rect><g fill=\"#000\"><path d=\"M22 17H42V22H22Z\"></path><path d=\"M29.5 22H34.5V33H29.5Z\"></path><path d=\"M26 38H38V41H26Z\"></path><path d=\"M7 20.5Q7 17 10.5 17H14.5Q18.5 17 18.5 20.5V33.5Q18.5 37 14.5 37H10.5Q7 37 7 33.5ZM45.5 20.5Q45.5 17 49.5 17H53.5Q57 17 57 20.5V33.5Q57 37 53.5 37H49.5Q45.5 37 45.5 33.5Z\" stroke=\"#000\" stroke-width=\"5\"></path></g></mask></defs><g class=\"moai-body\" fill=\"currentColor\"><g mask=\"url(#mfR1)\"><path d=\"M21 6H43Q45 6 45.3 8L48 46H16L18.7 8Q19 6 21 6Z\"></path><path d=\"M11 60L15.5 48H48.5L53 60Z\"></path></g><path d=\"M12.5 18V14Q12.5 2 32 2Q51.5 2 51.5 14V18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"4\" stroke-linecap=\"round\"></path><path d=\"M7 20.5Q7 17 10.5 17H14.5Q18.5 17 18.5 20.5V33.5Q18.5 37 14.5 37H10.5Q7 37 7 33.5ZM45.5 20.5Q45.5 17 49.5 17H53.5Q57 17 57 20.5V33.5Q57 37 53.5 37H49.5Q45.5 37 45.5 33.5Z\"></path></g></svg></span>", "writing": "<span class=\"moai-light\" role=\"status\" aria-label=\"Writing\"><svg class=\"moai moai-writing\" viewBox=\"0 0 64 64\" width=\"56\" height=\"56\" aria-hidden=\"true\" focusable=\"false\"><defs><mask id=\"mfR1\"><rect width=\"64\" height=\"64\" fill=\"#fff\"></rect><g fill=\"#000\"><path d=\"M23 22H41V26H23Z\"></path><path d=\"M29.5 26H34.5V34H29.5Z\"></path><path d=\"M26 38H38V41H26Z\"></path><path transform=\"translate(48.5 37) rotate(30)\" d=\"M-4 -17H4V8L0 16L-4 8Z\" stroke=\"#000\" stroke-width=\"5\" stroke-linejoin=\"round\"></path></g></mask><mask id=\"mpR1\" maskUnits=\"userSpaceOnUse\" x=\"-30\" y=\"-30\" width=\"60\" height=\"60\"><rect x=\"-30\" y=\"-30\" width=\"60\" height=\"60\" fill=\"#fff\"></rect><g fill=\"#000\"><path d=\"M-4 -11.5H4V-9.5H-4Z\"></path><path d=\"M-4 7H4V9H-4Z\"></path></g></mask></defs><g class=\"moai-body\" fill=\"currentColor\"><g mask=\"url(#mfR1)\"><path d=\"M21 6H43Q45 6 45.3 8L48 46H16L18.7 8Q19 6 21 6Z\"></path><path d=\"M11 60L15.5 48H48.5L53 60Z\"></path></g><g transform=\"translate(48.5 37) rotate(30)\"><path d=\"M-4 -17H4V8L0 16L-4 8Z\" mask=\"url(#mpR1)\"></path></g></g></svg></span>", "paused": "<span class=\"moai-light\" role=\"status\" aria-label=\"Paused: conflict\"><svg class=\"moai moai-paused\" viewBox=\"0 0 64 64\" width=\"56\" height=\"56\" aria-hidden=\"true\" focusable=\"false\"><defs><mask id=\"mfR1\"><rect width=\"64\" height=\"64\" fill=\"#fff\"></rect><g fill=\"#000\"><path d=\"M22 18H31V23H22Z\"></path><path d=\"M33 15.5L42 11.5L43.6 16L34.6 20Z\"></path><path d=\"M29.5 20H34.5V33H29.5Z\"></path><path d=\"M27 38H37V41H27Z\"></path></g></mask></defs><g class=\"moai-body\" fill=\"currentColor\"><g mask=\"url(#mfR1)\"><path d=\"M21 6H43Q45 6 45.3 8L48 46H16L18.7 8Q19 6 21 6Z\"></path><path d=\"M11 60L15.5 48H48.5L53 60Z\"></path></g></g></svg></span>", "vote": "<span class=\"moai-light\" role=\"status\" aria-label=\"Vote\"><svg class=\"moai moai-vote\" viewBox=\"0 0 64 64\" width=\"56\" height=\"56\" aria-hidden=\"true\" focusable=\"false\"><defs><mask id=\"mfR1\"><rect width=\"64\" height=\"64\" fill=\"#fff\"></rect><g fill=\"#000\"><path d=\"M22 17H42V22H22Z\"></path><path d=\"M29.5 22H34.5V33H29.5Z\"></path><path d=\"M26 38H38V41H26Z\"></path></g></mask></defs><g class=\"moai-body\" fill=\"currentColor\"><g class=\"moai-wig\"><circle cx=\"13.5\" cy=\"17\" r=\"5.6\"></circle><circle cx=\"13.5\" cy=\"25.5\" r=\"5.6\"></circle><circle cx=\"13.5\" cy=\"34\" r=\"5.6\"></circle><circle cx=\"50.5\" cy=\"17\" r=\"5.6\"></circle><circle cx=\"50.5\" cy=\"25.5\" r=\"5.6\"></circle><circle cx=\"50.5\" cy=\"34\" r=\"5.6\"></circle></g><g mask=\"url(#mfR1)\"><path d=\"M21 6H43Q45 6 45.3 8L48 46H16L18.7 8Q19 6 21 6Z\"></path><path d=\"M11 60L15.5 48H48.5L53 60Z\"></path></g><path class=\"moai-wig\" d=\"M16 15Q15 3.5 32 3.5Q49 3.5 48 15Q44 11.5 40 13Q36 10 32 12.5Q28 10 24 13Q20 11.5 16 15Z\" stroke-linejoin=\"round\"></path></g></svg></span>", "decided": "<span class=\"moai-light\" role=\"status\" aria-label=\"Decided\"><svg class=\"moai moai-decided\" viewBox=\"0 0 64 64\" width=\"56\" height=\"56\" aria-hidden=\"true\" focusable=\"false\"><defs><mask id=\"mfR1\"><rect width=\"64\" height=\"64\" fill=\"#fff\"></rect><g fill=\"#000\"><path d=\"M22 17H42V22H22Z\"></path><path d=\"M29.5 22H34.5V33H29.5Z\"></path><path d=\"M26 38H38V41H26Z\"></path><path d=\"M45 41V31.5Q45 29 47.5 29H49Q51.5 29 51.5 31.5V41H55Q58 41 58 44V52Q58 55 55 55H44Q41 55 41 52V44Q41 41 44 41Z\" stroke=\"#000\" stroke-width=\"5\" stroke-linejoin=\"round\"></path></g></mask><mask id=\"mhR1\"><rect width=\"64\" height=\"64\" fill=\"#fff\"></rect><g fill=\"#000\"><path d=\"M41 45.5H52V47H41Z\"></path><path d=\"M41 49.5H52V51H41Z\"></path></g></mask></defs><g class=\"moai-body\" fill=\"currentColor\"><g mask=\"url(#mfR1)\"><path d=\"M21 6H43Q45 6 45.3 8L48 46H16L18.7 8Q19 6 21 6Z\"></path><path d=\"M11 60L15.5 48H48.5L53 60Z\"></path></g><path d=\"M45 41V31.5Q45 29 47.5 29H49Q51.5 29 51.5 31.5V41H55Q58 41 58 44V52Q58 55 55 55H44Q41 55 41 52V44Q41 41 44 41Z\" mask=\"url(#mhR1)\"></path></g></svg></span>"};
+const MOAI_OF = {d1:'listening', d2:'paused', s2:'vote', s3:'vote', s4:'paused', s5:'paused', s6:'paused', s7:'paused', s8:'decided', r1:'writing', s9:'decided'};
+
+const ST = {
+d1:{ flap:'LISTENING', side:'', A:null,
+  msg:`<div class="b40">Writing what the team says</div><div class="sub" style="margin-top:4px">Small talk is ignored. Any edit can be undone.</div>`,
+  said:SAY.L12, log:`<b>Log</b> L12 added row 2.13. L4 18% undone by Jiwon. L2 ignored: small talk.`,
+  ppl:[['here',''],['here',''],['here',''],['here','']], glyph:'', lit:[], dec:1, park:0, now:'listening' },
+d2:{ flap:'ASK', side:'', A:Q2A(),
+  msg:`<div class="b40">Facts not on the table?</div><div class="fc">${C('L6 Integration ends 01-04','L6')}${C('L11 Campaign 01-14','L11')}</div>`,
+  said:SAY.L11, log:`<b>Log</b> 3.3 has two values (L7, L8), so Q2 opened. Options come from team words only.`,
+  ppl:[['here',''],['here',''],['here',''],['here','']], glyph:'', lit:['L6','L11'], dec:1, park:0 },
+s2:{ flap:'3 2 1', off:[0,4], take:'count', big:true, A:Q2A(),
+  msg:`<div class="t56"><span class="qn">Q2</span>Perf test: when?</div>
+    <div style="height:390px"></div>
+    <div class="tp">Show 1 or 2 fingers to your own camera, all at once.</div>`,
+  said:SAY.L11, log:`<b>Log</b> Counting down. Rule: everyone shows at the same moment.`,
+  ppl:[['ready','ok'],['ready','ok'],['ready','ok'],['ready','ok']], glyph:'cam', lit:[], dec:1, park:0 },
+s3:{ flap:'READING', side:'2 of 4 read', A:Q2A(),
+  msg:`<div class="b40"><span class="ul">Mina, show again</span></div><div class="sub" style="margin-top:8px">Values stay hidden. Haeun not read yet.</div>`,
+  said:SAY.L11, log:`<b>Log</b> Reading cameras, values hidden. Low confidence means ask again, never guess.`,
+  ppl:[['read','ok'],['show again','again'],['read','ok'],['not read','']], glyph:'fd', lit:[], dec:1, park:0 },
+s4:{ flap:'SPLIT', take:'split', A:Q2A(),
+  msg:`<div class="t56"><span class="qn">Q2</span>Perf test: when?</div>
+    <div style="height:440px"></div>
+    <div class="tp">4 of 4 read. Counts stay hidden until the revote.</div>
+    <div class="tp" style="margin-top:20px">Next: the side that changes the plan speaks first.</div>`,
+  said:SAY.L11, log:`<b>Log</b> Vote 1 is Split. First vote shows the state only.`,
+  ppl:[['read','ok'],['read','ok'],['read','ok'],['read','ok']], glyph:'', lit:[], dec:1, park:0 },
+s5:{ flap:'MINORITY', side:'Junho first', A:Q2A(),
+  msg:`<div class="b32">Running it alongside integration would launch earlier.</div><div class="b40" style="margin-top:6px">Junho: thumb yes, palm no</div>`,
+  said:SAY.L7, log:`<b>Log</b> Split, so the side changing the plan speaks first. No AI recommendation.`,
+  ppl:[['read',''],['read',''],['speaking','ok'],['read','']], turn:2, glyph:'', lit:['L7'], dec:1, park:0 },
+s6:{ flap:'COSTS', side:'AI picks none', A:Q2A(COST1, COST2),
+  msg:`<div class="b32">Both break the campaign ${R('L11')}. Option 1 is 3 workdays earlier.</div><div class="sub" style="margin-top:4px">Crux: empty (no source line).</div><div class="sub bandonly">Values from current data.</div>`,
+  said:`<b>L10 Haeun</b> Launch lands on January 21. <b>L11 Mina</b> Campaign is January 14.`, log:`<b>Log</b> Asked what the AI thinks. Gave end dates per option from 3.2 ${R('L6')}, picked none.`,
+  ppl:[['read',''],['read',''],['read',''],['read','']], glyph:'', lit:['L6','L10','L11'], dec:1, park:0 },
+s7:{ flap:'CONVERGED', take:'navy conv', A:Q2A(),
+  msg:`<div class="t56"><span class="qn">Q2</span>Revote</div>
+    <div class="mv" style="margin-top:30px">2 votes moved</div>
+    <div class="t56" style="margin-top:20px">from <span class="num">1</span>In parallel to <span class="num">2</span>After integration</div>
+    <svg id="dial" viewBox="0 0 640 380" aria-hidden="true">
+      <path d="M40 330 A280 280 0 0 1 600 330" fill="none" stroke="#4A5A6B" stroke-width="22"/>
+      <path d="M320 50 A280 280 0 0 1 518 132" fill="none" stroke="#F3C316" stroke-width="22"/>
+      <line x1="320" y1="330" x2="320" y2="70" stroke="#4A5A6B" stroke-width="6" stroke-dasharray="14 12"/>
+      <line x1="320" y1="330" x2="506" y2="144" stroke="#ffffff" stroke-width="12"/>
+      <rect x="300" y="310" width="40" height="40" fill="#ffffff"/>
+      <text x="40" y="378" font-size="56" font-weight="700" fill="#ffffff" text-anchor="middle" font-family="Barlow Condensed, Arial Narrow, sans-serif">1</text>
+      <text x="600" y="378" font-size="56" font-weight="700" fill="#ffffff" text-anchor="middle" font-family="Barlow Condensed, Arial Narrow, sans-serif">2</text>
+    </svg>
+    <div class="dist">
+      <div class="dr"><span class="num">1</span><span>In parallel</span><span class="bars"><em>0</em></span></div>
+      <div class="dr"><span class="num">2</span><span>After integration</span><span class="bars"><i></i><i></i><i></i><i></i><em>4</em></span></div>
+    </div>
+    <div class="cw">Vote 1 was Split. Next: objection check.</div>`,
+  said:SAY.L16, log:`<b>Log</b> Revote. Votes moved shown before the distribution.`,
+  ppl:[['read','ok'],['read','ok'],['read','ok'],['read','ok']], glyph:'', lit:[], dec:1, park:0 },
+s8:{ flap:'THUMBS', side:'no palm', A:null,
+  msg:`<div class="b40">Written to 3.3: after integration</div><div class="sub" style="margin-top:6px">3.4 and 3.5 moved. Junho's reason kept as a memo.</div>`,
+  said:SAY.L16, log:`<b>Log</b> No palm, so recorded. Wrote 3.3, 3.4, 3.5 and the memo.`,
+  ppl:[['thumb','ok'],['thumb','ok'],['thumb','ok'],['thumb','ok']], glyph:'thumb', lit:['L16','L7'], dec:2, park:0, now:'Q2 decided' },
+r1:{ flap:'PARKED', side:'Owner Junho, after launch', A:Q4A,
+  msg:`<div class="b32">Scattered twice, so parked with an owner.</div><div class="sub" style="margin-top:6px">4.2 set to Parked ${R('L20')}</div>`,
+  said:SAY.L20, log:`<b>Log</b> Q4 rewritten once, still scattered. Parked, not decided.`,
+  ppl:[['voted',''],['voted',''],['owner','ok'],['voted','']], glyph:'', lit:['L20'], dec:3, park:1 },
+s9:{ flap:'CLOSED', take:'navy end', A:null,
+  msg:`<div class="e96">3 decided, 1 parked</div>
+    <div class="ecards">${D1}${D2}${D3}${P4}</div>
+    <div class="estats">
+      <div><div class="n">22</div><div class="t">edits written live<br>1 undone</div></div>
+      <div><div class="n">2</div><div class="t">votes moved, all on Q2</div></div>
+      <div><div class="n">1</div><div class="t">parked with an owner</div></div>
+    </div>
+    <div class="efoot">Every edit in the WBS carries a speaker and a line. No AI recommendation on any question.</div>`,
+  said:SAY.L24, log:`<b>Log</b> Closed. 4 questions, no AI recommendation on any.`,
+  ppl:[['voted','ok'],['voted','ok'],['voted','ok'],['voted','ok']], glyph:'', lit:[], dec:3, park:1 },
+};
+
+const GL = {
+  cam:`<rect x="6" y="26" width="60" height="44" rx="6" fill="none" stroke="#17212B" stroke-width="5"/><circle cx="36" cy="48" r="12" fill="none" stroke="#17212B" stroke-width="5"/>`,
+  fd:`<g class="fd turn"><rect x="6" y="6" width="60" height="88" rx="5" fill="#17212B"/><path d="M16 16 L56 84 M36 16 L56 50 M16 50 L36 84" stroke="#4A5762" stroke-width="5"/></g>`,
+  nr:`<rect x="8" y="8" width="56" height="84" rx="5" fill="none" stroke="#4A5762" stroke-width="4" stroke-dasharray="10 8"/>`,
+  again:`<rect x="8" y="8" width="56" height="84" rx="5" fill="none" stroke="#17212B" stroke-width="5" stroke-dasharray="10 8"/><rect x="0" y="40" width="72" height="20" fill="#F3C316"/>`,
+  thumb:`<path d="M10 46h14v42H10z M28 88h26a7 7 0 0 0 7-6l5-24a7 7 0 0 0-7-8H44l3-18a7 7 0 0 0-7-8h-3L28 46z" fill="#1E7B4F"/>`,
+};
+
+function setFlap(s, animate){
+  const f = $('flap'), w = s.flap, off = s.off || [];
+  if (!f.children.length) for (let i=0;i<9;i++){ const c=document.createElement('div'); c.className='cell'; f.appendChild(c); }
+  for (let j=0;j<9;j++){
+    const cell = f.children[j], ch = (w[j] && w[j] !== ' ') ? w[j] : '';
+    const changed = cell.textContent !== ch;
+    cell.textContent = ch;
+    cell.className = 'cell' + (ch ? ' on' : '');
+    if (ch && off.includes(j)) cell.className = 'cell off';
+    cell.style.animationDelay = '';
+    if (changed && animate){ void cell.offsetWidth; cell.classList.add('flip'); cell.style.animationDelay = (j*35)+'ms'; }
+  }
+}
+
+function render(id, animate){
+  if (!ST[id]) id = 'd1';
+  const prev = cur; cur = ORDER.indexOf(id); const k = cur; const s = ST[id];
+  const st = $('stage'); st.dataset.state = id; st.classList.toggle('big', !!s.big);
+  // 머리줄
+  $('hNow').textContent = id==='s9' ? 'closed' : (s.now || (k>=9 ? 'Q4 of 4' : 'Q2 of 4'));
+  $('prog').textContent = s.dec + ' of 4 decided';
+  ['q1','q2','q3','q4'].forEach((q,i) => {
+    const el = $(q), was = el.className; let c = 'slot';
+    if (i < s.dec) c += ' done';
+    else if (i===3 && s.park) c += ' park';
+    else if ((i===1 && k>=1 && k<8) || (i===3 && k===9)) c += ' now';
+    if (animate && c.includes('done') && !was.includes('done')) c += ' fill';
+    el.className = c;
+  });
+  // 질문 띠: 질문이 열려 있고 꽉 채우기가 아닐 때
+  const band = BAND && !!s.A && !s.take;
+  st.classList.toggle('band', band);
+  // 문서
+  renderDoc(id);
+  $('count').className = (animate && EDITS[id] !== EDITS[ORDER[prev]] ) ? 'bump' : '';
+  // 카드 A
+  const A = $('cardA');
+  let Ahtml = s.A;
+  if (id==='r1' && CUT==='rewrite') Ahtml = Q4A_CUT;
+  if (s.A){ A.innerHTML = Ahtml; A.classList.remove('gone'); } else { A.classList.add('gone'); A.innerHTML = ''; }
+  A.style.viewTransitionName = (k>=1 && k<=7) ? 'qcard' : 'none';
+  $('idle').style.display = (!s.A && !s.take && id!=='s8') ? 'block' : 'none';
+  if (id==='s8'){ $('idle').style.display = 'block'; $('idle').innerHTML = 'Q2 card went back into 3.3.<br>Next: Q3 Launch date.'; }
+  else $('idle').innerHTML = 'No open question.<br>Listening and writing to the WBS.';
+  // 카드 B
+  $('cardB').className = s.take ? 'take ' + s.take : '';
+  setFlap(s, animate);
+  { // MOAI light right after the nine flap cells, same DOM as the app (span.moai-light as the 10th child)
+    const f = $('flap'), t = document.createElement('template'); t.innerHTML = MOAI[MOAI_OF[id]];
+    if (f.children[9]) f.replaceChild(t.content.firstChild, f.children[9]); else f.appendChild(t.content.firstChild); }
+  let msg = s.msg;
+  if (id==='d2' && CUT==='fact') msg = `<div class="b40">On the table</div><div class="fc">${C('L6 Integration ends 01-04','L6')}${C('L11 Campaign 01-14','L11')}</div>`;
+  if (id==='d2' && FACTNEW) msg = `<div class="b40">Facts not on the table?</div><div class="fc">${C('L6 Integration ends 01-04','L6')}${C('L11 Campaign 01-14','L11')}${C('new: UAT test data, to 3.4','','tag')}</div>`;
+  if (id==='s8' && CUT==='revoice') msg = `<div class="b40">Written to 3.3: after integration</div><div class="sub" style="margin-top:6px">3.4 and 3.5 moved. Junho confirmed the sentence by thumb.</div>`;
+  if (id==='r1' && CUT==='rewrite') msg = `<div class="b32">Scattered twice, so parked with an owner.</div><div class="sub" style="margin-top:6px">No rewrite. 4.2 set to Parked ${R('L20')}</div>`;
+  $('bside').textContent = s.side || ''; $('bmsg').innerHTML = msg;
+  $('qband').innerHTML = band ? ((document.querySelector('#cardA #qline') || {}).innerHTML || '') : '';
+  // Decided / Parked: 작은 표지
+  $('hDec').textContent = s.dec; $('hPark').textContent = s.park;
+  $('dmk').innerHTML = ['Q1','Q2','Q3'].slice(0, s.dec).map(q => `<span>${q}</span>`).join('');
+  $('pmk').innerHTML = s.park ? `<div class="pk"><b>Q4</b> Junho, after launch ${R('L20')}</div>` : `<div class="empty">none yet</div>`;
+  // 발화, 로그, 참가자
+  $('said').innerHTML = s.said; $('log').innerHTML = s.log;
+  s.ppl.forEach((p,i) => { const el = $('p'+i); el.classList.toggle('turn', s.turn===i);
+    const t = el.querySelector('.st'); t.textContent = p[0]; t.className = 'st ' + p[1];
+    let g = s.glyph; if (g==='fd') g = p[1]==='again' ? 'again' : (p[1]==='ok' ? 'fd' : 'nr');
+    const sv = el.querySelector('.gl'); sv.innerHTML = g ? GL[g] : ''; sv.classList.toggle('on', !!g); });
+  // 같은 출처 줄을 문서 칩, 카드, 발화 줄에서 함께 켠다
+  document.querySelectorAll('#stage .ref, #stage .chip[data-r]').forEach(r => r.classList.toggle('lit', s.lit.includes(r.dataset.r)));
+  document.querySelectorAll('#said b').forEach(b => { const m = b.textContent.match(/^L\d+/);
+    b.classList.toggle('lit', !!(m && s.lit.includes(m[0]))); });
+  document.querySelectorAll('#controls button[data-id]').forEach(b => b.classList.toggle('on', b.dataset.id===id));
+}
+
+// 직전 상태 변화에서 움직인 요소 목록
+let lastMotion = {from:null, to:null, items:[]};
+function snapMotion(from, to, via){
+  const items = document.getAnimations().map(a => { const e = a.effect || {}; const t = e.target;
+    const tm = e.getTiming ? e.getTiming() : {};
+    return { target: t ? (t.id ? '#'+t.id : (t.className && t.className.baseVal!==undefined ? t.className.baseVal : (t.className||t.tagName))) : null,
+      pseudo: e.pseudoElement || null, name: a.animationName || a.transitionProperty || 'view-transition',
+      duration: typeof tm.duration==='number' ? tm.duration : null, delay: tm.delay || 0 }; });
+  lastMotion = { from, to, via, count: items.length, maxDuration: Math.max(0, ...items.map(i => (i.duration||0) + (i.delay||0))), items };
+}
+window.__motion = () => lastMotion;
+
+function go(id){
+  if (!ST[id] || ORDER.indexOf(id)===cur) return; const from = ORDER[cur];
+  if (!SHOT && document.startViewTransition){
+    let done = false;
+    const vt = document.startViewTransition(() => { done = true; render(id, true); snapMotion(from, id, 'css, view transition pending'); });
+    // 프레임이 안 나오는 환경(숨은 탭, 일부 headless)에서는 전환을 건너뛰고 바로 바꾼다
+    setTimeout(() => { if (!done) vt.skipTransition(); }, 200);
+    vt.ready.then(() => snapMotion(from, id, 'view-transition')).catch(() => { lastMotion.via = 'css, view transition skipped'; });
+  } else { render(id, !SHOT); snapMotion(from, id, 'css'); }
+}
+
+window.__audit = function(){
+  const st = $('stage'), sr = st.getBoundingClientRect(); let min = Infinity, at = '';
+  const w = document.createTreeWalker(st, NodeFilter.SHOW_TEXT); let t;
+  while ((t = w.nextNode())){
+    if (!t.textContent.trim()) continue;
+    const el = t.parentElement; let a = el, hidden = false;
+    while (a && a !== document.body){ const c = getComputedStyle(a);
+      if (c.display==='none' || c.visibility==='hidden' || parseFloat(c.opacity)===0){ hidden = true; break; } a = a.parentElement; }
+    if (hidden) continue;
+    const rg = document.createRange(); rg.selectNodeContents(t);
+    const ok = [...rg.getClientRects()].some(x => x.width>0 && x.height>0 && x.right>sr.left && x.left<sr.right && x.bottom>sr.top && x.top<sr.bottom);
+    if (!ok) continue;
+    const fs = parseFloat(getComputedStyle(el).fontSize);
+    if (fs < min){ min = fs; at = t.textContent.trim().slice(0,30); }
+  }
+  // 문서가 무대 폭에서 차지하는 비율 (꽉 채우기 화면은 덮임)
+  const d = $('doc').getBoundingClientRect();
+  return { minFont: min, minAt: at, docWidthPct: Math.round(d.width / sr.width * 1000) / 10, docCovered: !!ST[ORDER[cur]].take };
+};
+
+const ctl = $('controls');
+ORDER.forEach(id => { const b = document.createElement('button'); b.textContent = id; b.dataset.id = id;
+  b.onclick = () => { location.hash = id; }; ctl.appendChild(b); });
+let timer = null;
+const pb = document.createElement('button'); pb.textContent = 'Play'; ctl.appendChild(pb);
+function play(on){ clearInterval(timer); timer = null; pb.classList.toggle('on', on);
+  if (on) timer = setInterval(() => { location.hash = ORDER[(cur + 1) % ORDER.length]; }, 4000); }
+pb.onclick = () => play(!timer);
+const hint = document.createElement('span'); hint.textContent = 'Left / Right keys, #d1 #d2 #s2..#s8 #r1 #s9, ?play'; hint.style.marginLeft='12px'; ctl.appendChild(hint);
+
+if (SHOT) document.documentElement.classList.add('shot');
+window.addEventListener('hashchange', () => go(location.hash.slice(1)));
+document.addEventListener('keydown', e => {
+  if (e.key==='ArrowRight') location.hash = ORDER[Math.min(ORDER.length-1, cur+1)];
+  if (e.key==='ArrowLeft') location.hash = ORDER[Math.max(0, cur-1)];
+});
+if (location.hash === '#audit'){
+  const out = {};
+  ORDER.forEach(id => { render(id, false); out[id] = __audit(); });
+  render('d1', false);
+  $('audit').textContent = JSON.stringify(out);
+} else {
+  render(ST[location.hash.slice(1)] ? location.hash.slice(1) : 'd1', false);
+  if (!SHOT && location.search.includes('play')) play(true);
+}
+</script>
+</body>
+</html>

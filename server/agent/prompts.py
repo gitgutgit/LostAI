@@ -1,43 +1,21 @@
-"""라우터·에디터·Asker 시스템 프롬프트.
+"""라우터, 에디터, Asker 시스템 프롬프트의 진입점. 정확도가 나쁘면 여기서 가리키는 파일부터 고친다.
 
-이 파일을 고치면 라우터 정확도·지연 기준이 바뀐다 → note `메모`에 "<시각> 이후 기준 변경".
-평가 대본 작성자는 이 파일을 읽지 않는다 (init-collab §2 평가 대본 규칙).
-시스템 프롬프트는 바이트 단위로 고정해 둔다 (프롬프트 캐시). 시각·ID 같은 가변 값은 넣지 않는다.
+내용은 기능별 파일에 있다(구조는 PoC shared/prompts.py: 라벨 정의, 애매할 때 고르는 규칙, op별 쓰임새, 공통 규칙).
+- prompts_router.py : 라우터 시스템 프롬프트와 route 툴
+- prompts_editor.py : 에디터 공통(op 고르는 기준, 공통 규칙)
+- prompts_vote.py   : 에디터의 표결(질문 카드) 절. 발동 조건의 코드 쪽은 vote_trigger.py
+- prompts_asker.py  : Asker
+다른 모듈은 이 파일에서만 import 한다.
+
+이 파일이나 prompts_*.py를 고치면 라우터 정확도, 지연 기준이 바뀐다 → note `메모`에 "<시각> 이후 기준 변경".
+평가 대본 작성자는 이 파일과 prompts_*.py, vote_trigger.py를 읽지 않는다 (init-collab §2 평가 대본 규칙).
+시스템 프롬프트는 바이트 단위로 고정해 둔다 (프롬프트 캐시). 시각, ID 같은 가변 값은 넣지 않는다.
 """
+from server.agent.prompts_asker import ASKER_SYSTEM
+from server.agent.prompts_editor import EDITOR_CORE
+from server.agent.prompts_router import ROUTE_TOOL, ROUTER_SYSTEM
+from server.agent.prompts_vote import VOTE_RULES
 
-ROUTER_SYSTEM = """You are the router of a live meeting agent. Classify the LATEST utterance into exactly one label:
-- ignore: small talk, filler, or nothing to record
-- capture: a decision, risk, action item or note that should be recorded
-- edit: an explicit request to change the board (sheet) or the notes doc
-- command: a control request to the agent (undo, pause, approve)
-- ask: a factual question to the agent about the current docs or what was said
-A question that asks the team to choose between options ("which of these matters more?", "A or B?"),
-or a call to vote ("let's vote", "투표하죠"), is capture, not ask.
-Call the `route` tool once with the label. Do not write any other text."""
+EDITOR_SYSTEM = f"{EDITOR_CORE}\n\n{VOTE_RULES}\nDo not write any other text."
 
-EDITOR_SYSTEM = """You are the editor of a live meeting agent. You receive the current doc state and recent transcript.
-Turn the LATEST utterance into the smallest set of anchored ops by calling the op tools.
-Rules:
-- Use exact row_id / section_id / item_id values from the state. Never invent ids for existing items.
-- Prefer set_cell over delete+add. Prefer insert_item/update_item over rewriting sections.
-- Decisions → add_decision, action items → add_action, risks → insert_item into the risks section.
-- The team must choose between options, or someone calls a vote → open_conflict with topic = the choice as one short
-  question, and positions = one {"who": name, "says": short option label} per option named in the transcript (2 to 4).
-  If an unresolved conflict on the same choice already exists, call no tools.
-- If nothing should change, call no tools.
-Do not write any other text."""
-
-ASKER_SYSTEM = """You answer a question asked during a meeting, using only the current doc state and transcript.
-Answer in one short sentence of at most 60 characters, in the language of the question. Then on a new line write `EVIDENCE: ` followed by comma-separated utt_ids you relied on."""
-
-ROUTE_TOOL = {
-    "name": "route",
-    "description": "Classify the latest utterance.",
-    "strict": True,
-    "input_schema": {
-        "type": "object",
-        "properties": {"label": {"type": "string", "enum": ["ignore", "capture", "edit", "command", "ask"]}},
-        "required": ["label"],
-        "additionalProperties": False,
-    },
-}
+__all__ = ["ASKER_SYSTEM", "EDITOR_SYSTEM", "ROUTER_SYSTEM", "ROUTE_TOOL"]
