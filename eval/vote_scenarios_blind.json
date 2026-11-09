@@ -1,0 +1,511 @@
+[
+ {
+  "id": "s01",
+  "lang": "ko",
+  "lines": [
+   [
+    "Eric",
+    "스프린트 데모를 화요일에 할지 목요일에 할지 아직 안 정했잖아요"
+   ],
+   [
+    "Ines",
+    "그럼 그냥 투표하죠"
+   ]
+  ],
+  "expect_votes": 1,
+  "last_vote": {
+   "question_keywords": [
+    "데모",
+    "demo",
+    "요일",
+    "날짜",
+    "일정"
+   ],
+   "options": [
+    [
+     "화요일",
+     "Tuesday",
+     "화"
+    ],
+    [
+     "목요일",
+     "Thursday",
+     "목"
+    ]
+   ]
+  },
+  "why": "question first, then a bare Korean vote call"
+ },
+ {
+  "id": "s02",
+  "lang": "ko",
+  "lines": [
+   [
+    "Owen",
+    "Owen: PAY-423 요청 제한기 토큰 버킷으로 갈지 슬라이딩 윈도우로 갈지 투표로 정합시다"
+   ]
+  ],
+  "expect_votes": 1,
+  "last_vote": {
+   "question_keywords": [
+    "PAY-423",
+    "제한기",
+    "rate",
+    "limiter",
+    "방식",
+    "알고리즘"
+   ],
+   "options": [
+    [
+     "토큰 버킷",
+     "토큰버킷",
+     "token bucket",
+     "버킷",
+     "bucket"
+    ],
+    [
+     "슬라이딩 윈도우",
+     "슬라이딩",
+     "sliding window",
+     "sliding",
+     "윈도우",
+     "window"
+    ]
+   ]
+  },
+  "why": "vote call with both options in the same sentence, speaker prefix in STT text, seed ticket"
+ },
+ {
+  "id": "s03",
+  "lang": "en",
+  "lines": [
+   [
+    "Ravi",
+    "For the SSO login, should we go with Okta, Auth0, or just build it on Keycloak?"
+   ],
+   [
+    "Ines",
+    "Honestly they all work. Let's vote."
+   ]
+  ],
+  "expect_votes": 1,
+  "last_vote": {
+   "question_keywords": [
+    "SSO",
+    "AUTH-118",
+    "login",
+    "provider",
+    "로그인"
+   ],
+   "options": [
+    [
+     "Okta",
+     "옥타"
+    ],
+    [
+     "Auth0",
+     "Auth 0",
+     "오스제로",
+     "auth zero"
+    ],
+    [
+     "Keycloak",
+     "키클록",
+     "keycloak"
+    ]
+   ]
+  },
+  "why": "English three-option question, then a bare vote call one line later"
+ },
+ {
+  "id": "s04",
+  "lang": "en",
+  "lines": [
+   [
+    "Eric",
+    "Let's vote: do we ship the App Store release this sprint or push it to next sprint?"
+   ]
+  ],
+  "expect_votes": 1,
+  "last_vote": {
+   "question_keywords": [
+    "release",
+    "App Store",
+    "store",
+    "출시",
+    "릴리스"
+   ],
+   "options": [
+    [
+     "this sprint",
+     "이번 스프린트",
+     "this",
+     "이번",
+     "ship now",
+     "now"
+    ],
+    [
+     "next sprint",
+     "다음 스프린트",
+     "next",
+     "다음",
+     "push",
+     "later",
+     "미루"
+    ]
+   ]
+  },
+  "why": "English vote call with options inline, about the seed scope item"
+ },
+ {
+  "id": "s05",
+  "lang": "ko",
+  "lines": [
+   [
+    "Ravi",
+    "온보딩 개편이랑 결제 페이지 리디자인 중에 뭐부터 할지 계속 미뤄지고 있어요"
+   ],
+   [
+    "Owen",
+    "음 둘 다 급하긴 한데"
+   ],
+   [
+    "Eric",
+    "디자인 작업 순서 그거 투표 한 번 갑시다"
+   ]
+  ],
+  "expect_votes": 1,
+  "last_vote": {
+   "question_keywords": [
+    "온보딩",
+    "결제",
+    "디자인",
+    "순서",
+    "우선",
+    "onboarding",
+    "payment",
+    "priority"
+   ],
+   "options": [
+    [
+     "온보딩",
+     "onboarding",
+     "온보딩 개편"
+    ],
+    [
+     "결제",
+     "결제 페이지",
+     "payment",
+     "checkout",
+     "리디자인"
+    ]
+   ]
+  },
+  "why": "vote call names only a topic; options come from two lines earlier"
+ },
+ {
+  "id": "s06",
+  "lang": "ko",
+  "lines": [
+   [
+    "Ines",
+    "AUTH-118 SSO 로그인은 다음 스프린트로 넘기는 게 어때요? 찬성하시는 분 손 들어 봅시다"
+   ]
+  ],
+  "expect_votes": 1,
+  "last_vote": {
+   "question_keywords": [
+    "AUTH-118",
+    "SSO",
+    "로그인",
+    "다음 스프린트",
+    "넘기",
+    "미루",
+    "next sprint",
+    "defer"
+   ],
+   "options": [
+    [
+     "찬성",
+     "yes",
+     "예",
+     "네"
+    ],
+    [
+     "반대",
+     "no",
+     "아니"
+    ]
+   ]
+  },
+  "why": "single proposal with no alternative, hand-raise phrasing, should be yes/no"
+ },
+ {
+  "id": "s07",
+  "lang": "en",
+  "lines": [
+   [
+    "Owen",
+    "I propose we drop the Play Store release from scope for now."
+   ],
+   [
+    "Ravi",
+    "Okay, quick show of hands on that?"
+   ]
+  ],
+  "expect_votes": 1,
+  "last_vote": {
+   "question_keywords": [
+    "Play Store",
+    "store",
+    "release",
+    "scope",
+    "drop",
+    "출시",
+    "범위"
+   ],
+   "options": [
+    [
+     "찬성",
+     "yes",
+     "예",
+     "agree",
+     "for"
+    ],
+    [
+     "반대",
+     "no",
+     "아니",
+     "disagree",
+     "against"
+    ]
+   ]
+  },
+  "why": "English single proposal, vote called on the next line by another speaker, yes/no"
+ },
+ {
+  "id": "s08",
+  "lang": "ko",
+  "lines": [
+   [
+    "Eric",
+    "회고를 금요일 오전에 할까요 오후에 할까요? 투표하죠"
+   ],
+   [
+    "Ravi",
+    "좋아요 그건 됐고, 다음 거요. 이번 주 코드 리뷰 당번을 Owen이 할지 Ines가 할지도 투표합시다"
+   ]
+  ],
+  "expect_votes": 2,
+  "last_vote": {
+   "question_keywords": [
+    "코드 리뷰",
+    "리뷰",
+    "당번",
+    "review",
+    "reviewer",
+    "담당"
+   ],
+   "options": [
+    [
+     "Owen",
+     "오웬"
+    ],
+    [
+     "Ines",
+     "이네스"
+    ]
+   ]
+  },
+  "why": "two different Korean votes back to back; the second must open on the new question, not the retro time"
+ },
+ {
+  "id": "s09",
+  "lang": "en",
+  "lines": [
+   [
+    "Ines",
+    "Should daily standup be at 9:30 or at 10? Let's vote."
+   ],
+   [
+    "Owen",
+    "Fine. Next one: bug triage, do we keep it in Slack or move it to Linear comments? Let's vote on that too."
+   ]
+  ],
+  "expect_votes": 2,
+  "last_vote": {
+   "question_keywords": [
+    "triage",
+    "bug",
+    "버그",
+    "트리아지"
+   ],
+   "options": [
+    [
+     "Slack",
+     "슬랙"
+    ],
+    [
+     "Linear",
+     "리니어",
+     "Linear comments"
+    ]
+   ]
+  },
+  "why": "two English votes in one meeting; last vote must be on bug triage"
+ },
+ {
+  "id": "s10",
+  "lang": "ko",
+  "lines": [
+   [
+    "Owen",
+    "PAY-423 추정을 5점 그대로 둘지 8점으로 올릴지 투표합시다"
+   ],
+   [
+    "Ines",
+    "저 아직 고민 중이에요"
+   ],
+   [
+    "Eric",
+    "아직 안 하신 분들 투표해 주세요, 투표 빨리 하죠"
+   ]
+  ],
+  "expect_votes": 1,
+  "last_vote": {
+   "question_keywords": [
+    "PAY-423",
+    "추정",
+    "점",
+    "estimate",
+    "point",
+    "포인트"
+   ],
+   "options": [
+    [
+     "5점",
+     "5",
+     "다섯",
+     "five",
+     "유지",
+     "그대로"
+    ],
+    [
+     "8점",
+     "8",
+     "여덟",
+     "eight",
+     "올리"
+    ]
+   ]
+  },
+  "why": "repeated vote call while the same vote is still open must not open a second vote",
+  "hold_vote": true
+ },
+ {
+  "id": "s11",
+  "lang": "en",
+  "lines": [
+   [
+    "Ravi",
+    "For the next release we can only fit one: dark mode, offline support, push notifications, or home screen widgets. Let's vote."
+   ],
+   [
+    "Eric",
+    "Come on everyone, vote, let's vote."
+   ]
+  ],
+  "expect_votes": 1,
+  "last_vote": {
+   "question_keywords": [
+    "release",
+    "feature",
+    "next",
+    "기능",
+    "릴리스"
+   ],
+   "options": [
+    [
+     "dark mode",
+     "다크 모드",
+     "다크모드",
+     "dark"
+    ],
+    [
+     "offline",
+     "오프라인",
+     "offline support"
+    ],
+    [
+     "push",
+     "푸시",
+     "notification",
+     "알림"
+    ],
+    [
+     "widget",
+     "위젯",
+     "home screen"
+    ]
+   ]
+  },
+  "why": "four options inline in English, then a repeated vote call on the still-open question",
+  "hold_vote": true
+ },
+ {
+  "id": "s12",
+  "lang": "ko",
+  "lines": [
+   [
+    "Owen",
+    "어제 배포는 별 문제 없었어요?"
+   ],
+   [
+    "Eric",
+    "네 로그도 깨끗하고 알람도 안 왔어요"
+   ],
+   [
+    "Ravi",
+    "AUTH-118 추정이 몇 점이었죠?"
+   ]
+  ],
+  "expect_votes": 0,
+  "why": "small talk and a factual question about a seed ticket; no vote"
+ },
+ {
+  "id": "s13",
+  "lang": "en",
+  "lines": [
+   [
+    "Ravi",
+    "Did anyone catch the game last night?"
+   ],
+   [
+    "Ines",
+    "Yeah, what a finish."
+   ],
+   [
+    "Owen",
+    "By the way, who owns PAY-423 again?"
+   ]
+  ],
+  "expect_votes": 0,
+  "why": "English small talk and an ownership lookup; no vote"
+ },
+ {
+  "id": "s14",
+  "lang": "ko",
+  "lines": [
+   [
+    "Ines",
+    "지난주 회의에서 투표로 정한 거 노트에 적혀 있나요?"
+   ],
+   [
+    "Owen",
+    "네 결정 사항 섹션에 있어요, 다들 손 들어서 정했던 거"
+   ]
+  ],
+  "expect_votes": 0,
+  "why": "hard negative: mentions 투표 and 손 들어 about a past vote, nobody calls a new one"
+ }
+]

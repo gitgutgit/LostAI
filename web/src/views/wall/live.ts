@@ -21,8 +21,11 @@ const HEAD: Record<(typeof KEYS)[number], string> = { w: "WBS", t: "Task", o: "O
 
 const str = (x: unknown) => (x === null || x === undefined ? "" : String(x));
 
-/** 손가락 표결 값: 3 = 좋음, 2 = 보통, 1 = 싫음. 그 밖의 값(0, 4, 5)은 세지 않는다. author: gitgutgit */
+/** 표결 두 가지 (author: gitgutgit, 서버 server/gestures/votes.py와 같은 규칙).
+ *  찬반 카드: 선택지가 1개 이하이거나 '반대'/'No'가 있으면 → 3 = 좋음, 2 = 보통, 1 = 싫음.
+ *  선택지 카드: 실제 선택지가 2~4개 → 번호 1~N 고르기. 범위 밖의 값은 세지 않는다. */
 const RATING: Record<number, string> = { 3: "Good", 2: "Okay", 1: "No" };
+const isRatingCard = (c?: Conflict) => !c || c.positions.length < 2 || c.positions.some((p) => /^(반대|no)$/i.test(p.says.trim()));
 const RATING_PROMPT = "3 fingers good, 2 okay, 1 no (좋음 · 보통 · 싫음). Or say it.";
 /** 회의를 끝내는 말과 다시 여는 말. 마지막 확정 발화 기준으로 CLOSED 끝 화면을 띄운다. */
 const CLOSE_RE = /(회의(를|는)?\s*(종료|마치|마무리|끝내|끝냅|끝)|회의\s*끝|오늘(은)?\s*여기까지|\bend (the )?meeting\b|\blet'?s (wrap|close)( it)? up\b|\bthat'?s a wrap\b|\bmeeting (is )?(over|closed)\b)/i;
@@ -36,16 +39,19 @@ export function lastCloseSeq(v: RoomView): number {
   return closeEv.seq;
 }
 
-/** 표결 결과 집계(1~3만). tie = 1위가 둘 이상. */
-function tallyRatings(raw: Record<string, number>) {
-  const votes = Object.values(raw).filter((n) => RATING[n] !== undefined);
-  const count = { 3: 0, 2: 0, 1: 0 } as Record<number, number>;
+/** 표결 결과 집계. values = 이 카드에서 세는 값(찬반 [3,2,1], 선택지 [1..N]). tie = 1위가 둘 이상. */
+function tally(raw: Record<string, number>, values: number[]) {
+  const votes = Object.values(raw).filter((n) => values.includes(n));
+  const count = Object.fromEntries(values.map((n) => [n, 0])) as Record<number, number>;
   votes.forEach((n) => (count[n] += 1));
-  const ranked = [3, 2, 1].map((n) => [n, count[n]] as [number, number]).sort((a, b) => b[1] - a[1]);
-  const tie = votes.length > 0 && ranked[0][1] === ranked[1][1];
-  return { votes, count, top: ranked[0][0], topCount: ranked[0][1], tie, tieWith: ranked.filter((r) => r[1] === ranked[0][1]).map((r) => r[0]) };
+  const ranked = values.map((n) => [n, count[n]] as [number, number]).sort((a, b) => b[1] - a[1]);
+  const tie = votes.length > 0 && ranked.length > 1 && ranked[0][1] === ranked[1][1];
+  return { votes, count, top: ranked[0]?.[0] ?? 0, topCount: ranked[0]?.[1] ?? 0, tie, tieWith: ranked.filter((r) => r[1] === ranked[0][1]).map((r) => r[0]) };
 }
-const ratingLine = (c: Record<number, number>) => `${c[3]} good, ${c[2]} okay, ${c[1]} no`;
+const valuesFor = (c?: Conflict) => (isRatingCard(c) ? [3, 2, 1] : c!.positions.slice(0, 4).map((_, i) => i + 1));
+const optName = (c: Conflict | undefined, n: number) => (isRatingCard(c) ? RATING[n] : c?.positions[n - 1]?.says ?? `Option ${n}`);
+const voteLine = (c: Conflict | undefined, t: ReturnType<typeof tally>) =>
+  isRatingCard(c) ? `${t.count[3]} good, ${t.count[2]} okay, ${t.count[1]} no` : valuesFor(c).map((n) => `${n} ${optName(c, n)} ${t.count[n]}`).join(" · ");
 
 function mapColumns(sheet: Sheet): Record<(typeof KEYS)[number], string | null> {
   const out = {} as Record<(typeof KEYS)[number], string | null>;
@@ -222,6 +228,12 @@ export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseU
   // ---------------------------------------------------------------- 글자판(카드 B)
   const lastOf = (pred: (e: MeetingEvent) => boolean) => [...v.events].reverse().find(pred);
   const vOpen = lastOf((e) => e.type === "vote.opened");
+  /** 이 표결이 다루는 질문 카드: vote.opened의 question과 같은 topic, 없으면 화면의 열린 질문. */
+  const cardOf = (ev: MeetingEvent): Conflict | undefined => {
+    const opened = ev.type === "vote.opened" ? ev : v.events.find((o) => o.type === "vote.opened" && o.refs.vote_id === ev.refs.vote_id);
+    const topic = str(opened?.payload.question);
+    return conflicts.find((c) => c.topic === topic) ?? q;
+  };
   const vClosed = lastOf((e) => e.type === "vote.closed");
   const voting = vOpen && (!vClosed || vClosed.seq < vOpen.seq);
   const countShown = !!voting && vOpen!.seq > hideTakeUpTo;
@@ -235,20 +247,22 @@ export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseU
   if (closed) {
     const decidedQs = conflicts.filter((c) => c.resolved);
     // 질문(topic)별 마지막 표결 결과
-    const voteOf = new Map<string, ReturnType<typeof tallyRatings>>();
+    const voteOf = new Map<string, string>();
     for (const e of v.events) if (e.type === "vote.closed") {
       const opened = v.events.find((o) => o.type === "vote.opened" && o.refs.vote_id === e.refs.vote_id);
-      const topic = str(opened?.payload.question);
-      if (topic) voteOf.set(topic, tallyRatings((e.payload.votes ?? {}) as Record<string, number>));
+      const card = conflicts.find((c) => c.topic === str(opened?.payload.question));
+      if (!card) continue;
+      const t = tally((e.payload.votes ?? {}) as Record<string, number>, valuesFor(card));
+      if (t.votes.length) voteOf.set(card.topic, voteLine(card, t));
     }
     const votesHeld = v.events.filter((e) => e.type === "vote.closed").length;
     const qCards = [...open, ...decidedQs].slice(0, 3).map((c) => {
-      const t = voteOf.get(c.topic);
-      const voteLine = t && t.votes.length ? [{ rich: [`Vote: ${ratingLine(t.count)}`] as Rich }] : [];
+      const vl = voteOf.get(c.topic);
+      const voteRow = vl ? [{ rich: [`Vote: ${vl}`] as Rich }] : [];
       return c.resolved
-        ? { q: qOf(c), title: c.topic, lines: [{ rich: [c.resolution || "Decided"] as Rich, green: true }, ...voteLine] }
+        ? { q: qOf(c), title: c.topic, lines: [{ rich: [c.resolution || "Decided"] as Rich, green: true }, ...voteRow] }
         : { q: qOf(c), title: c.topic, parked: true, lines: [{ rich: [{ tag: "Decision needed" }] as Rich },
-            ...c.positions.slice(0, 2).map((p, i) => ({ rich: [`${i + 1}. ${p.says} `, { ref: p.who }] as Rich })), ...voteLine] };
+            ...c.positions.slice(0, 2).map((p, i) => ({ rich: [`${i + 1}. ${p.says} `, { ref: p.who }] as Rich })), ...voteRow] };
     });
     const lastEdits = [...v.events].reverse().filter((e) => e.type === "change.applied" || e.type === "change.reverted").slice(0, 3)
       .map((e) => { const ch = v.changes[(e.payload as Change).change_id] ?? (e.payload as Change);
@@ -263,20 +277,26 @@ export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseU
   } else if (v.paused) cardB = { flap: "PAUSED", msg: { kind: "headline", big: ["Paused"], sub: ["Show the T sign again to resume."], subTop: 4 } };
   else if (countShown) {
     const cast = v.events.filter((e) => e.type === "vote.cast" && e.refs.vote_id === vOpen!.refs.vote_id).length;
-    cardB = { flap: "3 2 1", off: [0, 4], take: "count", msg: { kind: "countdown", q: q ? qOf(q) : "Q", title: q?.topic ?? "Vote", prompt: `${RATING_PROMPT} ${cast} read.` } };
-  } else if (vClosed && tallyRatings((vClosed.payload.votes ?? {}) as Record<string, number>).votes.length === 0 && (!lastAgent || vClosed.seq > lastAgent.seq)) {
-    cardB = { flap: "NO VOTE", msg: { kind: "headline", big: ["No hands read"], sub: [`${RATING_PROMPT} Then call the vote again.`], subTop: 4 } };
+    const vq = cardOf(vOpen!);
+    const prompt = isRatingCard(vq) ? RATING_PROMPT : `Pick a number: ${valuesFor(vq).map((n) => `${n} ${optName(vq, n)}`).join(", ")}. Fingers or say it.`;
+    cardB = { flap: "3 2 1", off: [0, 4], take: "count", msg: { kind: "countdown", q: vq ? qOf(vq) : "Q", title: vq?.topic ?? "Vote", prompt: `${prompt} ${cast} read.` } };
+  } else if (vClosed && tally((vClosed.payload.votes ?? {}) as Record<string, number>, valuesFor(cardOf(vClosed))).votes.length === 0 && (!lastAgent || vClosed.seq > lastAgent.seq)) {
+    const vq = cardOf(vClosed);
+    cardB = { flap: "NO VOTE", msg: { kind: "headline", big: ["No hands read"], sub: [`${isRatingCard(vq) ? RATING_PROMPT : "Show fingers or say a number."} Then call the vote again.`], subTop: 4 } };
   } else if (vClosed && vClosed.seq > hideTakeUpTo && (!lastAgent || vClosed.seq > lastAgent.seq)) {
-    // 3 = 좋음, 2 = 보통, 1 = 싫음. 1위가 둘 이상(동점)이면 SPLIT, 아니면 결과 화면(분포 막대, 바늘 숨김).
-    const t = tallyRatings((vClosed.payload.votes ?? {}) as Record<string, number>);
+    // 찬반 카드: 3 = 좋음, 2 = 보통, 1 = 싫음 (바늘 숨김). 선택지 카드: 번호 고르기(바늘 그대로). 1위가 둘 이상(동점)이면 SPLIT.
+    const vq = cardOf(vClosed), rating = isRatingCard(vq), values = valuesFor(vq);
+    const t = tally((vClosed.payload.votes ?? {}) as Record<string, number>, values);
     const NEXT: Record<number, string> = { 3: "Mostly good. Confirm it, or say what still worries you.", 2: "Mostly okay. Ask what would make it good.", 1: "Mostly no. Rework the proposal or park it." };
+    const title = vq?.topic ?? "Vote", qn = vq ? qOf(vq) : "Q";
     cardB = t.tie
-      ? { flap: "SPLIT", take: "split", msg: { kind: "split", q: q ? qOf(q) : "Q", title: q?.topic ?? "Vote",
-          lines: [`Tie: ${t.tieWith.map((n) => RATING[n].toLowerCase()).join(" and ")}, ${t.topCount} each (${t.votes.length} read).`, "Next: the side that changes the plan speaks first, then revote."] } }
-      : { flap: "CONVERGED", take: "navy conv rate", msg: { kind: "converged", q: q ? qOf(q) : "Q", moved: 0, from: [t.top, ""], to: [t.top, ""],
-          first: { title: q?.topic ?? "Vote", winner: RATING[t.top], sub: `${t.topCount} of ${t.votes.length}: ${ratingLine(t.count)}` },
-          dist: [3, 2, 1].map((n) => [n, RATING[n], t.count[n]] as [number, string, number]),
-          foot: NEXT[t.top] } };
+      ? { flap: "SPLIT", take: "split", msg: { kind: "split", q: qn, title,
+          lines: [`Tie: ${t.tieWith.map((n) => (rating ? RATING[n].toLowerCase() : `${n} ${optName(vq, n)}`)).join(" and ")}, ${t.topCount} each (${t.votes.length} read).`,
+                  "Next: the side that changes the plan speaks first, then revote."] } }
+      : { flap: "CONVERGED", take: rating ? "navy conv rate" : "navy conv", msg: { kind: "converged", q: qn, moved: 0, from: [t.top, ""], to: [t.top, ""],
+          first: { title, winner: optName(vq, t.top), sub: rating ? `${t.topCount} of ${t.votes.length}: ${voteLine(vq, t)}` : `${t.topCount} of ${t.votes.length} votes for ${t.top}` },
+          dist: (rating ? values : [...values].sort((a, b) => a - b)).map((n) => [n, optName(vq, n), t.count[n]] as [number, string, number]),
+          foot: rating ? NEXT[t.top] : "Next: objection check." } };
   } else if (lastAgent?.type === "ask.answered") {
     cardB = { flap: "ASK", msg: { kind: "headline", big: [str(lastAgent.payload.answer)], bigCls: "b28 clamp3" } };
   } else if (lastAgent?.type === "change.failed") {
