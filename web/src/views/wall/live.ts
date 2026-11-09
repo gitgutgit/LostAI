@@ -328,7 +328,18 @@ export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseU
   if (ignored?.refs.utt_id && lines.get(ignored.refs.utt_id)) logParts.push(`L${lines.get(ignored.refs.utt_id)!.n} ignored: small talk.`);
   const log: Rich = [logParts.join(" ") || "Waiting for the first words."];
 
-  const names = [...new Set([...Object.keys(v.participants ?? {}), ...utters.map((u) => u.who)])].filter(Boolean).slice(0, 4);
+  // gitgutgit 11-09: 회의에서 나간 사람(마지막 participant.left가 마지막 입장보다 뒤, 지금 참석자 아님)은 뺀다.
+  // 예전엔 '참석자 + 한 번이라도 말한 사람'이라 나가도 계속 남았다. 입장한 적 없는 대본 화자는 그대로 보인다.
+  const lastIn = new Map<string, number>(), lastOut = new Map<string, number>();
+  for (const e of v.events) {
+    const n = e.payload?.name as string | undefined;
+    if (!n) continue;
+    if (e.type === "participant.verified" || e.type === "participant.joined") lastIn.set(n, e.seq);
+    if (e.type === "participant.left") lastOut.set(n, e.seq);
+  }
+  const present = v.participants ?? {};
+  const gone = (n: string) => !(n in present) && (lastOut.get(n) ?? -1) > (lastIn.get(n) ?? -1);
+  const names = [...new Set([...Object.keys(present), ...utters.map((u) => u.who)])].filter((n) => n && !gone(n)).slice(0, 4);
   const people: Person[] = names.map((n) => ({ name: n, status: lastU?.who === n ? "speaking" : n === me ? "you" : "here", tone: lastU?.who === n ? "ok" : "" }));
   const turn = lastU ? names.indexOf(lastU.who) : -1;
 
