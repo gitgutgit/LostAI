@@ -26,3 +26,19 @@ main { overflow: hidden; display: flex; flex-direction: column; }
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); } .dot.on { background: var(--ok); }
 .chip { margin-left: 8px; font-size: 12px; } .chip.ok { color: var(--ok); } .chip.fail { color: var(--bad); }
 .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 8px 14px; border-radius: 8px; }
+
+/* hs: JoinView 제스처 인증 UI */
+.gesture-prompt { text-align: center; margin: 16px 0; }
+.gesture-emoji { font-size: 120px; line-height: 1.1; min-height: 140px; }
+.gesture-label { font-size: 22px; font-weight: 700; margin-top: 4px; }
+.step-chip { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: 0 4px; border-radius: 10px; border: 2px solid var(--line); font-size: 24px; background: transparent; }
+.step-chip.done { background: var(--ok); border-color: var(--ok); }
+.step-chip.now { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.hold-bar, .time-bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; margin: 6px auto; max-width: 360px; }
+.hold-bar > div { height: 100%; background: var(--ok); transition: width 50ms linear; }
+.time-bar > div { height: 100%; background: #f4b740; transition: width 50ms linear; }
+.time-text { text-align: center; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.join-msg { color: var(--bad); text-align: center; font-size: 14px; margin-top: 8px; }
+.form { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.form input { font: inherit; padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px; text-align: center; width: 240px; }
+.challenge { display: flex; flex-direction: column; align-items: center; gap: 8px; }

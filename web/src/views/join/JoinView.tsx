@@ -6,6 +6,19 @@ import { MIN_CONFIDENCE } from "../../capture/gestures/modes";
 
 const STEP_HOLD_MS = 600;
 
+// hs: 제스처별 이모지·한국어 라벨 매핑 (hand-liveness-beta 참고)
+const GESTURE_INFO: Record<string, { emoji: string; ko: string }> = {
+  Closed_Fist:  { emoji: "✊", ko: "주먹" },
+  Open_Palm:    { emoji: "🖐️", ko: "손바닥 펴기" },
+  Pointing_Up:  { emoji: "☝️", ko: "검지 위로" },
+  Thumb_Up:     { emoji: "👍", ko: "엄지 위로" },
+  Thumb_Down:   { emoji: "👎", ko: "엄지 아래로" },
+  Victory:      { emoji: "✌️", ko: "브이" },
+  ILoveYou:     { emoji: "🤟", ko: "사랑해" },
+};
+
+const STEP_TIMEOUT_MS = 10000; // hs: 단계별 10초 제한시간
+
 export function JoinView({ onJoined }: { onJoined: (name: string, token: string) => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const [name, setName] = useState("");
@@ -14,9 +27,30 @@ export function JoinView({ onJoined }: { onJoined: (name: string, token: string)
   const [hold, setHold] = useState(0);
   const [msg, setMsg] = useState("");
   const [manual, setManual] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(STEP_TIMEOUT_MS); // hs: 남은 시간
   const busy = useRef(false);
+  const timerRef = useRef<number>(0); // hs: 타이머 ref
+
+  // hs: 타이머 시작/리셋 함수
+  function startTimer() {
+    clearInterval(timerRef.current);
+    setTimeLeft(STEP_TIMEOUT_MS);
+    const start = performance.now();
+    timerRef.current = window.setInterval(() => {
+      const elapsed = performance.now() - start;
+      const remaining = Math.max(0, STEP_TIMEOUT_MS - elapsed);
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        clearInterval(timerRef.current);
+        setMsg("⏱️ 시간 초과! 다시 시도해 주세요.");
+        setCh(null); // hs: 챌린지 리셋
+        engine.stop();
+      }
+    }, 50);
+  }
 
   async function begin() {
+    setMsg(""); // hs: 메시지 초기화
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     video.current!.srcObject = stream;
     await video.current!.play();
@@ -25,6 +59,7 @@ export function JoinView({ onJoined }: { onJoined: (name: string, token: string)
     setStep(0);
     engine.mode = "join";
     await engine.start(video.current!);
+    startTimer(); // hs: 첫 단계 타이머 시작
   }
 
   useEffect(() => {
@@ -39,18 +74,25 @@ export function JoinView({ onJoined }: { onJoined: (name: string, token: string)
         body: JSON.stringify({ gesture: f.gesture, confidence: f.confidence, hold_ms: f.hold_ms }),
       })).json();
       busy.current = false;
-      if (r.status === "next") setStep(r.step);
-      else if (r.status === "pass") { engine.mode = "default"; onJoined(name, r.token); }
+      if (r.status === "next") { setStep(r.step); startTimer(); } // hs: 다음 단계 타이머 리셋
+      else if (r.status === "pass") { clearInterval(timerRef.current); engine.mode = "default"; onJoined(name, r.token); } // hs: 통과 시 타이머 정리
       else if (r.status === "manual") setManual(true);
       else if (r.status === "expired") setMsg("시간이 지났어요. 다시 시도해 주세요.");
     });
   }, [ch, step, name, onJoined]);
+
+  // hs: 컴포넌트 언마운트 시 타이머 정리
+  useEffect(() => () => clearInterval(timerRef.current), []);
 
   async function manualJoin() {
     const r = await (await fetch("/api/join/manual", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, host: "host" }) })).json();
     engine.mode = "default";
     onJoined(name, r.token);
   }
+
+  // hs: 현재 제스처 정보 조회
+  const currentGesture = ch ? ch.gestures[step] : null;
+  const info = currentGesture ? GESTURE_INFO[currentGesture] : null;
 
   return (
     <div className="join">
@@ -59,15 +101,31 @@ export function JoinView({ onJoined }: { onJoined: (name: string, token: string)
         <div className="form">
           <input placeholder="이름" value={name} onChange={(e) => setName(e.target.value)} />
           <button disabled={!name} onClick={begin}>카메라 켜고 시작</button>
+          {/* hs: 시간 초과 등 메시지 표시 */}
+          {msg && <p className="join-msg">{msg}</p>}
         </div>
       ) : (
         <div className="challenge">
-          <div className="steps">{ch.gestures.map((g, i) => <span key={g} className={i < step ? "done" : i === step ? "now" : ""}>{g}</span>)}</div>
-          <div className="target">지금: <b>{ch.gestures[step]}</b></div>
-          <progress max={STEP_HOLD_MS} value={Math.min(hold, STEP_HOLD_MS)} />
+          {/* hs: 단계 칩 — 이모지로 표시 */}
+          <div className="steps">{ch.gestures.map((g, i) => {
+            const gi = GESTURE_INFO[g];
+            return <span key={g + i} className={`step-chip ${i < step ? "done" : i === step ? "now" : ""}`}>
+              {gi ? gi.emoji : g}
+            </span>;
+          })}</div>
+          {/* hs: 큰 이모지 + 라벨 표시 (hand-liveness-beta 스타일) */}
+          <div className="gesture-prompt">
+            <div className="gesture-emoji">{info?.emoji ?? "❓"}</div>
+            <div className="gesture-label">{info?.ko ?? currentGesture}</div>
+          </div>
+          {/* hs: 인식 진행 바 */}
+          <div className="hold-bar"><div style={{ width: `${Math.min(100, (hold / STEP_HOLD_MS) * 100)}%` }} /></div>
+          {/* hs: 5초 타이머 바 */}
+          <div className="time-bar"><div style={{ width: `${(timeLeft / STEP_TIMEOUT_MS) * 100}%` }} /></div>
+          <div className="time-text">{(timeLeft / 1000).toFixed(1)}초</div>
           <button onClick={begin}>다시 시도</button>
           {manual && <button onClick={manualJoin}>호스트가 들여보내기</button>}
-          {msg && <p>{msg}</p>}
+          {msg && <p className="join-msg">{msg}</p>}
         </div>
       )}
     </div>

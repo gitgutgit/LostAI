@@ -19,9 +19,9 @@ MIN_CONFIDENCE = 0.6
 MAX_FAILS_BEFORE_MANUAL = 3
 
 CANDIDATES = ["Thumb_Up", "Thumb_Down", "Pointing_Up", "Victory", "Open_Palm", "Closed_Fist",
-              "ILoveYou", "Fingers_1", "Fingers_3", "Fingers_4", "Fingers_5"]
+              "ILoveYou"]  # hs: MediaPipe 기본 제스처 7개만 사용 (커스텀 Fingers_* 제거)
 # 같은 도전에 같이 넣지 않는 헷갈리는 쌍
-CONFUSABLE = [{"Victory", "Fingers_2"}, {"Open_Palm", "Fingers_5"}, {"Pointing_Up", "Fingers_1"}]
+CONFUSABLE: list[set[str]] = []  # hs: 기본 제스처만 쓰므로 헷갈리는 쌍 없음 (Fingers_* 제거됨)
 
 _SECRET = (os.getenv("JOIN_SECRET") or secrets.token_hex(16)).encode()
 
