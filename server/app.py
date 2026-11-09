@@ -21,6 +21,7 @@ from server.auth import challenge  # noqa: E402
 from server.events import ClientMessage  # noqa: E402
 from server.gestures.fastpath import handle_gesture  # noqa: E402
 from server.room import get_room  # noqa: E402
+from server.demo import demo  # noqa: E402
 from server.common.warmup import schedule_warmup  # noqa: E402
 from server.sync.outbox import outbox  # noqa: E402
 
@@ -243,6 +244,7 @@ async def reset(body: ResetBody | None = None):
     """
     from server.sync import google_source
     room = get_room()
+    await demo.stop()  # 재생 중이던 대본이 새 회의에 말하지 않게
     seed = body.seed if body else None
     if seed and seed != room.seed_name:
         if google_source.active():
@@ -258,6 +260,33 @@ async def reset(body: ResetBody | None = None):
         outbox.enqueue_restore(room, active)
     outbox.enqueue_full_sync(room)
     schedule_warmup(room.state)  # 시연 직전 리셋 → 프롬프트 캐시(약 5분)를 다시 데움
+    return {"ok": True}
+
+
+@app.get("/api/demo")
+async def demo_status():
+    """지금 시드의 데모 대본 줄 수와 재생 상태 (대본이 없으면 lines 0)."""
+    return demo.status(get_room().seed_name)
+
+
+class DemoBody(BaseModel):
+    speed: float = 1.0
+
+
+@app.post("/api/demo/start")
+async def demo_start(body: DemoBody | None = None):
+    """회의를 처음 상태로 되돌린 뒤 지금 시드의 대본을 자동 재생한다 (server/demo.py)."""
+    room = get_room()
+    if demo.status(room.seed_name)["lines"] == 0:
+        raise HTTPException(404, f"no demo script for seed: {room.seed_name}")
+    await reset(None)
+    speed = min(4.0, max(0.25, body.speed if body else 1.0))
+    return {"ok": True, "lines": demo.start(room, speed)}
+
+
+@app.post("/api/demo/stop")
+async def demo_stop():
+    await demo.stop()
     return {"ok": True}
 
 

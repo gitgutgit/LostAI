@@ -69,3 +69,7 @@ a.btn:hover { border-color: var(--accent); } .btn.off { opacity: .45; cursor: de
 .seed-picker { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
 .seed-picker select { font-size: 13px; max-width: 260px; }
 .seed-picker-err { color: var(--bad); font-size: 12px; }
+/* 데모 자동 재생 (임시) */
+.demo-player { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.demo-player button { font-size: 13px; }
+.demo-player select { font-size: 13px; }

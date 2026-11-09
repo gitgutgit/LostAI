@@ -5,6 +5,7 @@ import { ChangeCard } from "../../components/ChangeCard";
 import { DocLinks } from "../../components/DocLinks";
 import { DocPicker } from "../../components/DocPicker";
 import { TestSeedPicker } from "../../components/TestSeedPicker";
+import { DemoPlayer } from "../../components/DemoPlayer";
 import { DocView } from "../../components/DocView";
 import { SheetView } from "../../components/SheetView";
 import { cellIndex, docTabCounts, timeline } from "../../core/viewmodels";
@@ -64,6 +65,7 @@ export function CanvasView() {
         <DocLinks refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} />
         <DocPicker />
         <TestSeedPicker />
+        <DemoPlayer refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} />
         {/* hs: 줌 모드 토글 버튼 제거 — PoC 방식은 제스처로 항상 동작 */}
       </header>
       <main>

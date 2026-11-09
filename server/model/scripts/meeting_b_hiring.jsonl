@@ -1,0 +1,60 @@
+{"speaker": "Marisol", "text": "Okay, uh, let's- let's get going. We've got like twenty, twenty-five minutes and two candidates.", "delay": 14.0}
+{"speaker": "Tobin", "text": "Yeah.", "delay": 5.2}
+{"speaker": "Marisol", "text": "Same rule as last time, right? Nobody says a number before the reveal. So, Ellery. Overall for your own round, one to four. Um, on three. One, two, three.", "delay": 0.75}
+{"speaker": "Tobin", "text": "Three.", "delay": 9.92, "gesture": "Fingers_3"}
+{"speaker": "Keiko", "text": "Two.", "delay": 0.05, "gesture": "Fingers_2"}
+{"speaker": "Ashwin", "text": "Three.", "delay": 0.1, "gesture": "Fingers_3"}
+{"speaker": "Marisol", "text": "Okay. Three, two, three. Um, Keiko, you're the low one, so you go first.", "delay": 0.8}
+{"speaker": "Keiko", "text": "Yeah, so the coding round was- it was kind of rough in the middle. He got the, uh, interval merge working, but he didn't test a single edge case until I prompted him, and then he found two bugs himself, which, fine, but at senior I'd expect him to drive that without me.", "delay": 4.97}
+{"speaker": "Marisol", "text": "Mm-hmm.", "delay": 13.67}
+{"speaker": "Keiko", "text": "And honestly, if I'm strict about the rubric, I'd put him down as a no hire for senior.", "delay": 4.4}
+{"speaker": "Marisol", "text": "What Keiko just said about the edge cases, put that under concerns.", "delay": 1.2}
+{"speaker": "Tobin", "text": "See, I I had almost the opposite read. In system design he was, uh, honestly one of the better ones this quarter. He did the rate limiter, went straight to token bucket versus sliding window, talked through the tradeoffs, and, uh, when I pushed on multi-region he brought up the um, the clock skew problem on his own. So that's a solid three, maybe a three and a ha-", "delay": 4.5}
+{"speaker": "Ashwin", "text": "Mm-hmm.", "delay": 16.0}
+{"speaker": "Keiko", "text": "But that's design-", "delay": 6.5}
+{"speaker": "Marisol", "text": "Okay, hold on, hold on. Uh, can you put the number Tobin just said under system design?", "delay": 0.9}
+{"speaker": "Marisol", "text": "And Keiko, for coding, is it a firm two, or are you sort of between-", "delay": 6.17}
+{"speaker": "Tobin", "text": "Yeah, three's right, keep it.", "delay": 0.8, "gesture": "Thumb_Up"}
+{"speaker": "Keiko", "text": "Two. Firm two.", "delay": 4.0}
+{"speaker": "Marisol", "text": "Okay.", "delay": 1.2}
+{"speaker": "Ashwin", "text": "Um, so mine was values and collaboration. Mostly good. He had a nice story about pushing back on a PM, uh, not me, on a launch date, and he actually brought data, which I liked. Culture add I'd say a two, no, three. A three.", "delay": 0.85}
+{"speaker": "Marisol", "text": "Mm-hmm.", "delay": 9.5}
+{"speaker": "Ashwin", "text": "One flag. Uh, he said he's really only looking at fully remote, and we're, you know, hybrid, three days a w-", "delay": 6.0}
+{"speaker": "Marisol", "text": "No, take that out, that's a recruiter conversation, not a scorecard thing.", "delay": 6.0, "gesture": "Thumb_Down"}
+{"speaker": "Ashwin", "text": "-week, so I just wanted it somewhere. And, um, communication I'd put at a two, he rambled a bit on the first ques-", "delay": 1.1}
+{"speaker": "Keiko", "text": "Wait, undo that, we haven't- we haven't revealed communication yet.", "delay": 6.47, "gesture": "Thumb_Down"}
+{"speaker": "Marisol", "text": "Yeah, she's right, sorry. Let's do that one blind too. Communication, everyone who talked to him. One, two, three.", "delay": 1.5}
+{"speaker": "Tobin", "text": "Three.", "delay": 6.53, "gesture": "Fingers_3"}
+{"speaker": "Keiko", "text": "Two.", "delay": 0.1, "gesture": "Fingers_2"}
+{"speaker": "Ashwin", "text": "Two.", "delay": 0.05, "gesture": "Fingers_2"}
+{"speaker": "Marisol", "text": "Okay, two, two, three. So, I guess- yeah, let's call communication a two.", "delay": 0.95}
+{"speaker": "Ashwin", "text": "Sorry, I I lost track. What's his system design at right now, can you read it back?", "delay": 4.93}
+{"speaker": "Tobin", "text": "Yeah, and my worry is we're kind of, um, double-counting the coding thing. Like if we drop culture add from his row he's a three overall, easily, and culture add is the one score that's, uh, a bit vibes any-", "delay": 8.17}
+{"speaker": "Ashwin", "text": "It's not vibes, there's a- there's an actual rubric for-", "delay": 12.93}
+{"speaker": "Marisol", "text": "Okay, okay, let's not relitigate the rubric today. I think the, uh, real question is level, right? Is he a hire at senior, or is he a hire at, um, at mid, like an L four, and then we look at it again next cycle.", "delay": 3.03}
+{"speaker": "Tobin", "text": "Right.", "delay": 9.0}
+{"speaker": "Keiko", "text": "Yeah.", "delay": 4.5}
+{"speaker": "Keiko", "text": "I mean I'd be a hire at L four, no question. My no hire was for senior.", "delay": 1.9}
+{"speaker": "Tobin", "text": "Yeah, I could live with L four. I think he's an L five in like a year, but yeah.", "delay": 5.97}
+{"speaker": "Ashwin", "text": "Yeah.", "delay": 5.93}
+{"speaker": "Marisol", "text": "Okay, then let's do it properly. Fist of five on hire at L four, zero is no, five is strong yes. One, two, three.", "delay": 0.9}
+{"speaker": "Tobin", "text": "Four.", "delay": 8.2, "gesture": "Fingers_4"}
+{"speaker": "Keiko", "text": "Three.", "delay": 0.05, "gesture": "Fingers_3"}
+{"speaker": "Ashwin", "text": "Four.", "delay": 0.05, "gesture": "Fingers_4"}
+{"speaker": "Marisol", "text": "Four.", "delay": 0.05, "gesture": "Fingers_4"}
+{"speaker": "Marisol", "text": "So that's a hire. Um, decision is Ellery's a hire at L four, and I'll talk to the recruiter about the level before anything goes-", "delay": 1.05}
+{"speaker": "Tobin", "text": "Right.", "delay": 8.03}
+{"speaker": "Marisol", "text": "Okay. And since the remote thing was in there, drop the culture add score from his row for now.", "delay": 0.8}
+{"speaker": "Ashwin", "text": "Yeah, I'll rescore it tonight, from my notes.", "delay": 6.63}
+{"speaker": "Marisol", "text": "Cool. Um, next steps. I want everyone's written feedback in by Friday, the recruiter's already chasing-", "delay": 3.07}
+{"speaker": "Tobin", "text": "Wait, does a reference check still go under next steps for an L four? I thought we stopped doing those.", "delay": 5.03}
+{"speaker": "Marisol", "text": "Yeah, we still do them for external hires. Uh, so reference check goes under next steps, can you add that?", "delay": 6.87}
+{"speaker": "Keiko", "text": "I'll take it.", "delay": 6.97}
+{"speaker": "Ashwin", "text": "And put the date Marisol said earlier on it.", "delay": 1.4}
+{"speaker": "Tobin", "text": "Sorry, I was typing. Who's on the reference check, what's the doc say?", "delay": 4.8}
+{"speaker": "Marisol", "text": "Okay, Castell, quick, because we're nearly at time. Keiko, Tobin, you both had her.", "delay": 6.33}
+{"speaker": "Keiko", "text": "Yeah, lean no hire. She couldn't get the, um, the basic version working in forty-five minutes, and she didn't really talk me through it ei-", "delay": 4.97}
+{"speaker": "Tobin", "text": "Same. Uh, her design was- it was pretty shallow, like one box and a database, and we never got to scaling.", "delay": 8.03}
+{"speaker": "Ashwin", "text": "Mm-hmm.", "delay": 6.0}
+{"speaker": "Marisol", "text": "Okay, put Castell down as a no hire on the overall.", "delay": 1.4}
+{"speaker": "Marisol", "text": "Great. Thanks, all, I'll- I'll send the recap.", "delay": 4.27}
