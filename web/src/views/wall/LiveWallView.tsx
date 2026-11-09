@@ -11,6 +11,7 @@ import { startStt } from "../../capture/stt";
 import { useGesture } from "../../capture/gestures/useGesture"; // hs: 제스처 커스텀 훅
 import { changeHeadline } from "../../lib/changeText";
 import { Wall } from "./Wall";
+import { Moai } from "../brand/Moai";
 import { lastVoteSeq, liveWall } from "./live";
 import { FitStage } from "./FitStage";
 import { sayAs } from "./puppets";
@@ -131,7 +132,7 @@ export function LiveWallView({ me }: { me?: string }) {
       <div id="wall-tools"><DocLinks refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} /><TestSeedPicker /></div>
     </>}>
       <Wall w={w} band={band} animate onOpenMinutes={() => setMinutes(true)}
-        live={{ mic, onMic: toggleMic, gesture, onGesture: () => setGesture(!gesture), connected: v.connected, typing, onType: () => setTyping(true), onTypeEnd: () => setTyping(false), // hs: gesture 토글 전달
+        live={{ mic, onMic: toggleMic, gesture, onGesture: () => setGesture(!gesture), connected: v.connected, status: <Moai v={v} mic={mic} size={56} word={false} />, typing, onType: () => setTyping(true), onTypeEnd: () => setTyping(false), // hs: gesture 토글 전달
           mode, hint: import.meta.env.DEV ? "Ines: line speaks as Ines.  /up /down /1 /2 /t for hands" : undefined,
           // 개발 서버: 'Ines: 줄'은 Ines로, '/2'는 손 신호로(1인 시험, puppets.ts). 운영 빌드는 내 발화만.
           onSay: (text) => { if (import.meta.env.DEV) sayAs(text, me ?? "").catch(() => {}); else send({ kind: "utterance.final", payload: { text } }); } }} />

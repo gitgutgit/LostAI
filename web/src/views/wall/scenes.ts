@@ -1,6 +1,7 @@
 // 렌더 v0.4의 장면 11개(d1 d2 s2..s8 r1 s9)를 WallState로 옮긴 견본. 시안 index.html의 docRows와 ST를 그대로 옮겼다.
 // 영상 촬영, 화면 개발, 픽셀 대조(시안 PNG와 비교)에 쓴다. 실시간 화면은 live.ts가 같은 모양을 만든다.
 // author: ProfessionalSeaweedDevourer
+import type { MoaiState } from "../brand/moaiState";
 import type { CardA, CardB, CellVal, Chip, DocModel, DocRow, Person, Rich, SlotState, Utter, WallState } from "./types";
 
 export const SCENES = ["d1", "d2", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "r1", "s9"] as const;
@@ -172,13 +173,19 @@ const ST: Record<SceneId, Spec> = {
     people: all("voted", "ok"), lit: [], dec: 3, park: 1 },
 };
 
+// MOAI status light per scene, same table as the render v0.4 source (MOAI_OF there). It follows the live
+// rule: vote open > open question (paused) > just decided > writing > listening.
+const MOAI_OF: Record<SceneId, MoaiState> = {
+  d1: "listening", d2: "paused", s2: "vote", s3: "vote", s4: "paused", s5: "paused", s6: "paused", s7: "paused", s8: "decided", r1: "writing", s9: "decided",
+};
+
 export function scene(id: SceneId): WallState {
   const k = SCENES.indexOf(id);
   const s = ST[id];
   const slots: SlotState[] = [0, 1, 2, 3].map((i) =>
     i < s.dec ? "done" : i === 3 && s.park ? "park" : (i === 1 && k >= 1 && k < 8) || (i === 3 && k === 9) ? "now" : "");
   return {
-    mark: "시안 v0.4",
+    mark: "시안 v0.4", moai: MOAI_OF[id],
     slots, decided: s.dec, total: 4,
     now: id === "s9" ? "closed" : s.now ?? (k >= 9 ? "Q4 of 4" : "Q2 of 4"),
     doc: doc(id),
