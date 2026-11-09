@@ -5,6 +5,7 @@ import { engine } from "./engine";
 import { isShared, HOLD_MS } from "./modes";
 import { Viewport } from "./viewport";
 import { send } from "../../core/ws";
+import type { GestureKind } from "../../core/types";
 
 const FIST_OFF_MS = 2000; // hs: Closed_Fist 2초 유지 → Gesture Off
 
@@ -14,7 +15,20 @@ const FIST_OFF_MS = 2000; // hs: Closed_Fist 2초 유지 → Gesture Off
  * @param enabled 제스처 활성화 여부 (기본 true)
  * @param onDisable Thumb_Down 3초로 제스처 끌 때 호출되는 콜백
  */
-export function useGesture(getEl: () => HTMLElement | null, enabled = true, onDisable?: () => void) {
+/** gitgutgit: voteOnly = 표결 중. 손 랜드마크로 센 손가락 1~4를 0.5초 유지하면 표로 보내고, 확대·포인터는 끈다.
+ *  onCamera = 카메라를 켰는지/못 켰는지(이유 문장) 알려 준다. */
+export interface GestureOptions { voteOnly?: boolean; onCamera?: (s: { ok: true } | { ok: false; reason: string }) => void }
+
+function cameraReason(e: unknown): string {
+  const name = (e as { name?: string })?.name ?? "";
+  if (!window.isSecureContext) return "카메라는 localhost나 https 주소에서만 열려요.";
+  if (name === "NotAllowedError" || name === "SecurityError") return "카메라 권한이 꺼져 있어요. 주소창 왼쪽 자물쇠 → 카메라 허용 후 새로고침하세요.";
+  if (name === "NotReadableError" || name === "AbortError") return "다른 앱(Zoom, FaceTime 등)이 카메라를 쓰고 있어요. 그 앱을 닫고 다시 해 보세요.";
+  if (name === "NotFoundError" || name === "OverconstrainedError") return "카메라를 찾지 못했어요.";
+  return `카메라를 못 열었어요 (${name || String(e)}).`;
+}
+
+export function useGesture(getEl: () => HTMLElement | null, enabled = true, onDisable?: () => void, opts: GestureOptions = {}) {
   const viewport = useMemo(() => new Viewport(getEl), []);
 
   // hs: enabled가 true일 때만 카메라+엔진 시작, false면 정리
@@ -35,16 +49,28 @@ export function useGesture(getEl: () => HTMLElement | null, enabled = true, onDi
       vid.style.cssText = "position:fixed;bottom:8px;right:8px;width:160px;border-radius:12px;transform:scaleX(-1);z-index:50;border:2px solid #333;";
       document.body.appendChild(vid);
 
-      stream = await navigator.mediaDevices.getUserMedia(
-        { video: { width: 640, height: 480, facingMode: "user" } }
-      );
+      try {
+        if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error("no mediaDevices"), { name: "SecurityError" });
+        stream = await navigator.mediaDevices.getUserMedia(
+          { video: { width: 640, height: 480, facingMode: "user" } }
+        );
+      } catch (e) {
+        if (vid?.parentNode) vid.parentNode.removeChild(vid);
+        if (!cancelled) opts.onCamera?.({ ok: false, reason: cameraReason(e) });
+        return;
+      }
       if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
       vid.srcObject = stream;
       await new Promise<void>(r => vid!.addEventListener("loadeddata", () => r(), { once: true }));
       if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
 
       engine.mode = "default";
-      await engine.start(vid);
+      try {
+        await engine.start(vid);
+        if (!cancelled) opts.onCamera?.({ ok: true });
+      } catch {
+        if (!cancelled) opts.onCamera?.({ ok: false, reason: "손 인식 모델을 받지 못했어요. 인터넷 연결을 확인하세요." });
+      }
     })();
     return () => {
       cancelled = true;
@@ -60,6 +86,21 @@ export function useGesture(getEl: () => HTMLElement | null, enabled = true, onDi
   useEffect(() => {
     if (!enabled) return;
     let lastSent = "";
+    // gitgutgit: 표결 중 — 손가락 수(랜드마크)만 본다. 1개는 Pointing_Up, 2개는 Victory로 이름 붙어도 1·2로 센다.
+    if (opts.voteOnly) {
+      viewport.showCursor(false);
+      let held: { n: number | null; since: number } = { n: null, since: 0 };
+      return engine.subscribe((f) => {
+        const now = performance.now();
+        const n = f.fingers != null && f.fingers >= 1 && f.fingers <= 4 ? f.fingers : null;
+        if (n !== held.n) held = { n, since: now };
+        if (n == null) { lastSent = ""; return; }
+        if (now - held.since >= HOLD_MS && lastSent !== `Fingers_${n}`) {
+          lastSent = `Fingers_${n}`;
+          send({ kind: "gesture", payload: { kind: `Fingers_${n}` as GestureKind, confidence: 0.9, hold_ms: Math.round(now - held.since) } });
+        }
+      });
+    }
     return engine.subscribe((f) => {
       const now = performance.now();
 
@@ -104,7 +145,7 @@ export function useGesture(getEl: () => HTMLElement | null, enabled = true, onDi
         send({ kind: "gesture", payload: { kind: f.gesture, confidence: f.confidence, hold_ms: f.hold_ms } });
       }
     });
-  }, [viewport, enabled, onDisable]);
+  }, [viewport, enabled, onDisable, opts.voteOnly]);
 
   return viewport;
 }

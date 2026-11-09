@@ -13,6 +13,8 @@ export interface EngineFrame {
   hold_ms: number;
   pointer: { x: number; y: number } | null;
   openness: number | null;
+  /** 손 랜드마크로 센 편 손가락 수(손이 없으면 null). MediaPipe 이름(Pointing_Up, Victory)과 관계없이 센다 → 표결용. gitgutgit */
+  fingers: number | null;
 }
 
 const WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm";
@@ -63,6 +65,7 @@ export class GestureEngine {
       hold_ms: gesture ? Math.round(now - this.held.since) : 0,
       pointer: lm ? { x: 1 - lm[8].x, y: lm[8].y } : null, // 거울 모드
       openness: lm ? openness(lm) : null,
+      fingers: lm ? countFingers(lm) : null,
     };
     this.subs.forEach((fn) => fn(frame));
   }
