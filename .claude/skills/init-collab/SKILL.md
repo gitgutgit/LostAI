@@ -98,6 +98,30 @@ git config user.email
 5. **결과 파일**은 `results/<GitHub>_<무엇>_<MMDD_HHMM>.json`으로 저장한다. `results/`는 `.gitignore`에 넣는다. 공유할 숫자는 note에 적는다.
 6. **발표 전 동결**: 동결 시각 `[HH:MM, 팀장이 정함]` 이후에는 main merge를 팀장만 한다. 그 뒤에는 데모를 깨지 않는 수정만 받는다.
 
+### 3-1. PR 충돌 방지
+
+11-09 오전 PR #8과 #9는 38초 차이로 열렸고, 둘 다 `server/app.py`의 `/stats`를 각자 다시 썼다. 두 브랜치 모두 최신 main에서 땄기 때문에 'pull 잘 하기'만으로는 막을 수 없었다. 그래서 **열린 PR끼리 겹치는 파일을 PR을 열 때 보는 것**이 핵심이다.
+
+1. **새 작업은 최신 main에서 딴다.** `git fetch origin && git switch -c <GitHub>/<주제> origin/main`.
+   - 로컬 main에는 커밋하지 않는다. 머지 안 된 다른 브랜치 위에 새 브랜치를 따지 않는다(그 PR의 커밋까지 딸려 간다).
+2. **PR은 작고 짧게.** 한 PR에는 한 가지만 넣고, 열고 2시간 안에 머지를 목표로 한다. 오래 열린 PR일수록 충돌이 난다.
+3. **겹치는 파일은 고치기 전에 확인한다.** 11-09 오전까지 자주 겹친 파일은 `server/app.py`(PR 4개), `server/room.py`(3개), `web/src/styles.css`, `web/src/views/canvas/CanvasView.tsx`, `notes/TEAM.md`다. 손대기 전에 아래를 돌린다.
+   ```bash
+   uv run python scripts/pr_guard.py          # 내 브랜치: main보다 뒤처진 수, main과 충돌, 같은 파일을 고치는 열린 PR
+   uv run python scripts/pr_guard.py --pr 8   # 특정 PR
+   ```
+   같은 함수를 다른 사람도 고치고 있으면 **코드를 쓰기 전에** 그 작성자와 누가 할지 정한다.
+4. **main 받기.**
+   - PR을 열기 전: `git fetch origin && git rebase origin/main`
+   - PR을 연 뒤: `git fetch origin && git merge origin/main`. 이미 공유된 브랜치라 rebase와 force push는 하지 않는다. 남의 브랜치에는 push하지 않는다.
+   - 받은 뒤에는 시험(`uv run python -m pytest`, 화면이면 `npm run build`)을 다시 돌리고 push한다.
+5. **머지한 사람이 알린다.** 머지 뒤 main과 충돌하는 열린 PR이 있으면 그 작성자에게 'main을 받아 달라'고 알린다. 충돌을 풀 때는 그 파일 **파트 메인의 설계**를 따른다(§2).
+6. **Claude 세션을 여럿 돌릴 때는 세션마다 작업 폴더를 나눈다.** `git worktree add ../LostAI-<주제> -b <GitHub>/<주제> origin/main`. 한 폴더에서 브랜치를 바꾸면 다른 세션의 커밋 안 한 변경이 섞인다.
+7. **자동 가드.** `.claude/settings.json`의 훅이 Claude가 `git push`, `gh pr create`, `gh pr ready`, `gh pr merge`를 실행할 때 `scripts/pr_guard.py`를 부른다.
+   - 실행 전: 대상이 최신 main과 충돌하면 **막고** 푸는 방법을 보여 준다. main에 직접 하는 push(§3의 2번 예외)는 건드리지 않는다.
+   - 실행 후: PR을 열었으면 같은 파일을 고치는 열린 PR을, 머지했으면 main과 충돌하는 열린 PR을 알려 준다. 알림을 PR 코멘트로 보낼지는 사용자가 정한다.
+   - git 2.38 이상과 `gh` 로그인이 필요하다. 없으면 그 검사만 건너뛰고 막지 않는다. 사람이 터미널에서 직접 하는 push에는 걸리지 않으니, 사람도 PR 전에 3번 명령을 돌린다.
+
 ---
 
 ## 4. 담당 외 영역을 수정해야 할 때 (경고 → 승인 절차)
@@ -195,6 +219,7 @@ grep -rn "<이름>" server web/src eval fixtures
 - [ ] 현재 작업자를 확인하고 §1 표에서 파트를 찾았는가? (없으면 물어봤는가?)
 - [ ] 만들거나 고치는 파일이 내 파트 폴더 안에 있는가? (§2 표)
 - [ ] 브랜치 이름이 `<GitHub>/<주제>`이고, 커밋 메시지에 영역 태그를 붙였는가?
+- [ ] 브랜치를 최신 `origin/main`에서 땄고, PR 전에 `uv run python scripts/pr_guard.py`로 main 충돌과 겹치는 열린 PR을 봤는가? (§3-1)
 - [ ] 다른 파트도 쓸 코드라면 `server/common/` · `web/src/lib/`에 새 파일로 만들었는가?
 - [ ] 계약 파일, 루트·문서, 다른 파트 폴더를 건드린다면 **경고 → 승인(승인자 확인 포함) → 수정 → 실행 확인 → 보고** 순서를 지켰는가?
 - [ ] 계약을 고쳤으면 `web/src/core/types.ts`도 같이 바꿨는가?
