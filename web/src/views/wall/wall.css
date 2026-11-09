@@ -289,3 +289,17 @@ html.livewall,html.livewall body{height:100%;overflow:hidden;background:var(--wa
 #stage.live #sheet{display:flex;flex-direction:column}
 #stage.live #rows{flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;scrollbar-width:thin}
 #stage.live #rows .g.colh{position:sticky;top:0;z-index:1;background:var(--card)}
+/* ep: 실화면 넘침 막기. 한 줄짜리 자리(문서 제목, Last 줄, 선택지, 참가자 이름)는 칸을 뚫지 않고 칸 안에서 말줄임(…)으로 끝난다. 장면 모드 화소는 건드리지 않는다 */
+#stage.live #sheet{overflow:hidden}
+#stage.live .dh{gap:16px}
+#stage.live .dh b{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#stage.live #count{flex-shrink:0}
+#stage.live #dnote{overflow:hidden;text-overflow:ellipsis}
+#stage.live .oleft{flex:1;min-width:0}
+#stage.live .oside:empty{display:none}
+#stage.live .oname,#stage.live .osrc{overflow:hidden;text-overflow:ellipsis}
+#stage.live .pp{min-width:0}
+#stage.live .pp .nm{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#stage.live .pp .st{flex-shrink:0}
+#stage.live #idle{overflow:hidden}
+#stage.live #people{column-gap:16px}
