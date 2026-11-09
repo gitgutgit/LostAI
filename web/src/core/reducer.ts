@@ -67,6 +67,10 @@ export function reduceEvent(v: RoomView, ev: MeetingEvent): RoomView {
     if (next.state && ev.type === "change.reverted" && ch.diff.length) next.state = applyChange(next.state, ch, false);
   }
   if (ev.type === "participant.verified") next.participants = { ...v.participants, [ev.payload.name]: { verified: true } };
+  if (ev.type === "participant.left") { // gitgutgit 11-09: 나간 사람은 참석자 목록에서 뺀다 (예전엔 남아 있어서 유령이 됐다)
+    const { [ev.payload.name]: _gone, ...rest } = v.participants;
+    next.participants = rest;
+  }
   if (ev.type === "agent.paused") next.paused = true;
   if (ev.type === "agent.resumed") next.paused = false;
   return next;

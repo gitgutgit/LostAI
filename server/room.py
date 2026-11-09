@@ -121,12 +121,22 @@ class Room:
         }
 
     # ---- 접속 ----
-    async def connect(self, ws: Socket, name: str) -> None:
+    async def connect(self, ws: Socket, name: str) -> bool:
+        """접속. 토큰은 유효한데 참석자 목록에 없으면(서버 재배포·리셋 뒤 다시 붙음) 다시 넣고 True."""
         self.sockets[ws] = name
+        rejoined = name not in self.participants
+        if rejoined:  # gitgutgit 11-09: 재배포하면 방이 비므로, 다시 붙은 사람을 참석자로 되살린다
+            self.participants[name] = {"verified": True, "via": "rejoin"}
         await ws.send_text(json.dumps(self.snapshot(), ensure_ascii=False, default=str))
+        return rejoined
 
-    def disconnect(self, ws: Socket) -> str | None:
-        return self.sockets.pop(ws, None)
+    def disconnect(self, ws: Socket) -> bool:
+        """접속 하나를 뺀다. 그 이름의 탭이 하나도 안 남으면 참석자에서 빼고 True (회의 나가기, 탭 닫기)."""
+        name = self.sockets.pop(ws, None)
+        if name is None or name in self.sockets.values():
+            return False
+        self.participants.pop(name, None)
+        return True
 
     # ---- 발화 큐: 순서대로 하나씩 ----
     def start(self) -> None:

@@ -97,10 +97,12 @@ def _run(app_mod):
             say("Ines", "1번", lambda ev: sum(e["type"] == "vote.cast" for e in ev) >= 1)
             say("Owen", "2번", lambda ev: sum(e["type"] == "vote.cast" for e in ev) >= 2)
             hand("Ravi", "Fingers_1", lambda ev: sum(e["type"] == "vote.cast" for e in ev) >= 3)
-            from server.gestures.votes import QUIET_CLOSE_SEC  # 표결 마감 시간이 바뀌어도 따라가게
-            ev = _wait(c, lambda ev: any(e["type"] == "vote.closed" for e in ev), sec=QUIET_CLOSE_SEC + 5)
+            # 마감은 표가 들어와도 앞당겨지지 않는다(40초). 입장한 4명이 모두 내면 ALL_IN_CLOSE_SEC 뒤 바로 마감.
+            say("Eric", "2번", lambda ev: sum(e["type"] == "vote.cast" for e in ev) >= 4)
+            from server.gestures.votes import ALL_IN_CLOSE_SEC
+            ev = _wait(c, lambda ev: any(e["type"] == "vote.closed" for e in ev), sec=ALL_IN_CLOSE_SEC + 5)
             closed = next(e for e in ev if e["type"] == "vote.closed")
-            assert closed["payload"]["votes"] == {"Ines": 1, "Owen": 2, "Ravi": 1}
+            assert closed["payload"]["votes"] == {"Ines": 1, "Owen": 2, "Ravi": 1, "Eric": 2}
 
             # 멈춤, 재개(T자), 말로 취소, 퇴장
             hand("Eric", "T_Shape", lambda ev: any(e["type"] == "agent.paused" for e in ev))

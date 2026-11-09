@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { connect } from "./core/ws";
+import { connect, leave } from "./core/ws";
+import { resetView } from "./core/store";
 import { playFixture } from "./core/fixtures";
 import { JoinView } from "./views/join/JoinView";
 import { JoinProbe } from "./views/join/JoinProbe";
@@ -35,6 +36,13 @@ export function App() {
     setJoined(true);
   }, []);
 
+  const onLeave = useCallback(() => { // gitgutgit 11-09: 회의 나가기 → 입장 화면으로
+    leave();
+    resetView();
+    setMe(undefined);
+    setJoined(false);
+  }, []);
+
   useEffect(() => {
     if (!devAs || fixture || devJoinStarted) return;
     devJoinStarted = true;
@@ -44,5 +52,5 @@ export function App() {
 
   if (devProbe) return <JoinProbe />;
   if (!joined) return <JoinView onJoined={onJoined} />;
-  return ui === "canvas" ? <CanvasView /> : <LiveWallView me={me} />;
+  return ui === "canvas" ? <CanvasView /> : <LiveWallView me={me} onLeave={onLeave} />;
 }

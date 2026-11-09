@@ -118,8 +118,10 @@ def test_second_vote_opens_on_the_new_question():
             say("Eric", "투표하죠.", opened(1))
             say("Ines", "1번", lambda ev: any(e["type"] == "vote.cast" for e in ev))
             say("Ines", "그냥", lambda ev: True)  # 아무 말
-            from server.gestures.votes import QUIET_CLOSE_SEC  # 표결 마감 시간이 바뀌어도 따라가게
-            ev = _wait(c, lambda ev: any(e["type"] == "vote.closed" for e in ev), sec=QUIET_CLOSE_SEC + 5)
+            # 마감은 표가 들어와도 줄지 않는다(말로 연 표결 40초) → 입장한 두 명이 다 내서 바로 마감시킨다
+            say("Eric", "2번", lambda ev: sum(e["type"] == "vote.cast" for e in ev) >= 2)
+            from server.gestures.votes import ALL_IN_CLOSE_SEC
+            ev = _wait(c, lambda ev: any(e["type"] == "vote.closed" for e in ev), sec=ALL_IN_CLOSE_SEC + 5)
             say("Eric", "회고는 화요일이랑 목요일 중에 어느 쪽이 좋을까요?",
                 lambda ev: sum(e["type"] == "change.applied" for e in ev) >= 2)
             ev = say("Eric", "투표하죠.", opened(2))
@@ -129,3 +131,56 @@ def test_second_vote_opens_on_the_new_question():
     finally:
         room_mod.rooms.pop("main", None)
     assert len(qs) == 2 and qs[0] != qs[1] and "화요일" in qs[1]
+
+
+def test_vote_deadline_never_shrinks_and_closes_when_all_in():
+    """gitgutgit 11-09: 말로 연 40초 표결이 첫 표에 10초로 줄던 문제. 마감은 늦출 수만 있고, 입장한 사람이 모두 내면 바로 마감."""
+    import asyncio
+
+    from server.gestures.votes import ALL_IN_CLOSE_SEC, VOICE_OPEN_SEC, Votes
+
+    class FakeRoom:
+        def __init__(self):
+            self.events, self.participants, self.state = [], {"Jiwon": {}, "Mina": {}}, None
+
+        async def emit(self, type_, actor, refs=None, payload=None):
+            self.events.append({"type": type_, "actor": actor, "payload": payload or {}})
+
+    async def run():
+        room, v = FakeRoom(), Votes()
+        await v.open_by_voice(room, "Jiwon", None)
+        await v.cast_by_voice(room, "Haeun", 2)  # 대본 화자(입장 안 함)의 표: 마감이 줄면 안 된다
+        assert room.events[-1]["payload"]["closes_in"] > VOICE_OPEN_SEC - 1
+        await v.cast_by_voice(room, "Jiwon", 3)
+        assert room.events[-1]["payload"]["closes_in"] > VOICE_OPEN_SEC - 1  # 아직 Mina가 안 냄
+        await v.cast_by_voice(room, "Mina", 1)  # 입장한 사람 모두 냄 → 곧 마감
+        assert room.events[-1]["payload"]["closes_in"] <= ALL_IN_CLOSE_SEC
+        await asyncio.sleep(ALL_IN_CLOSE_SEC + 0.3)
+        assert room.events[-1]["type"] == "vote.closed"
+        assert room.events[-1]["payload"]["votes"] == {"Haeun": 2, "Jiwon": 3, "Mina": 1}
+
+    asyncio.run(run())
+
+
+def test_leave_removes_participant_and_reconnect_rejoins():
+    """gitgutgit 11-09: 회의 나가기(마지막 탭 닫힘) → 참석자에서 빠짐. 재배포 뒤 토큰으로 다시 붙으면 되살아남."""
+    import json
+
+    from server.room import Room
+
+    class FakeWS:
+        async def send_text(self, data):
+            pass
+
+    async def run():
+        room = Room("leave-test")
+        a, b = FakeWS(), FakeWS()
+        assert await room.connect(a, "Jiwon")          # 목록에 없던 이름 → 되살림
+        assert not await room.connect(b, "Jiwon")      # 같은 사람 두 번째 탭
+        assert not room.disconnect(a)                  # 탭 하나 남음 → 아직 참석
+        assert "Jiwon" in room.participants
+        assert room.disconnect(b)                      # 마지막 탭 → 나감
+        assert "Jiwon" not in room.participants
+
+    import asyncio
+    asyncio.run(run())
