@@ -1,9 +1,11 @@
 """이벤트 로그 → 발화별 지연 (말 → 화면, 말 → Google 문서). author: Mal-Mi-Jal
 
 이벤트 로그가 단일 진실이므로 지연도 로그의 ts(회의 시작 기준 초)만으로 계산한다.
-- utt_to_routed : utterance.final → agent.routed           (라우터)
+- queue_wait    : utterance.final → 처리 시작(agent.progress routing)  (앞 발화 처리 대기. 발화는 방마다 한 줄)
+- utt_to_routed : utterance.final → agent.routed           (대기 + 라우터)
 - utt_to_applied: utterance.final → change.applied          (= 말 → 화면. 브로드캐스트는 emit 안에서 같이 나간다)
 - utt_to_synced : utterance.final → sync.ok (대상별)         (= 말 → 실제 Google 문서)
+- proc_to_applied: 처리 시작 → change.applied               (대기를 뺀 순수 처리 = 라우터 + 에디터 + 적용)
 - route / edit / apply : change.latency_ms 단계값 (pipeline·ChangeManager가 잰 것)
 - sync_<대상>   : sync.ok payload.ms (Google 호출 자체)
 STT 시간(말 끝 → 브라우저 final)은 서버 로그에 없다 → 화면 쪽에서 따로 잰다.
@@ -20,7 +22,7 @@ from typing import Any, Iterable
 
 from server.common.latency import percentiles
 
-TARGETS_MS = {"utt_to_applied": 2500, "route": 600, "edit": 1500, "apply": 50}  # CLAUDE.md 목표 숫자
+TARGETS_MS = {"utt_to_applied": 2500, "proc_to_applied": 2500, "route": 600, "edit": 1500, "apply": 50}  # CLAUDE.md 목표 숫자
 
 
 def _d(e: Any) -> dict[str, Any]:
@@ -44,11 +46,16 @@ def per_utterance(events: Iterable[Any]) -> list[dict[str, Any]]:
         r = rows.get(uid)
         if r is None:
             continue
-        if t == "agent.routed":
+        if t == "agent.progress" and p.get("stage") == "routing" and "queue_wait" not in r:
+            r["queue_wait"] = round((ts - r["t0"]) * 1000)
+            r["t_start"] = ts
+        elif t == "agent.routed":
             r["label"] = p.get("label")
             r["utt_to_routed"] = round((ts - r["t0"]) * 1000)
         elif t == "change.applied" and "utt_to_applied" not in r:
             r["utt_to_applied"] = round((ts - r["t0"]) * 1000)
+            if "t_start" in r:
+                r["proc_to_applied"] = round((ts - r["t_start"]) * 1000)
             for k, v in (p.get("latency_ms") or {}).items():
                 r[k] = v
         elif t == "sync.ok" and p.get("target") not in r["synced"]:
@@ -58,6 +65,7 @@ def per_utterance(events: Iterable[Any]) -> list[dict[str, Any]]:
     for uid in order:
         r = rows[uid]
         r.pop("t0")
+        r.pop("t_start", None)
         for tgt, ms in r.pop("synced").items():
             r[f"utt_to_synced_{tgt}"] = ms
         out.append(r)

@@ -9,7 +9,8 @@ def ev(seq, ts, type_, utt=None, change=None, **payload):
 
 LOG = [
     ev(1, 10.000, "utterance.final", "u1", text="추정 3으로"),
-    ev(2, 10.400, "agent.routed", "u1", label="edit", ms=400),
+    ev(2, 10.100, "agent.progress", "u1", stage="routing"),
+    ev(3, 10.400, "agent.routed", "u1", label="edit", ms=400),
     ev(3, 11.900, "change.applied", "u1", "c1", latency_ms={"route": 400, "edit": 1450, "apply": 3}),
     ev(4, 12.400, "sync.ok", "u1", "c1", target="google_sheets", ms=480),
     ev(5, 20.000, "utterance.final", "u2", text="음 그러니까"),
@@ -20,8 +21,8 @@ LOG = [
 
 def test_per_utterance():
     rows = per_utterance(LOG)
-    assert rows[0] == {"utt_id": "u1", "text": "추정 3으로", "label": "edit", "utt_to_routed": 400,
-                       "utt_to_applied": 1900, "route": 400, "edit": 1450, "apply": 3,
+    assert rows[0] == {"utt_id": "u1", "text": "추정 3으로", "queue_wait": 100, "label": "edit", "utt_to_routed": 400,
+                       "utt_to_applied": 1900, "proc_to_applied": 1800, "route": 400, "edit": 1450, "apply": 3,
                        "sync_google_sheets": 480, "utt_to_synced_google_sheets": 2400}
     assert rows[1] == {"utt_id": "u2", "text": "음 그러니까", "label": "ignore", "utt_to_routed": 300}
 
