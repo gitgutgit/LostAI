@@ -1,0 +1,27 @@
+{
+  "docs": {
+    "board": {
+      "kind": "sheet",
+      "title": "스프린트 24 보드",
+      "columns": ["티켓", "제목", "추정", "담당", "상태"],
+      "rows": [
+        {"row_id": "r_pay423", "cells": {"티켓": "PAY-423", "제목": "API 요청 제한기", "추정": 5, "담당": "Owen", "상태": "이번 스프린트"}},
+        {"row_id": "r_sso118", "cells": {"티켓": "AUTH-118", "제목": "SSO 로그인", "추정": 8, "담당": "Ines", "상태": "이번 스프린트"}}
+      ]
+    },
+    "notes": {
+      "kind": "doc",
+      "title": "회의 노트",
+      "sections": [
+        {"section_id": "s_dec", "heading": "결정 사항", "binding": "decisions", "items": []},
+        {"section_id": "s_risk", "heading": "리스크", "binding": "risks", "items": []},
+        {"section_id": "s_act", "heading": "액션", "binding": "actions", "items": []},
+        {"section_id": "s_free1", "heading": "범위", "binding": null,
+         "items": [{"item_id": "i_7", "text": "Public App Store / Play Store release"}]}
+      ]
+    }
+  },
+  "conflicts": [],
+  "tickets": [],
+  "provenance": {}
+}
