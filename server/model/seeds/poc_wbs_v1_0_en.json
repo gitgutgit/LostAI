@@ -1,0 +1,543 @@
+{
+ "docs": {
+  "board": {
+   "kind": "sheet",
+   "title": "PoC WBS v1.0 (EN) — Mobile ordering app",
+   "columns": [
+    "Task",
+    "WBS",
+    "Phase",
+    "Category",
+    "Owner",
+    "Start",
+    "End",
+    "Duration (days)",
+    "Predecessors",
+    "Status",
+    "Progress (%)",
+    "Deliverable",
+    "Description",
+    "Notes"
+   ],
+   "rows": [
+    {
+     "row_id": "r_1_1",
+     "cells": {
+      "Task": "Requirements interviews",
+      "WBS": "1.1",
+      "Phase": "1. Requirements & Research",
+      "Category": "Planning",
+      "Owner": "Jiwon",
+      "Start": "2026-11-01",
+      "End": "2026-11-13",
+      "Duration (days)": 5,
+      "Predecessors": "",
+      "Status": "Done",
+      "Progress (%)": 100,
+      "Deliverable": "Interview notes",
+      "Description": "Interview 6 stakeholders, including store owners and customers",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_1_2",
+     "cells": {
+      "Task": "Competitor analysis",
+      "WBS": "1.2",
+      "Phase": "1. Requirements & Research",
+      "Category": "Planning",
+      "Owner": "Seoyeon",
+      "Start": "2026-11-09",
+      "End": "2026-11-12",
+      "Duration (days)": 4,
+      "Predecessors": "",
+      "Status": "Done",
+      "Progress (%)": 100,
+      "Deliverable": "Analysis report",
+      "Description": "Compare features and fees of 4 delivery/pickup apps",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_1_3",
+     "cells": {
+      "Task": "Write functional spec",
+      "WBS": "1.3",
+      "Phase": "1. Requirements & Research",
+      "Category": "Planning",
+      "Owner": "Jiwon",
+      "Start": "2026-11-16",
+      "End": "2026-11-20",
+      "Duration (days)": 5,
+      "Predecessors": "1.1, 1.2",
+      "Status": "In Progress",
+      "Progress (%)": 60,
+      "Deliverable": "Functional spec v1",
+      "Description": "Define ordering, payment, notification and admin features",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_1_4",
+     "cells": {
+      "Task": "Tech stack & architecture research",
+      "WBS": "1.4",
+      "Phase": "1. Requirements & Research",
+      "Category": "Infrastructure",
+      "Owner": "Junho",
+      "Start": "2026-11-16",
+      "End": "2026-11-18",
+      "Duration (days)": 3,
+      "Predecessors": "1.1",
+      "Status": "Done",
+      "Progress (%)": 100,
+      "Deliverable": "Architecture document",
+      "Description": "Cloud provider comparison; decided monolith-first",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_1_5",
+     "cells": {
+      "Task": "UI wireframes",
+      "WBS": "1.5",
+      "Phase": "1. Requirements & Research",
+      "Category": "Frontend",
+      "Owner": "Mina",
+      "Start": "2026-11-16",
+      "End": "2026-11-20",
+      "Duration (days)": 5,
+      "Predecessors": "1.1",
+      "Status": "In Progress",
+      "Progress (%)": 40,
+      "Deliverable": "Figma wireframes",
+      "Description": "12 key screens",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_2_1",
+     "cells": {
+      "Task": "Cloud & network setup",
+      "WBS": "2.1",
+      "Phase": "2. Project Build",
+      "Category": "Infrastructure",
+      "Owner": "Junho",
+      "Start": "2026-11-19",
+      "End": "2026-11-23",
+      "Duration (days)": 3,
+      "Predecessors": "1.4",
+      "Status": "Not Started",
+      "Progress (%)": 0,
+      "Deliverable": "Staging environment",
+      "Description": "VPC; separate staging and production",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_2_2",
+     "cells": {
+      "Task": "CI/CD pipeline",
+      "WBS": "2.2",
+      "Phase": "2. Project Build",
+      "Category": "Infrastructure",
+      "Owner": "Junho",
+      "Start": "2026-11-24",
+      "End": "2026-11-26",
+      "Duration (days)": 3,
+      "Predecessors": "2.1",
+      "Status": "Not Started",
+      "Progress (%)": 0,
+      "Deliverable": "Deployment pipeline",
+      "Description": "Run tests on every PR; deploy to staging on merge to main",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_2_3",
+     "cells": {
+      "Task": "Monitoring & logging",
+      "WBS": "2.3",
+      "Phase": "2. Project Build",
+      "Category": "Infrastructure",
+      "Owner": "Junho",
+      "Start": "2026-11-27",
+      "End": "2026-11-30",
+      "Duration (days)": 2,
+      "Predecessors": "2.2",
+      "Status": "Not Started",
+      "Progress (%)": 0,
+      "Deliverable": "Dashboards & alerts",
+      "Description": "Error-rate and latency alerts",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_2_4",
+     "cells": {
+      "Task": "DB schema design",
+      "WBS": "2.4",
+      "Phase": "2. Project Build",
+      "Category": "Backend",
+      "Owner": "Taeho",
+      "Start": "2026-11-23",
+      "End": "2026-11-26",
+      "Duration (days)": 4,
+      "Predecessors": "1.3",
+      "Status": "Not Started",
+      "Progress (%)": 0,
+      "Deliverable": "ERD",
+      "Description": "User, store, menu, order and payment tables",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_2_5",
+     "cells": {
+      "Task": "User & auth API",
+      "WBS": "2.5",
+      "Phase": "2. Project Build",
+      "Category": "Backend",
+      "Owner": "Taeho",
+      "Start": "2026-11-27",
+      "End": "2026-12-03",
+      "Duration (days)": 5,
+      "Predecessors": "2.4",
+      "Status": "Not Started",
+      "Progress (%)": 0,
+      "Deliverable": "API spec + implementation",
+      "Description": "Email and social login",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_2_6",
+     "cells": {
+      "Task": "Menu & store API",
+      "WBS": "2.6",
+      "Phase": "2. Project Build",
+      "Category": "Backend",
+      "Owner": "Taeho",
+      "Start": "2026-11-27",
+      "End": "2026-12-02",
+      "Duration (days)": 4,
+      "Predecessors": "2.4",
+      "Status": "Not Started",
+      "Progress (%)": 0,
+      "Deliverable": "API spec + implementation",
+      "Description": "Menu options, business hours",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_2_7",
+     "cells": {
+      "Task": "Order & payment API",
+      "WBS": "2.7",
+      "Phase": "2. Project Build",
+      "Category": "Backend",
+      "Owner": "Taeho",
+      "Start": "2026-12-04",
+      "End": "2026-12-15",
+      "Duration (days)": 8,
+      "Predecessors": "2.5, 2.6",
+      "Status": "Not Started",
+      "Progress (%)": 0,
+      "Deliverable": "API spec + implementation",
+      "Description": "Cart, order status, payment gateway (PG) integration",
+      "Notes": "PG provider contract in progress"
+     }
+    },
+    {
+     "row_id": "r_2_8",
+     "cells": {
+      "Task": "Push notifications",
+      "WBS": "2.8",
+      "Phase": "2. Project Build",
+      "Category": "Backend",
+      "Owner": "Junho",
+      "Start": "2026-12-16",
+      "End": "2026-12-18",
+      "Duration (days)": 3,
+      "Predecessors": "2.7",
+      "Status": "Not Started",
+      "Progress (%)": 0,
+      "Deliverable": "Notification server",
+      "Description": "Order received / preparing / ready-for-pickup alerts",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_2_9",
+     "cells": {
+      "Task": "Design system & shared components",
+      "WBS": "2.9",
+      "Phase": "2. Project Build",
+      "Category": "Frontend",
+      "Owner": "Mina",
+      "Start": "2026-11-23",
+      "End": "2026-11-26",
+      "Duration (days)": 4,
+      "Predecessors": "1.5",
+      "Status": "Not Started",
+      "Progress (%)": 0,
+      "Deliverable": "Component library",
+      "Description": "Buttons, forms, cards, tab bar",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_2_10",
+     "cells": {
+      "Task": "Menu & ordering screens",
+      "WBS": "2.10",
+      "Phase": "2. Project Build",
+      "Category": "Frontend",
+      "Owner": "Mina",
+      "Start": "2026-12-03",
+      "End": "2026-12-10",
+      "Duration (days)": 6,
+      "Predecessors": "2.9, 2.6",
+      "Status": "Not Started",
+      "Progress (%)": 0,
+      "Deliverable": "App screens",
+      "Description": "Menu list, option selection, cart",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_2_11",
+     "cells": {
+      "Task": "Payment screens",
+      "WBS": "2.11",
+      "Phase": "2. Project Build",
+      "Category": "Frontend",
+      "Owner": "Mina",
+      "Start": "2026-12-16",
+      "End": "2026-12-21",
+      "Duration (days)": 4,
+      "Predecessors": "2.10, 2.7",
+      "Status": "Not Started",
+      "Progress (%)": 0,
+      "Deliverable": "App screens",
+      "Description": "Card & mobile pay; payment failure handling",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_2_12",
+     "cells": {
+      "Task": "Admin dashboard",
+      "WBS": "2.12",
+      "Phase": "2. Project Build",
+      "Category": "Frontend",
+      "Owner": "Seoyeon",
+      "Start": "2026-12-03",
+      "End": "2026-12-10",
+      "Duration (days)": 6,
+      "Predecessors": "2.9, 2.6",
+      "Status": "Not Started",
+      "Progress (%)": 0,
+      "Deliverable": "Web admin",
+      "Description": "Store order intake & menu management",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_3_1",
+     "cells": {
+      "Task": "Unit testing",
+      "WBS": "3.1",
+      "Phase": "3. Testing",
+      "Category": "Backend",
+      "Owner": "Taeho",
+      "Start": "2026-12-16",
+      "End": "2026-12-18",
+      "Duration (days)": 3,
+      "Predecessors": "2.7",
+      "Status": "Not Started",
+      "Progress (%)": 0,
+      "Deliverable": "Test report",
+      "Description": "API coverage ≥ 70%",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_3_2",
+     "cells": {
+      "Task": "Integration testing",
+      "WBS": "3.2",
+      "Phase": "3. Testing",
+      "Category": "QA",
+      "Owner": "Haeun",
+      "Start": "2026-12-22",
+      "End": "2026-12-28",
+      "Duration (days)": 5,
+      "Predecessors": "2.8, 2.11, 2.12, 3.1",
+      "Status": "Not Started",
+      "Progress (%)": 0,
+      "Deliverable": "Test report",
+      "Description": "End-to-end order → payment → notification flow",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_3_3",
+     "cells": {
+      "Task": "Performance & load testing",
+      "WBS": "3.3",
+      "Phase": "3. Testing",
+      "Category": "Infrastructure",
+      "Owner": "Junho",
+      "Start": "2026-12-29",
+      "End": "2026-12-31",
+      "Duration (days)": 3,
+      "Predecessors": "3.2",
+      "Status": "Not Started",
+      "Progress (%)": 0,
+      "Deliverable": "Load test results",
+      "Description": "500 concurrent orders",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_3_4",
+     "cells": {
+      "Task": "User acceptance testing (UAT)",
+      "WBS": "3.4",
+      "Phase": "3. Testing",
+      "Category": "QA",
+      "Owner": "Haeun",
+      "Start": "2027-01-01",
+      "End": "2027-01-07",
+      "Duration (days)": 5,
+      "Predecessors": "3.3",
+      "Status": "Not Started",
+      "Progress (%)": 0,
+      "Deliverable": "UAT results",
+      "Description": "Pilot at 3 stores",
+      "Notes": ""
+     }
+    },
+    {
+     "row_id": "r_3_5",
+     "cells": {
+      "Task": "Launch prep & app store review",
+      "WBS": "3.5",
+      "Phase": "3. Testing",
+      "Category": "Planning",
+      "Owner": "Jiwon",
+      "Start": "2027-01-08",
+      "End": "2027-01-14",
+      "Duration (days)": 5,
+      "Predecessors": "3.4",
+      "Status": "Not Started",
+      "Progress (%)": 0,
+      "Deliverable": "App store listing",
+      "Description": "App Store / Google Play review; launch announcement",
+      "Notes": ""
+     }
+    }
+   ]
+  },
+  "notes": {
+   "kind": "doc",
+   "title": "Mobile ordering app v1.0 — project plan",
+   "sections": [
+    {
+     "section_id": "s_goal",
+     "heading": "Goal",
+     "binding": null,
+     "items": [
+      {
+       "item_id": "i_1",
+       "text": "Launch the mobile ordering app v1.0 on 01-14 and reach 3,000 orders in the first month."
+      }
+     ]
+    },
+    {
+     "section_id": "s_scope",
+     "heading": "Scope",
+     "binding": null,
+     "items": [
+      {
+       "item_id": "i_2",
+       "text": "Menu browsing, ordering and payment (card, mobile pay)"
+      },
+      {
+       "item_id": "i_3",
+       "text": "Sign-up and social login"
+      },
+      {
+       "item_id": "i_4",
+       "text": "Order status push notifications"
+      },
+      {
+       "item_id": "i_5",
+       "text": "Store admin dashboard"
+      }
+     ]
+    },
+    {
+     "section_id": "s_mile",
+     "heading": "Milestones",
+     "binding": null,
+     "items": [
+      {
+       "item_id": "i_6",
+       "text": "Requirements done: 11-20"
+      },
+      {
+       "item_id": "i_7",
+       "text": "Build done: 12-21"
+      },
+      {
+       "item_id": "i_8",
+       "text": "Integration testing done: 12-28"
+      },
+      {
+       "item_id": "i_9",
+       "text": "UAT done: 01-07"
+      },
+      {
+       "item_id": "i_10",
+       "text": "Launch: 01-14 (same day as the marketing campaign)"
+      }
+     ]
+    },
+    {
+     "section_id": "s_dec",
+     "heading": "Decisions",
+     "binding": "decisions",
+     "items": []
+    },
+    {
+     "section_id": "s_risk",
+     "heading": "Risks",
+     "binding": "risks",
+     "items": [
+      {
+       "item_id": "i_11",
+       "text": "Payment (PG) integration depends on the PG provider contract"
+      }
+     ]
+    },
+    {
+     "section_id": "s_act",
+     "heading": "Actions",
+     "binding": "actions",
+     "items": []
+    },
+    {
+     "section_id": "s_note",
+     "heading": "Notes",
+     "binding": "notes",
+     "items": []
+    }
+   ]
+  }
+ },
+ "conflicts": [],
+ "tickets": [],
+ "provenance": {}
+}
