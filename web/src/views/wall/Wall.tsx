@@ -1,6 +1,7 @@
 // 결정 벽 무대(렌더 v0.4)를 WallState 하나로 그린다. DOM 구조와 클래스는 시안과 같게 둔다(wall.css가 원문 그대로라서).
 // author: ProfessionalSeaweedDevourer
 import { createContext, Fragment, useContext, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { MoaiStatic } from "../brand/Moai";
 import type { CardA, CardB, CardBMsg, CellKey, CellVal, Chip, DocRow, EndCard, Rich, WallState } from "./types";
 
 const Lit = createContext<Set<string>>(new Set());
@@ -192,7 +193,8 @@ function CardAEl({ a }: { a: CardA | null }) {
 
 // ------------------------------------------------------------------ 카드 B
 
-function Flap({ word, off, animate }: { word: string; off: number[]; animate: boolean }) {
+/** `after`: the MOAI status light, placed right after the nine cells (moai.css #flap .moai-light). */
+function Flap({ word, off, animate, after }: { word: string; off: number[]; animate: boolean; after?: ReactNode }) {
   const prev = useRef<string>(word);
   const gen = useRef(0);
   const changed = prev.current !== word;
@@ -212,6 +214,7 @@ function Flap({ word, off, animate }: { word: string; off: number[]; animate: bo
                style={flip ? { animationDelay: `${j * 35}ms` } : undefined}>{ch}</div>
         );
       })}
+      {after}
     </div>
   );
 }
@@ -310,10 +313,10 @@ function Msg({ m }: { m: CardBMsg }) {
   }
 }
 
-function CardBEl({ b, animate }: { b: CardB; animate: boolean }) {
+function CardBEl({ b, animate, moai }: { b: CardB; animate: boolean; moai?: ReactNode }) {
   return (
     <div id="cardB" className={b.take ? `take ${b.take}` : ""}>
-      <Flap word={b.flap} off={b.off ?? []} animate={animate} />
+      <Flap word={b.flap} off={b.off ?? []} animate={animate} after={moai} />
       <div id="bside">{b.side ?? ""}</div>
       <div id="bmsg"><Msg m={b.msg} /></div>
     </div>
@@ -334,7 +337,8 @@ const GL: Record<string, ReactNode> = {
 
 // 실화면 조작: 마이크 표지, 임시 채팅(발화 줄 자리에 입력칸, 마이크 없이 시험용)
 export interface LiveCtl { mic: boolean; onMic: () => void; gesture: boolean; onGesture: () => void; /* hs: 제스처 토글 */ connected: boolean; typing: boolean; onType: () => void; onSay: (text: string) => void; onTypeEnd: () => void;
-  /** 입력칸 안내 문구, 서버 모드(MOCK, LIVE: 비용 여부 표시) */ hint?: string; mode?: string }
+  /** 입력칸 안내 문구, 서버 모드(MOCK, LIVE: 비용 여부 표시) */ hint?: string; mode?: string;
+  /** MOAI 상태 표시등(마스코트). 글자판(플립) 9칸 바로 옆에 선다. 단어는 글자판이 이미 말한다. */ status?: ReactNode }
 
 export function Wall({ w, band, animate, onOpenMinutes, live }: { w: WallState; band: boolean; animate: boolean; onOpenMinutes?: () => void; live?: LiveCtl }) {
   const lit = new Set(w.lit);
@@ -372,7 +376,7 @@ export function Wall({ w, band, animate, onOpenMinutes, live }: { w: WallState; 
           {(w.idle ?? ["No open question.", "Listening and writing to the WBS."]).map((l, i) => <Fragment key={i}>{i > 0 && <br />}{l}</Fragment>)}
         </div>
         <CardAEl a={w.cardA} />
-        <CardBEl b={w.cardB} animate={animate} />
+        <CardBEl b={w.cardB} animate={animate} moai={live ? live.status : w.moai && <MoaiStatic state={w.moai} word={false} />} />
 
         <div id="dp">
           <div><div className="dph">Decided<span className="n" id="hDec">{w.decidedMarks.length}</span></div>

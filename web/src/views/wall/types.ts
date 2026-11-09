@@ -1,5 +1,6 @@
 // 결정 벽(렌더 v0.4) 화면의 뷰 모델. 장면 견본(scenes.ts)과 실시간 이벤트(live.ts)가 모두 이 모양을 만든다.
 // author: ProfessionalSeaweedDevourer
+import type { MoaiState } from "../brand/moaiState";
 
 /** 글 조각: 문자열, 출처 줄 참조(L6), 굵게, 빨강, 칩. */
 export type Seg =
@@ -84,6 +85,8 @@ export interface Utter { line: string; who: string; text: string }
 
 export interface WallState {
   mark: string;
+  /** MOAI status light in #mark for scripted scenes; when set it replaces the mark text. */
+  moai?: MoaiState;
   slots: SlotState[];
   decided: number; total: number;
   /** 머리줄 진행 문구. 없으면 'N of M decided'. */

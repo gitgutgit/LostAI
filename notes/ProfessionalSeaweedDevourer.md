@@ -1,6 +1,6 @@
 # Note: 주현 (ProfessionalSeaweedDevourer), 기능 서브, 서버 UI 서브
 
-> 마지막 업데이트: 2026-11-09 13:55
+> 마지막 업데이트: 2026-11-09 14:10
 > 한 줄 상태: 🟢 진행 중: 입장 화면과 입장 뒤 회의 화면이 모두 창 전체를 차지하는 렌더 v0.4 무대가 됐다(벽 밖 조작 띠 없음). 서버 상태 대 화면 27/27 유지
 > 실행: `uv run pytest -q`, `uv run python -m server.replay fixtures/sample_sprint.jsonl`, 모드: MOCK
 
@@ -31,6 +31,11 @@
   - [x] 시험: `tests/test_vote_trigger.py`(판정 사례, 한 회의 두 번 표결), 전체 108개 MOCK 통과
   - [x] 코드 리뷰 반영: '투표하지 말죠', '투표 결과 뭐였지?'는 표결 부르기 아님, 변경 실패면 표결 안 엶, 표결 중 '2번에 투표할게요'와 'I vote 2'는 한 표, 'No one.'은 표 아님, 선택지 1개 카드는 주장을 지우지 않고 반대만 붙임
   - [ ] 남은 것: 서술형 고르기('화요일에 할지 목요일에 할지 아직 안 정했잖아요')를 라우터가 가끔 ignore → 다음 '투표하죠'가 LLM 길로 가 2초(결과는 맞음). 'Honestly they all work. Let's vote.'처럼 군말이 긴 부르기도 LLM 길
+- [ ] [서버 UI] (P1) MOAI 로고, 마스코트 반영 (시작: 11:46, 브랜치 `ProfessionalSeaweedDevourer/brand-moai`, 그 위 `brand-moai-wall`)
+  - [x] 브랜드 기본기(brand-moai): 마스코트 컴포넌트 `web/src/views/brand/`, 입장 화면 오른쪽 위 워드마크, 탭 제목 MOAI, 파비콘. 라이트판만(다크판은 저우선, Eric 12:53)
+  - [x] 결정 벽 상태 표시등(brand-moai-wall): 마스코트가 글자판(플립) 9칸 바로 옆에 선다(Eric 13:07, 처음엔 오른쪽 위 마이크 단추 안이었음). 마이크 꺼짐 = 헤드폰 없는 흐린 석상. 무대 전체 카드에서는 함께 커지고, 남색 카드에서는 상태 색 석상. 렌더 v0.4 원본 먼저 고침. live.ts, wall.css 는 안 건드림(#19와 겹침 회피)
+  - [x] 판정: 장면 22장 앱 대 새 원본 0화소, 바뀐 곳은 플립 옆 마스코트 상자 안뿐. 표시등 대 벽 카드 54개 상태 불일치 0(`web/scripts/moai_wall_check.ts`)
+  - [x] push, draft PR #40 (Eric 14:03 허가, 두 브랜치를 한 PR로). main의 #39(회의 화면 장면 전환)와 겹친 LiveWallView 한 줄은 둘 다 살림. 기획과 숫자: `web/design/brand/` 반영 계획 11절
 - [ ] [서버 UI] (P0) 결정 벽 화면 = 렌더 v0.4 그대로 (시작: 10:38, 브랜치 `ProfessionalSeaweedDevourer/minutes-card`)
   - [x] 시안 CSS 원문 이식 `web/src/views/wall/wall.css`, 뷰 모델 `types.ts`, 무대 `Wall.tsx`, 장면 11개 `scenes.ts`, 화면 `WallView.tsx`
   - [x] `?view=wall`이면 공용 styles.css를 싣지 않게 `web/src/main.tsx` 분기
