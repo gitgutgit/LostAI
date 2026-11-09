@@ -13,9 +13,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from server.room import Room
 
-OPEN_WINDOW_SEC = 2.0
-QUIET_CLOSE_SEC = 5.0
-VOICE_OPEN_SEC = 20.0  # ep: 말로 연 표결의 첫 마감 시한
+OPEN_WINDOW_SEC = 4.0   # gitgutgit 11-09: 2초 → 4초 (표결 시간 2배)
+QUIET_CLOSE_SEC = 10.0  # 5초 → 10초
+VOICE_OPEN_SEC = 40.0  # ep: 말로 연 표결의 첫 마감 시한
 RATINGS = {3: "좋음", 2: "보통", 1: "싫음"}  # gitgutgit: 찬반 카드의 손가락 수 → 뜻
 _AGAINST = {"반대", "no"}
 # 찬반 카드에서 말 한마디로 한 표. 영어 회의(기본)와 한국어 회의 둘 다. 문장 전체가 이 말일 때만 센다.
@@ -79,7 +79,7 @@ class Votes:
             self.vote_id = f"v{len(room.events) + 1}"
             # TODO(P2): 직전 대사로 질문을 LLM이 비동기로 만든다. 지금은 가장 최근 열린 질문(없으면 None).
             question = self._set_mode(room, None)
-            await room.emit("vote.opened", "server", {"vote_id": self.vote_id}, {"question": question})
+            await room.emit("vote.opened", "server", {"vote_id": self.vote_id}, {"question": question, "closes_in": QUIET_CLOSE_SEC})
             for k, (m, _) in self.pending.items():
                 if self.valid(m):
                     await self._cast(room, k, m)
@@ -95,7 +95,7 @@ class Votes:
             return False
         self.vote_id = f"v{len(room.events) + 1}"
         self._set_mode(room, question)
-        await room.emit("vote.opened", by, {"vote_id": self.vote_id}, {"question": question})
+        await room.emit("vote.opened", by, {"vote_id": self.vote_id}, {"question": question, "closes_in": VOICE_OPEN_SEC})
         self._closer = asyncio.create_task(self._close_later(room, VOICE_OPEN_SEC))
         return True
 
@@ -108,7 +108,8 @@ class Votes:
         if not self.valid(n):
             return
         self.cast[who] = n
-        await room.emit("vote.cast", who, {"vote_id": self.vote_id}, {"value": n})
+        # closes_in: 이 표로 마감 시계가 다시 시작된다 → 화면이 남은 초를 숫자로 보인다
+        await room.emit("vote.cast", who, {"vote_id": self.vote_id}, {"value": n, "closes_in": QUIET_CLOSE_SEC})
         if self._closer:
             self._closer.cancel()
         self._closer = asyncio.create_task(self._close_later(room))

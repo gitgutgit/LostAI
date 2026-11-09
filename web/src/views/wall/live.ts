@@ -83,7 +83,7 @@ export function lastVoteSeq(v: RoomView): number {
 }
 
 /** hideTakeUpTo: 이 seq까지의 표결 이벤트로 생긴 전체화면 표결 화면은 닫힌 것으로 보고 평소 카드로 그린다 (평상시 화면 버튼, 5초 카운트다운). */
-export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseUpTo = -1): WallState {
+export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseUpTo = -1, voteLeftSec?: number | null): WallState {
   const s = v.state;
   const lines = lineIndex(v.events);
   const L = (ch?: Change | null) => (ch?.utt_id && lines.get(ch.utt_id) ? `L${lines.get(ch.utt_id)!.n}` : "");
@@ -279,7 +279,11 @@ export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseU
     const cast = v.events.filter((e) => e.type === "vote.cast" && e.refs.vote_id === vOpen!.refs.vote_id).length;
     const vq = cardOf(vOpen!);
     const prompt = isRatingCard(vq) ? RATING_PROMPT : `Pick a number: ${valuesFor(vq).map((n) => `${n} ${optName(vq, n)}`).join(", ")}. Show fingers, or say "two" or "option two" (2번).`;
-    cardB = { flap: "3 2 1", off: [0, 4], take: "count", msg: { kind: "countdown", q: vq ? qOf(vq) : "Q", title: vq?.topic ?? "Vote", prompt: `${prompt} ${cast} read.` } };
+    // gitgutgit: 남은 초를 글자판에 숫자로 (서버가 준 closes_in 기준). 모르면 예전처럼 "3 2 1".
+    const left = voteLeftSec != null ? Math.max(0, voteLeftSec) : null;
+    cardB = left != null
+      ? { flap: String(left), take: "count", msg: { kind: "countdown", q: vq ? qOf(vq) : "Q", title: vq?.topic ?? "Vote", prompt: `${prompt} ${cast} read. Closes in ${left}s.` } }
+      : { flap: "3 2 1", off: [0, 4], take: "count", msg: { kind: "countdown", q: vq ? qOf(vq) : "Q", title: vq?.topic ?? "Vote", prompt: `${prompt} ${cast} read.` } };
   } else if (vClosed && tally((vClosed.payload.votes ?? {}) as Record<string, number>, valuesFor(cardOf(vClosed))).votes.length === 0 && (!lastAgent || vClosed.seq > lastAgent.seq)) {
     const vq = cardOf(vClosed);
     cardB = { flap: "NO VOTE", msg: { kind: "headline", big: ["No hands read"], sub: [`${isRatingCard(vq) ? RATING_PROMPT : "Show fingers or say a number."} Then call the vote again.`], subTop: 4 } };

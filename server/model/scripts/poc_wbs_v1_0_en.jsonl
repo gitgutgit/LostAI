@@ -8,7 +8,7 @@
 {"speaker": "Haeun", "gesture": "Fingers_2"}
 {"speaker": "Junho", "gesture": "Fingers_1"}
 {"speaker": "Mina", "gesture": "Fingers_1"}
-{"wait": 9}
+{"wait": 14}
 {"speaker": "Junho", "text": "Running them together would get us to launch three days earlier."}
 {"speaker": "Haeun", "text": "But mixing them corrupts the payment test data, so we couldn't trust the load results."}
 {"speaker": "Jiwon", "text": "Let's vote again."}
@@ -16,7 +16,7 @@
 {"speaker": "Haeun", "gesture": "Fingers_2"}
 {"speaker": "Mina", "gesture": "Fingers_2"}
 {"speaker": "Junho", "text": "Two."}
-{"wait": 9}
+{"wait": 14}
 {"speaker": "Jiwon", "text": "Great. Performance testing goes after integration testing. That's decided."}
 {"speaker": "Junho", "text": "Please add a new task row: payment webhook handling, backend, owner Junho, three days."}
 {"speaker": "Mina", "text": "Then launch moves to January 21st, but the marketing campaign starts January 14th."}

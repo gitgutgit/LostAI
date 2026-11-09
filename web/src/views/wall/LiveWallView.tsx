@@ -117,6 +117,14 @@ export function LiveWallView({ me }: { me?: string }) {
   const lastVoteEv = [...v.events].reverse().find((e) => e.type === "vote.opened" || e.type === "vote.closed");
   const voteOpen = lastVoteEv?.type === "vote.opened";
   const [camErr, setCamErr] = useState("");
+  // gitgutgit: 표결 남은 초 — 마지막 표결 이벤트(vote.opened/cast)를 받은 순간부터 그 이벤트의 closes_in을 센다
+  const lastVoteTick = [...v.events].reverse().find((e) => e.type === "vote.opened" || e.type === "vote.cast" || e.type === "vote.closed");
+  const seen = useRef<{ seq: number; at: number }>({ seq: -1, at: 0 });
+  if (lastVoteTick && lastVoteTick.seq !== seen.current.seq) seen.current = { seq: lastVoteTick.seq, at: Date.now() };
+  const [, setTick] = useState(0);
+  useEffect(() => { if (!voteOpen) return; const t = setInterval(() => setTick((n) => n + 1), 500); return () => clearInterval(t); }, [voteOpen]);
+  const closesIn = voteOpen && lastVoteTick?.type !== "vote.closed" ? Number(lastVoteTick?.payload.closes_in) : NaN;
+  const voteLeftSec = Number.isFinite(closesIn) ? Math.ceil(closesIn - (Date.now() - seen.current.at) / 1000) : null;
   useGesture(() => document.getElementById("livewrap"), gesture || voteOpen, () => setGesture(false),
     { voteOnly: voteOpen, onCamera: (s) => setCamErr(s.ok ? "" : s.reason) });
 
@@ -135,7 +143,7 @@ export function LiveWallView({ me }: { me?: string }) {
   }, []);
 
   if (!v.state) return <FitStage><div id="stage"><div className="head" style={{ left: 24 }}>Connecting…</div></div></FitStage>;
-  const w0 = liveWall(v, me, hideTakeUpTo, closeSeq < hideCloseUpTo ? -1 : hideCloseUpTo);
+  const w0 = liveWall(v, me, hideTakeUpTo, closeSeq < hideCloseUpTo ? -1 : hideCloseUpTo, voteLeftSec);
   const isClosed = w0.cardB.take === "navy end";
   const qKey = w0.cardA ? `${w0.cardA.q} ${w0.cardA.title}` : "";
   const qHidden = !!qKey && qKey === hiddenQ && !w0.cardB.take;
