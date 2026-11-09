@@ -1,5 +1,5 @@
 // B 화면: 캔버스 하나 (보드·노트 탭) + 타임라인 (ARCHITECTURE 7절).
-import { useRef, useState } from "react"; // hs: useEffect, useMemo 제거 (useGesture로 이동)
+import { useMemo, useRef, useState } from "react"; // hs: useEffect 제거 (useGesture로 이동). useMemo는 STT 키 보정용
 import { AgentStatus } from "../../components/AgentStatus";
 import { ChangeCard } from "../../components/ChangeCard";
 import { DocLinks } from "../../components/DocLinks";
@@ -8,6 +8,7 @@ import { DocView } from "../../components/DocView";
 import { SheetView } from "../../components/SheetView";
 import { cellIndex, docTabCounts, timeline } from "../../core/viewmodels";
 import { useRoom } from "../../core/store";
+import { send } from "../../core/ws"; // 입력창 (#20에서 import가 빠져 send is not defined)
 import { useGesture } from "../../capture/gestures/useGesture"; // hs: 제스처 커스텀 훅
 import { startStt, sttStatusText, type SttStatus } from "../../capture/stt";
 import { normalizeTranscript, ticketKeys } from "../../capture/normalize";
