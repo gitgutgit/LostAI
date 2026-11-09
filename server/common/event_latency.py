@@ -8,7 +8,8 @@
 - proc_to_applied: 처리 시작 → change.applied               (대기를 뺀 순수 처리 = 라우터 + 에디터 + 적용)
 - route / edit / apply : change.latency_ms 단계값 (pipeline·ChangeManager가 잰 것)
 - sync_<대상>   : sync.ok payload.ms (Google 호출 자체)
-STT 시간(말 끝 → 브라우저 final)은 서버 로그에 없다 → 화면 쪽에서 따로 잰다.
+- stt_interim_to_final: 같은 사람의 첫 utterance.interim → utterance.final (≈ 말하는 시간 + Chrome이 말 끝을 판정하는 대기)
+  말 끝 → final 만 따로 떼어 내는 값은 서버 로그에 없다 (브라우저가 말 끝 시각을 안 알려 준다).
 
     uv run python -m server.common.event_latency results/events_main_1109_140000.jsonl
 """
@@ -33,14 +34,21 @@ def per_utterance(events: Iterable[Any]) -> list[dict[str, Any]]:
     """발화 하나당 한 줄. 변경이 없던 발화(ignore·ask)도 라우터 시간은 남긴다."""
     rows: dict[str, dict[str, Any]] = {}
     order: list[str] = []
+    first_interim: dict[str, float] = {}  # 사람별 이번 발화의 첫 interim 시각
     for raw in events:
         e = _d(raw)
         refs, p, t, ts = e.get("refs") or {}, e.get("payload") or {}, e["type"], e["ts"]
+        if t == "utterance.interim":
+            first_interim.setdefault(str(e.get("actor")), ts)
+            continue
         uid = refs.get("utt_id")
         if not uid:
             continue
         if t == "utterance.final":
             rows[uid] = {"utt_id": uid, "text": p.get("text", ""), "t0": ts, "synced": {}}
+            t_int = first_interim.pop(str(e.get("actor")), None)
+            if t_int is not None:
+                rows[uid]["stt_interim_to_final"] = round((ts - t_int) * 1000)
             order.append(uid)
             continue
         r = rows.get(uid)
