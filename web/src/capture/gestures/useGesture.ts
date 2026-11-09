@@ -6,7 +6,7 @@ import { isShared, HOLD_MS } from "./modes";
 import { Viewport } from "./viewport";
 import { send } from "../../core/ws";
 
-const THUMB_DOWN_OFF_MS = 3000; // hs: Thumb_Down 3초 유지 → Gesture Off
+const FIST_OFF_MS = 2000; // hs: Closed_Fist 2초 유지 → Gesture Off
 
 /**
  * hs: 제스처 제어 훅. enabled가 true일 때만 카메라+엔진+포인터+줌이 동작한다.
@@ -90,8 +90,8 @@ export function useGesture(getEl: () => HTMLElement | null, enabled = true, onDi
         viewport.setPointer(f.pointer, now);
       }
 
-      // hs: Thumb_Down 3초 유지 → Gesture Off + 화면 디폴트 사이즈
-      if (f.gesture === "Thumb_Down" && f.hold_ms >= THUMB_DOWN_OFF_MS && onDisable) {
+      // hs: Closed_Fist 2초 유지 → Gesture Off + 화면 디폴트 사이즈
+      if (f.gesture === "Closed_Fist" && f.hold_ms >= FIST_OFF_MS && onDisable) {
         viewport.resetScale();
         viewport.showCursor(false);
         onDisable();
