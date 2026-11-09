@@ -13,7 +13,7 @@ const ROLE: Record<"w" | "t" | "o" | "s" | "e" | "d" | "st", RegExp> = {
   o: /^(owner|assignee|담당|담당자)$/i,
   s: /^(start|시작|시작일)$/i,
   e: /^(end|due|종료|끝|마감|종료일)$/i,
-  d: /^(days|estimate|추정|기간|일수|포인트)$/i,
+  d: /^(days|duration( \(days\))?|estimate|추정|기간(\(일\))?|일수|포인트)$/i,
   st: /^(state|status|상태|진척)$/i,
 };
 const KEYS = ["w", "t", "o", "s", "e", "d", "st"] as const;
