@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 OPEN_WINDOW_SEC = 4.0   # gitgutgit 11-09: 2초 → 4초 (표결 시간 2배)
 QUIET_CLOSE_SEC = 10.0  # 5초 → 10초
+MIN_OPEN_SEC = 20.0     # gitgutgit 11-09: 사람이 카메라를 켜고 손을 들 시간. 이 안에는 표가 들어와도 마감하지 않는다
 ALL_IN_CLOSE_SEC = 2.0  # gitgutgit 11-09: 입장한 사람이 모두 냈으면 화면에 ✓를 보일 만큼만 기다리고 마감
 VOICE_OPEN_SEC = 40.0  # ep: 말로 연 표결의 첫 마감 시한
 RATINGS = {3: "좋음", 2: "보통", 1: "싫음"}  # gitgutgit: 찬반 카드의 손가락 수 → 뜻
@@ -37,7 +38,8 @@ class Votes:
         self.vote_id: str | None = None
         self.cast: dict[str, int] = {}
         self._closer: asyncio.Task | None = None
-        self.deadline: float | None = None  # gitgutgit: 마감 시각(monotonic). 표가 들어와도 앞당기지 않는다
+        self.deadline: float | None = None  # gitgutgit: 마감 시각(monotonic)
+        self.opened_at = 0.0
         self.mode = "rating"          # "rating"(3·2·1) | "options"(1~N)
         self.max_option = 3
 
@@ -81,7 +83,7 @@ class Votes:
             self.vote_id = f"v{len(room.events) + 1}"
             # TODO(P2): 직전 대사로 질문을 LLM이 비동기로 만든다. 지금은 가장 최근 열린 질문(없으면 None).
             question = self._set_mode(room, None)
-            await room.emit("vote.opened", "server", {"vote_id": self.vote_id}, {"question": question, "closes_in": self._arm(room, QUIET_CLOSE_SEC)})
+            await room.emit("vote.opened", "server", {"vote_id": self.vote_id}, {"question": question, "closes_in": self._open_clock(room, QUIET_CLOSE_SEC)})
             for k, (m, _) in self.pending.items():
                 if self.valid(m):
                     await self._cast(room, k, m)
@@ -95,7 +97,7 @@ class Votes:
             return False
         self.vote_id = f"v{len(room.events) + 1}"
         self._set_mode(room, question)
-        await room.emit("vote.opened", by, {"vote_id": self.vote_id}, {"question": question, "closes_in": self._arm(room, VOICE_OPEN_SEC)})
+        await room.emit("vote.opened", by, {"vote_id": self.vote_id}, {"question": question, "closes_in": self._open_clock(room, VOICE_OPEN_SEC)})
         return True
 
     async def cast_by_voice(self, room: "Room", who: str, n: int) -> None:
@@ -108,25 +110,29 @@ class Votes:
             return
         self.cast[who] = n
         # gitgutgit 11-09: 예전에는 표 하나마다 마감을 '지금부터 10초'로 다시 걸어서, 말로 연 40초 표결이
-        # 대본 화자들의 첫 표에 10초로 줄어 사람이 손을 들기 전에 끝났다. 이제 마감은 늦출 수만 있다.
-        # 입장한 사람(room.participants)이 모두 냈으면 ALL_IN_CLOSE_SEC 뒤에 바로 마감한다.
+        # 대본 화자들의 첫 표에 10초로 줄어 사람이 손을 들기 전에 끝났다.
+        # 이제: 열린 뒤 MIN_OPEN_SEC 안에는 마감하지 않고, 그 뒤로는 마지막 표 QUIET_CLOSE_SEC 뒤 마감.
+        # 입장한 사람(room.participants)이 모두 직접 냈으면 ALL_IN_CLOSE_SEC 뒤 바로 마감.
+        now = time.monotonic()
         people = set(getattr(room, "participants", {}) or {})
         if people and people <= set(self.cast):
-            left = self._arm(room, ALL_IN_CLOSE_SEC, shorten=True)
+            at = now + ALL_IN_CLOSE_SEC
         else:
-            left = self._arm(room, QUIET_CLOSE_SEC)
-        await room.emit("vote.cast", who, {"vote_id": self.vote_id}, {"value": n, "closes_in": left})
+            at = max(now + QUIET_CLOSE_SEC, self.opened_at + MIN_OPEN_SEC)
+        await room.emit("vote.cast", who, {"vote_id": self.vote_id}, {"value": n, "closes_in": self._set_deadline(room, at)})
 
-    def _arm(self, room: "Room", at_least: float, shorten: bool = False) -> float:
-        """마감 시각을 '지금 + at_least' 이후로 맞추고 남은 초를 돌려준다. shorten이면 앞당기는 것도 허용."""
+    def _open_clock(self, room: "Room", wait: float) -> float:
+        self.opened_at = time.monotonic()
+        return self._set_deadline(room, self.opened_at + wait)
+
+    def _set_deadline(self, room: "Room", at: float) -> float:
+        """마감 시각을 at(monotonic)으로 다시 걸고 남은 초를 돌려준다."""
         now = time.monotonic()
-        want = now + at_least
-        if self.deadline is None or shorten or want > self.deadline:
-            self.deadline = want
-            if self._closer:
-                self._closer.cancel()
-            self._closer = asyncio.create_task(self._close_later(room, self.deadline - now))
-        return round(self.deadline - now, 1)
+        self.deadline = at
+        if self._closer:
+            self._closer.cancel()
+        self._closer = asyncio.create_task(self._close_later(room, max(0.0, at - now)))
+        return round(at - now, 1)
 
     async def _close_later(self, room: "Room", wait: float = QUIET_CLOSE_SEC) -> None:
         await asyncio.sleep(wait)

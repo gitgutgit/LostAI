@@ -133,15 +133,16 @@ def test_second_vote_opens_on_the_new_question():
     assert len(qs) == 2 and qs[0] != qs[1] and "화요일" in qs[1]
 
 
-def test_vote_deadline_never_shrinks_and_closes_when_all_in():
-    """gitgutgit 11-09: 말로 연 40초 표결이 첫 표에 10초로 줄던 문제. 마감은 늦출 수만 있고, 입장한 사람이 모두 내면 바로 마감."""
+def test_vote_gives_people_time_and_closes_when_all_in():
+    """gitgutgit 11-09: 말로 연 40초 표결이 대본 화자의 첫 표에 10초로 줄던 문제.
+    열린 뒤 MIN_OPEN_SEC 안에는 마감하지 않고, 입장한 사람이 모두 직접 내면 바로 마감."""
     import asyncio
 
-    from server.gestures.votes import ALL_IN_CLOSE_SEC, VOICE_OPEN_SEC, Votes
+    from server.gestures.votes import ALL_IN_CLOSE_SEC, MIN_OPEN_SEC, Votes
 
     class FakeRoom:
         def __init__(self):
-            self.events, self.participants, self.state = [], {"Jiwon": {}, "Mina": {}}, None
+            self.events, self.participants, self.state = [], {"Jiwon": {}, "Junho": {}}, None
 
         async def emit(self, type_, actor, refs=None, payload=None):
             self.events.append({"type": type_, "actor": actor, "payload": payload or {}})
@@ -149,17 +150,57 @@ def test_vote_deadline_never_shrinks_and_closes_when_all_in():
     async def run():
         room, v = FakeRoom(), Votes()
         await v.open_by_voice(room, "Jiwon", None)
-        await v.cast_by_voice(room, "Haeun", 2)  # 대본 화자(입장 안 함)의 표: 마감이 줄면 안 된다
-        assert room.events[-1]["payload"]["closes_in"] > VOICE_OPEN_SEC - 1
+        await v.cast_by_voice(room, "Haeun", 2)  # 대본 화자(입장 안 함)의 표
+        assert room.events[-1]["payload"]["closes_in"] >= MIN_OPEN_SEC - 1
         await v.cast_by_voice(room, "Jiwon", 3)
-        assert room.events[-1]["payload"]["closes_in"] > VOICE_OPEN_SEC - 1  # 아직 Mina가 안 냄
-        await v.cast_by_voice(room, "Mina", 1)  # 입장한 사람 모두 냄 → 곧 마감
+        assert room.events[-1]["payload"]["closes_in"] >= MIN_OPEN_SEC - 1  # Junho가 아직 안 냄
+        await v.cast_by_voice(room, "Junho", 1)  # 입장한 사람 모두 냄 → 곧 마감
         assert room.events[-1]["payload"]["closes_in"] <= ALL_IN_CLOSE_SEC
         await asyncio.sleep(ALL_IN_CLOSE_SEC + 0.3)
         assert room.events[-1]["type"] == "vote.closed"
-        assert room.events[-1]["payload"]["votes"] == {"Haeun": 2, "Jiwon": 3, "Mina": 1}
+        assert room.events[-1]["payload"]["votes"] == {"Haeun": 2, "Jiwon": 3, "Junho": 1}
 
     asyncio.run(run())
+
+
+def test_demo_waits_for_real_person_turn():
+    """gitgutgit 11-09: Jiwon이 진짜로 입장해 있으면 대본은 Jiwon 대사를 대신 말하지 않고, Jiwon이 직접 말할 때까지 기다린다."""
+    import asyncio
+    import os
+
+    os.environ.setdefault("AGENT_MODE", "MOCK")
+    from server import demo as demo_mod
+    from server.room import Room
+
+    from server.gestures.votes import votes
+
+    async def run():
+        votes.reset()  # 앞 시험이 열어 둔 표결이 남아 있으면 Jiwon 대사가 '표 차례'로 잡힌다
+        room = Room("turn-test")
+        room.start()
+        room.participants["Jiwon"] = {"verified": True}
+        d = demo_mod.Demo()
+        lines = [{"speaker": "Jiwon", "text": "Okay, let's start the weekly check."},
+                 {"speaker": "Mina", "text": "Wireframes are almost done."}]
+        task = asyncio.create_task(d._run(room, lines, speed=4.0))
+        await asyncio.sleep(1.0)
+        said = [e.actor for e in room.events if e.type == "utterance.final"]
+        assert said == [] and d.waiting_for == "Jiwon"   # 대본이 Jiwon 대신 말하지 않고, Mina도 아직
+        await room.submit_utterance("Jiwon", "Okay, let's start.")  # 진짜 Jiwon이 말함 (음성이든 타이핑이든)
+        await asyncio.wait_for(task, 10)
+        said = [e.actor for e in room.events if e.type == "utterance.final"]
+        assert said == ["Jiwon", "Mina"] and d.waiting_for is None
+
+    asyncio.run(run())
+
+
+def test_demo_turn_kinds():
+    from server.demo import turn_kind
+
+    assert turn_kind({"speaker": "Junho", "gesture": "Fingers_1"}, vote_open=True) == "vote"
+    assert turn_kind({"speaker": "Junho", "text": "Two."}, vote_open=True) == "vote"
+    assert turn_kind({"speaker": "Junho", "gesture": "Thumb_Up"}, vote_open=False) == "gesture"
+    assert turn_kind({"speaker": "Junho", "text": "Add a task row."}, vote_open=False) == "line"
 
 
 def test_leave_removes_participant_and_reconnect_rejoins():
