@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { connect } from "./core/ws";
 import { playFixture } from "./core/fixtures";
 import { JoinView } from "./views/join/JoinView";
+import { JoinProbe } from "./views/join/JoinProbe";
 import { CanvasView } from "./views/canvas/CanvasView";
 import { LiveWallView } from "./views/wall/LiveWallView";
 
@@ -15,6 +16,8 @@ const ui = params.get("ui") === "canvas" ? "canvas" : "wall";
 // 개발 서버 전용: ?as=이름 이면 손동작 관문 없이 호스트 수동 입장으로 들어간다(화면 확인, 자동 시험용). 운영 빌드에는 없다.
 const devAs = import.meta.env.DEV ? params.get("as") : null;
 let devJoinStarted = false;
+// 개발 서버 전용: ?joinprobe 면 입장 손동작 측정 화면(손동작별 신뢰도 기록, 서버 호출 없음).
+const devProbe = import.meta.env.DEV && params.has("joinprobe");
 
 export function App() {
   const [joined, setJoined] = useState(!!fixture);
@@ -39,6 +42,7 @@ export function App() {
       .then((r) => r.json()).then((r) => onJoined(devAs, r.token));
   }, [onJoined]);
 
+  if (devProbe) return <JoinProbe />;
   if (!joined) return <JoinView onJoined={onJoined} />;
   return ui === "canvas" ? <CanvasView /> : <LiveWallView me={me} />;
 }
