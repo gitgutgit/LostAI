@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { engine } from "../../capture/gestures/engine";
 import { MIN_CONFIDENCE } from "../../capture/gestures/modes";
 import { FitStage } from "../wall/FitStage";
+import { MoaiWordmark } from "../brand/Moai";
 import "./join.css";
 
 const STEP_HOLD_MS = 600;
@@ -115,7 +116,8 @@ export function JoinView({ onJoined }: { onJoined: (name: string, token: string)
           ))}
         </div>
         <div className="head" style={{ left: 1270 }}>{ch ? "Show your hand" : "Who are you?"}{ch && <span className="n">{`${Math.min(step + 1, total)} of ${total}`}</span>}</div>
-        <div id="mark">Hand check</div>
+        {/* brand in the top-right spot where the wall shows the MOAI status light after joining */}
+        <div id="mark" style={{ top: 22, color: "var(--ink)" }}><MoaiWordmark height={44} /></div>
 
         <div className="jcam">
           <video ref={video} muted playsInline />

@@ -1,0 +1,50 @@
+/* MOAI status light. The glow carries the state, and so do the face and the prop, so colour is never
+   the only signal. The statue takes the surrounding text colour and glows in the measured wall colours
+   (render v0.4). Light surfaces only: every screen that shows the statue today is the light decision wall.
+   The dark set (statue painted in its state colour) is designed but deferred, see
+   web/design/brand/moai_brand_apply_plan_ko_20261109.md section 9 and 11-9. */
+.moai-light {
+  --moai-listening: #3FC27F; /* green: listening */
+  --moai-writing: #F3C316;   /* highlighter yellow: the colour of freshly written text on the wall */
+  --moai-paused: #B3261B;    /* red: writing stopped */
+  --moai-vote: #FFFFFF;      /* white light: the room is deciding */
+  --moai-decided: #1E7B4F;   /* deep green: done */
+  display: inline-flex; align-items: center; gap: 8px;
+  font-weight: 700; white-space: nowrap;
+}
+.moai-light.off { opacity: .45; }
+.moai-word { font-size: 14px; letter-spacing: .02em; }
+
+.moai {
+  overflow: visible; color: currentColor; transition: filter .25s ease;
+  filter: drop-shadow(0 0 3px var(--moai-c)) drop-shadow(0 0 1px var(--moai-c));
+}
+.moai-wig { fill: #FFFFFF; stroke: currentColor; stroke-width: 2.4px; }
+.moai-listening { --moai-c: var(--moai-listening); }
+.moai-writing   { --moai-c: var(--moai-writing); }
+.moai-paused    { --moai-c: var(--moai-paused); }
+.moai-vote      { --moai-c: var(--moai-vote); }
+.moai-decided   { --moai-c: var(--moai-decided); }
+.moai-light.off .moai { filter: none; }
+
+/* decided: one nod, then still */
+.moai-decided { transform-origin: 50% 90%; animation: moai-nod .36s cubic-bezier(.2,.7,.2,1) 1; }
+@keyframes moai-nod { 0% { transform: rotate(0); } 45% { transform: translateY(2px) rotate(-6deg); } 100% { transform: rotate(0); } }
+@media (prefers-reduced-motion: reduce) { .moai-decided { animation: none; } .moai { transition: none; } }
+
+.moai-wordmark { display: block; }
+
+/* decision wall: the statue stands right after the nine flap cells (card B), at about two thirds of the
+   cell height. The flap word already names the state, so no word here. Positions are measured from
+   wall.css: normal card cells 56x88 end at x 556 of 626; full-stage cells 180x270 end at x 1780 of 1920;
+   navy end-card cells 66x112 end at x 1819 of 1920. */
+#flap .moai-light { align-self: center; margin-left: 4px; }
+#cardB.take #flap .moai { width: 120px; height: 120px; }
+#cardB.take.navy #flap .moai { width: 84px; height: 84px; }
+/* navy cards are a fixed dark surface: the statue takes its state colour (the designed dark set, plan
+   section 9) instead of a white statue with a glow, which was rejected (Eric 12:45) */
+#cardB.take.navy #flap .moai-light {
+  --moai-listening: #5cae82; --moai-writing: #c9a640; --moai-paused: #ec8273; --moai-vote: #a598dc; --moai-decided: #4aa877;
+}
+#cardB.take.navy #flap .moai { color: var(--moai-c); filter: drop-shadow(0 0 2px color-mix(in srgb, var(--moai-c) 45%, transparent)); }
+#cardB.take.navy #flap .moai-wig { fill: #c9c3ba; stroke: var(--navy); }
