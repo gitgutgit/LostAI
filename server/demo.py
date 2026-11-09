@@ -32,6 +32,15 @@ def script_path(seed: str) -> Path | None:
     return None
 
 
+def skip_for_real_person(room: "Room", line: dict, vote_open: bool) -> bool:
+    """gitgutgit 11-09: 대본 화자와 같은 이름으로 진짜 사람이 입장해 있으면, 그 사람의 표는 대본이 대신 내지 않는다.
+    (손가락 줄, 표결 중의 대사.) 예전에는 대본의 'Junho: Fingers_1'이 진짜 Junho의 표로 잡혀 Junho는 투표도 못 했다."""
+    if line.get("speaker") not in getattr(room, "participants", {}):
+        return False
+    g = str(line.get("gesture") or "")
+    return g.startswith("Fingers_") or (vote_open and bool(line.get("text")))
+
+
 class Demo:
     def __init__(self) -> None:
         self.task: asyncio.Task | None = None
@@ -71,14 +80,23 @@ class Demo:
 
     async def _run(self, room: "Room", lines: list[dict], speed: float) -> None:
         from server.gestures.fastpath import handle_gesture
+        from server.gestures.votes import QUIET_CLOSE_SEC, votes
         try:
             for i, line in enumerate(lines):
                 self.pos = i + 1
                 if line.get("wait"):  # gitgutgit: 화면을 보여 줄 시간(표결 결과, 끝 화면). 처리가 끝난 뒤 그만큼 쉰다
                     await room.utterance_queue.join()
-                    await asyncio.sleep(float(line["wait"]) / speed)
+                    wait = float(line["wait"])
+                    if votes.vote_id is not None:  # gitgutgit 11-09: 사람이 아직 표결 중이면 마감까지 기다린 뒤 결과를 보인다
+                        while votes.vote_id is not None:
+                            await asyncio.sleep(0.2)
+                        wait = max(3.0, wait - QUIET_CLOSE_SEC)  # wait는 '마감 10초 + 볼 시간'으로 쓰여 있다
+                    await asyncio.sleep(wait / speed)
                     if not line.get("text") and not line.get("gesture"):
                         continue
+                if skip_for_real_person(room, line, votes.vote_id is not None):
+                    log.info("demo: %s is in the room, skipping their scripted vote line", line.get("speaker"))
+                    continue
                 if line.get("gesture"):
                     await room.utterance_queue.join()  # 엄지는 직전 줄의 변경을 가리키므로 처리가 끝난 뒤에
                     await handle_gesture(room, line["speaker"], line["gesture"], 1.0, 1000)
