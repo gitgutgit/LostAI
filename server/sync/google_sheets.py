@@ -28,7 +28,8 @@ _tabs: dict[str, dict[str, int]] = {}
 
 
 def enabled() -> bool:
-    return bool(os.getenv("GOOGLE_SHEET_ID"))
+    from server.sync import google_source  # 원본 모드는 화면에서 고른 문서로도 켜진다 (.env에 ID가 없어도)
+    return bool(os.getenv("GOOGLE_SHEET_ID")) or google_source.active()
 
 
 def spreadsheet_id() -> str:

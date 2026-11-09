@@ -1,14 +1,17 @@
 // B 화면: 캔버스 하나 (보드·노트 탭) + 타임라인 (ARCHITECTURE 7절).
-import { useRef, useState } from "react"; // hs: useEffect, useMemo 제거 (useGesture로 이동)
+import { useMemo, useRef, useState } from "react"; // hs: useEffect 제거 (useGesture로 이동). useMemo는 STT 키 보정용
 import { AgentStatus } from "../../components/AgentStatus";
 import { ChangeCard } from "../../components/ChangeCard";
 import { DocLinks } from "../../components/DocLinks";
+import { DocPicker } from "../../components/DocPicker";
 import { DocView } from "../../components/DocView";
 import { SheetView } from "../../components/SheetView";
 import { cellIndex, docTabCounts, timeline } from "../../core/viewmodels";
 import { useRoom } from "../../core/store";
+import { send } from "../../core/ws"; // 입력창 (#20에서 import가 빠져 send is not defined)
 import { useGesture } from "../../capture/gestures/useGesture"; // hs: 제스처 커스텀 훅
 import { startStt, sttStatusText, type SttStatus } from "../../capture/stt";
+import { normalizeTranscript, ticketKeys } from "../../capture/normalize";
 
 /** 마이크 없이 발화를 넣는 입력창. 팀 테스트용이자 시연 때 STT 백업. */
 function UtteranceInput() {
@@ -41,6 +44,8 @@ export function CanvasView() {
   useGesture(() => canvasRef.current); // hs: 제스처 커스텀 훅 (카메라+포인터+줌 전부)
   const cells = cellIndex(v);
   const counts = docTabCounts(v, seen);
+  const keysRef = useRef(new Map<string, string[]>()); // STT 보정용 보드 티켓 키 (매 렌더 최신)
+  keysRef.current = useMemo(() => ticketKeys(v.state), [v.state]);
 
   if (!v.state) return <div className="loading">연결 중…</div>;
   const doc = v.state.docs[tab];
@@ -51,10 +56,12 @@ export function CanvasView() {
         <AgentStatus v={v} />
         <button onClick={() => {
           if (mic) { mic(); setMic(null); setInterim(""); }
-          else setMic(() => startStt({ onStatus: setStt, onInterim: setInterim }));
+          else setMic(() => startStt({ onStatus: setStt, onInterim: setInterim,
+                                       normalize: (t) => normalizeTranscript(t, keysRef.current) }));
         }}>{mic ? "🎙 끄기" : "🎙 켜기"}</button>
         <span className={`stt ${stt.kind}`}>{sttStatusText(stt)}</span>
-        <DocLinks />
+        <DocLinks refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} />
+        <DocPicker />
         {/* hs: 줌 모드 토글 버튼 제거 — PoC 방식은 제스처로 항상 동작 */}
       </header>
       <main>

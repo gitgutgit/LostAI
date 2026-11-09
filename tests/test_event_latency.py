@@ -33,3 +33,16 @@ def test_summarize_vs_goal():
     assert s["latency_ms"]["utt_to_routed"]["n"] == 2
     assert s["vs_goal"]["utt_to_applied"] == {"p50": 1900, "goal_lt": 2500, "ok": True}
     assert s["vs_goal"]["edit"]["ok"] is True and s["vs_goal"]["apply"]["ok"] is True
+
+
+def test_stt_interim_to_final():
+    log = [
+        {**ev(1, 4.0, "utterance.interim", text="추정"), "actor": "태우"},
+        {**ev(2, 4.2, "utterance.interim", text="추정"), "actor": "한서"},
+        {**ev(3, 4.5, "utterance.interim", text="추정 3"), "actor": "태우"},
+        {**ev(4, 5.2, "utterance.final", "u1", text="추정 3으로"), "actor": "태우"},
+        {**ev(5, 9.0, "utterance.final", "u2", text="입력창"), "actor": "태우"},  # interim 없음(입력창) → 값 없음
+    ]
+    rows = per_utterance(log)
+    assert rows[0]["stt_interim_to_final"] == 1200 and rows[0]["stt_endpoint"] == 700
+    assert "stt_interim_to_final" not in rows[1] and "stt_endpoint" not in rows[1]
