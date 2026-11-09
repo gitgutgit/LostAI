@@ -12,10 +12,15 @@ def is_live() -> bool:
     return os.getenv("AGENT_MODE", "MOCK").upper() == "LIVE"
 
 
+# 호출 하나가 멈추면 발화 큐 전체가 멈춘다(워커 하나가 순서대로 처리). SDK 기본값은 600초에 재시도 2회.
+LLM_TIMEOUT_SEC = 20.0
+LLM_MAX_RETRIES = 1
+
+
 @lru_cache(maxsize=1)
 def client():
     import anthropic  # LIVE일 때만 필요
-    return anthropic.AsyncAnthropic()
+    return anthropic.AsyncAnthropic(timeout=LLM_TIMEOUT_SEC, max_retries=LLM_MAX_RETRIES)
 
 
 ROUTER_MODEL = os.getenv("ROUTER_MODEL", "claude-haiku-5-5")
