@@ -1,0 +1,11 @@
+cond state      hits  answers
+A    listening  3/3 PASS  Listening intently | Now listening | Listening intently
+A    writing    3/3 PASS  Writing writing | Writing | Writing
+A    paused     3/3 PASS  Paused: conflict | Paused conflict | Paused: conflict
+A    vote       2/3 PASS  Reading votes | Collecting votes | Reading cameras
+A    decided    3/3 PASS  Decision recorded. | Decision recorded. | Decision recorded
+B    listening  3/3 PASS  Now listening | Now listening | Now listening
+B    writing    2/3 PASS  Taking notes | Parking decision | Writing notes
+B    paused     3/3 PASS  Asking question | Asking question | Asking questions.
+B    vote       0/3 fail  Reading cameras | Reading cameras | Reading cameras
+B    decided    0/3 fail  Writing notes | Writing notes | Writing notes

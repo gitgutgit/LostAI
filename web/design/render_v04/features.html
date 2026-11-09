@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>진행자 기능 넷 견본</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* 팀용 한 장: 진행자 기능 넷의 전체 모양과 줄인 모양. 각 칸은 index.html 실제 화면을 0.45배로 띄운 것 */
+:root{--wall:#CDD6D0;--ink:#17212B;--ink2:#4A5762;--yellow:#F3C316;--red:#B3261B}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#EEF0EE;color:var(--ink);font-family:'Atkinson Hyperlegible','Apple SD Gothic Neo',sans-serif;width:1920px;padding:28px 48px 40px}
+h1{font:700 44px/52px 'Barlow Condensed','Apple SD Gothic Neo',sans-serif}
+.lead{font:400 24px/34px inherit;color:var(--ink2);margin:6px 0 18px}
+.colh{display:grid;grid-template-columns:240px 1fr 1fr;gap:24px;font:700 28px/36px inherit;margin-bottom:8px}
+.row{display:grid;grid-template-columns:240px 1fr 1fr;gap:24px;padding:18px 0;border-top:3px solid var(--wall)}
+.fn{font:700 30px/38px inherit}
+.fn .o{display:block;font:400 22px/30px inherit;color:var(--ink2);margin-top:6px}
+.shot{width:774px;height:436px;overflow:hidden;position:relative;box-shadow:0 0 0 2px rgba(23,33,43,.25);background:var(--wall)}
+.shot iframe{width:1920px;height:1080px;border:0;transform:scale(.403);transform-origin:0 0;position:absolute;left:0;top:0}
+.cap{font:400 22px/30px inherit;margin-top:8px;max-width:774px}
+.cap b{font-weight:700}
+.never{width:774px;height:436px;border:3px dashed #8A959E;display:flex;align-items:center;justify-content:center;font:700 30px/40px inherit;color:var(--ink2);text-align:center}
+</style>
+</head>
+<body>
+<h1>진행자 기능 넷: 전체 모양과 줄인 모양</h1>
+<div class="lead">기획 v0.2 2.1절. 12:00에 밀리면 위에서부터 줄인다(질문 고쳐 쓰기 → 새 사실 받기 → 되받기 메모 → 유령 값은 마지막까지 남김). 각 칸은 render_v04/index.html 실제 화면.</div>
+<div class="colh"><div></div><div>전체 모양</div><div>줄인 모양</div></div>
+
+<div class="row">
+  <div class="fn">1 질문 고쳐 쓰기<span class="o">REFRAME, 빼는 순서 1번</span></div>
+  <div><div class="shot"><iframe src="index.html?shot#r1" loading="eager"></iframe></div>
+    <div class="cap">카드 A의 질문 문장을 그 자리에서 고친다(옛 문장 줄긋기, 새 문장). 두 번째에도 흩어지면 Parked, 담당 Junho.</div></div>
+  <div><div class="shot"><iframe src="index.html?shot&cut=rewrite#r1" loading="eager"></iframe></div>
+    <div class="cap">고쳐 쓰지 않는다. 두 번째 표결도 흩어지면 바로 Parked, 담당 Junho. LLM 문장 생성 1회가 빠진다.</div></div>
+</div>
+
+<div class="row">
+  <div class="fn">2 사실 점검<span class="o">FACT_CHECK, 빼는 순서 2번 (새 사실 받기만)</span></div>
+  <div><div class="shot"><iframe src="index.html?shot&fact=new#d2" loading="eager"></iframe></div>
+    <div class="cap">사실 칩(L6, L11)이 문서 칸을 켜고, 새로 나온 사실은 문서 줄기가 메모로 쓴다. <b>3.4 메모는 지어낸 예시</b>(대본에 없음).</div></div>
+  <div><div class="shot"><iframe src="index.html?shot&cut=fact#d2" loading="eager"></iframe></div>
+    <div class="cap">칩이 문서 칸을 켜기만 한다. 새 사실을 묻지도 받지도 않는다(On the table).</div></div>
+</div>
+
+<div class="row">
+  <div class="fn">3 되받기<span class="o">REVOICE, 빼는 순서 3번 (메모 쓰기만)</span></div>
+  <div><div class="shot"><iframe src="index.html?shot#s8" loading="eager"></iframe></div>
+    <div class="cap">S5에서 Junho가 엄지로 확인한 문장이 결정 뒤 3.3 칸 메모로 붙는다(Junho L7, confirmed).</div></div>
+  <div><div class="shot"><iframe src="index.html?shot&cut=revoice#s8" loading="eager"></iframe></div>
+    <div class="cap">문장 확인(엄지)은 S5에 그대로 남고, 3.3 메모는 쓰지 않는다. 문서 쓴 횟수 1 줄어듦.</div></div>
+</div>
+
+<div class="row">
+  <div class="fn">4 노선 보기(유령 값)<span class="o">COST_CARD, 끝까지 남김</span></div>
+  <div><div class="shot"><iframe src="index.html?shot#s6" loading="eager"></iframe></div>
+    <div class="cap">3.2~3.5 행 옆에 선택지별 끝 날짜. 3.5 행 01-18, 01-21은 캠페인 01-14를 깨서 빨강. 값은 cost_card(CPM) 그대로.</div></div>
+  <div><div class="never">줄이지 않는다<br>(cost_card 값만 있으면 된다)</div></div>
+</div>
+</body>
+</html>

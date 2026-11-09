@@ -1,0 +1,107 @@
+[
+ {
+  "cond": "A",
+  "state": "listening",
+  "run": 0,
+  "answer": "Listening intently",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "listening",
+  "run": 1,
+  "answer": "Listening intently",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "listening",
+  "run": 2,
+  "answer": "Writing rows",
+  "hit": false
+ },
+ {
+  "cond": "A",
+  "state": "writing",
+  "run": 0,
+  "answer": "Writing notes",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "writing",
+  "run": 1,
+  "answer": "Writing (the small figure beside the PARKED board holds a pen and notepad).",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "writing",
+  "run": 2,
+  "answer": "Taking notes",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "paused",
+  "run": 0,
+  "answer": "Asking questions",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "paused",
+  "run": 1,
+  "answer": "Asking questions",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "paused",
+  "run": 2,
+  "answer": "Asking questions",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "vote",
+  "run": 0,
+  "answer": "Reading cameras",
+  "hit": false
+ },
+ {
+  "cond": "A",
+  "state": "vote",
+  "run": 1,
+  "answer": "Reading cards",
+  "hit": false
+ },
+ {
+  "cond": "A",
+  "state": "vote",
+  "run": 2,
+  "answer": "Reading cameras",
+  "hit": false
+ },
+ {
+  "cond": "A",
+  "state": "decided",
+  "run": 0,
+  "answer": "Thumbs voting",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "decided",
+  "run": 1,
+  "answer": "Thumbs up",
+  "hit": true
+ },
+ {
+  "cond": "A",
+  "state": "decided",
+  "run": 2,
+  "answer": "Placing letters",
+  "hit": false
+ }
+]

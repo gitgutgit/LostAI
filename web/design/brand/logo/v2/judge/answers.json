@@ -1,0 +1,254 @@
+[
+ {
+  "state": "listening",
+  "size": "64",
+  "run": 0,
+  "answer": "Transcribing Speech",
+  "hit": false
+ },
+ {
+  "state": "listening",
+  "size": "64",
+  "run": 1,
+  "answer": "Typing, listening.",
+  "hit": true
+ },
+ {
+  "state": "listening",
+  "size": "64",
+  "run": 2,
+  "answer": "Transcribing Live",
+  "hit": false
+ },
+ {
+  "state": "listening",
+  "size": "32",
+  "run": 0,
+  "answer": "Taking notes",
+  "hit": false
+ },
+ {
+  "state": "listening",
+  "size": "32",
+  "run": 1,
+  "answer": "Transcribing audio",
+  "hit": false
+ },
+ {
+  "state": "listening",
+  "size": "32",
+  "run": 2,
+  "answer": "Transcribing speech",
+  "hit": false
+ },
+ {
+  "state": "writing",
+  "size": "64",
+  "run": 0,
+  "answer": "Typing, listening",
+  "hit": true
+ },
+ {
+  "state": "writing",
+  "size": "64",
+  "run": 1,
+  "answer": "Taking notes",
+  "hit": true
+ },
+ {
+  "state": "writing",
+  "size": "64",
+  "run": 2,
+  "answer": "Typing, listening",
+  "hit": true
+ },
+ {
+  "state": "writing",
+  "size": "32",
+  "run": 0,
+  "answer": "Typing notes",
+  "hit": true
+ },
+ {
+  "state": "writing",
+  "size": "32",
+  "run": 1,
+  "answer": "Reading document",
+  "hit": true
+ },
+ {
+  "state": "writing",
+  "size": "32",
+  "run": 2,
+  "answer": "Typing notes",
+  "hit": true
+ },
+ {
+  "state": "paused",
+  "size": "64",
+  "run": 0,
+  "answer": "Recording audio",
+  "hit": false
+ },
+ {
+  "state": "paused",
+  "size": "64",
+  "run": 1,
+  "answer": "Recording audio",
+  "hit": false
+ },
+ {
+  "state": "paused",
+  "size": "64",
+  "run": 2,
+  "answer": "Recording audio",
+  "hit": false
+ },
+ {
+  "state": "paused",
+  "size": "32",
+  "run": 0,
+  "answer": "Taking notes",
+  "hit": false
+ },
+ {
+  "state": "paused",
+  "size": "32",
+  "run": 1,
+  "answer": "Taking notes",
+  "hit": false
+ },
+ {
+  "state": "paused",
+  "size": "32",
+  "run": 2,
+  "answer": "Taking notes",
+  "hit": false
+ },
+ {
+  "state": "vote-wig",
+  "size": "64",
+  "run": 0,
+  "answer": "Taking notes",
+  "hit": false
+ },
+ {
+  "state": "vote-wig",
+  "size": "64",
+  "run": 1,
+  "answer": "Taking notes",
+  "hit": false
+ },
+ {
+  "state": "vote-wig",
+  "size": "64",
+  "run": 2,
+  "answer": "Taking notes",
+  "hit": false
+ },
+ {
+  "state": "vote-wig",
+  "size": "32",
+  "run": 0,
+  "answer": "Actively listening",
+  "hit": false
+ },
+ {
+  "state": "vote-wig",
+  "size": "32",
+  "run": 1,
+  "answer": "Listening actively",
+  "hit": false
+ },
+ {
+  "state": "vote-wig",
+  "size": "32",
+  "run": 2,
+  "answer": "Recording audio",
+  "hit": false
+ },
+ {
+  "state": "vote-frown",
+  "size": "64",
+  "run": 0,
+  "answer": "Listening intently",
+  "hit": false
+ },
+ {
+  "state": "vote-frown",
+  "size": "64",
+  "run": 1,
+  "answer": "Listening intently",
+  "hit": false
+ },
+ {
+  "state": "vote-frown",
+  "size": "64",
+  "run": 2,
+  "answer": "Listening quietly",
+  "hit": false
+ },
+ {
+  "state": "vote-frown",
+  "size": "32",
+  "run": 0,
+  "answer": "Actively listening",
+  "hit": false
+ },
+ {
+  "state": "vote-frown",
+  "size": "32",
+  "run": 1,
+  "answer": "Actively listening",
+  "hit": false
+ },
+ {
+  "state": "vote-frown",
+  "size": "32",
+  "run": 2,
+  "answer": "Standing by",
+  "hit": false
+ },
+ {
+  "state": "decided",
+  "size": "64",
+  "run": 0,
+  "answer": "Typing notes",
+  "hit": false
+ },
+ {
+  "state": "decided",
+  "size": "64",
+  "run": 1,
+  "answer": "Typing, approving.",
+  "hit": true
+ },
+ {
+  "state": "decided",
+  "size": "64",
+  "run": 2,
+  "answer": "Typing, approving.",
+  "hit": true
+ },
+ {
+  "state": "decided",
+  "size": "32",
+  "run": 0,
+  "answer": "Taking notes",
+  "hit": false
+ },
+ {
+  "state": "decided",
+  "size": "32",
+  "run": 1,
+  "answer": "Taking notes",
+  "hit": false
+ },
+ {
+  "state": "decided",
+  "size": "32",
+  "run": 2,
+  "answer": "Taking notes",
+  "hit": false
+ }
+]

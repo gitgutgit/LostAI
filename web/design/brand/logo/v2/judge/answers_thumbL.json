@@ -1,0 +1,44 @@
+[
+ {
+  "state": "decided",
+  "size": "64",
+  "run": 0,
+  "answer": "Thumbs Up",
+  "hit": true
+ },
+ {
+  "state": "decided",
+  "size": "64",
+  "run": 1,
+  "answer": "Thumbs up",
+  "hit": true
+ },
+ {
+  "state": "decided",
+  "size": "64",
+  "run": 2,
+  "answer": "Thumbs Up",
+  "hit": true
+ },
+ {
+  "state": "decided",
+  "size": "32",
+  "run": 0,
+  "answer": "Listening intently",
+  "hit": false
+ },
+ {
+  "state": "decided",
+  "size": "32",
+  "run": 1,
+  "answer": "Taking notes",
+  "hit": false
+ },
+ {
+  "state": "decided",
+  "size": "32",
+  "run": 2,
+  "answer": "Reading Notes",
+  "hit": false
+ }
+]
