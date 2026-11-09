@@ -28,7 +28,9 @@ async def handle_gesture(room: "Room", who: str, kind: str, confidence: float, h
         if kind == "Thumb_Up":
             await room.changes.approve(target.change_id, by=who, via="THUMB_UP")
         else:
-            await room.changes.revert(target.change_id, by=who, via="THUMB_DOWN")
+            err = await room.changes.revert(target.change_id, by=who, via="THUMB_DOWN")
+            if err:  # 손을 내렸는데 아무 일도 없어 보이지 않게 모두에게 알린다
+                await room.broadcast({"kind": "notice", "text": err})
     elif kind == "T_Shape":  # P2
         room.paused = not room.paused
         await room.emit("agent.paused" if room.paused else "agent.resumed", who, {}, {"by": who, "via": "T_SHAPE"})

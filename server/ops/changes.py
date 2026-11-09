@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import copy
+import logging
 from typing import Any, Awaitable, Callable, Literal
 
 from pydantic import BaseModel, Field
@@ -16,6 +17,8 @@ from server.ops.engine import OpError, anchors_of, apply_op, new_id, revert_diff
 
 Status = Literal["proposed", "applied", "approved", "reverted", "discarded", "failed"]
 Policy = Literal["immediate", "delayed"]
+
+log = logging.getLogger(__name__)
 
 APPROVE_WINDOW_SEC = 15.0  # 엄지 위/아래가 대상으로 삼는 최근 변경 범위
 
@@ -59,10 +62,11 @@ class ChangeManager:
         # undo_last 는 엔진 op가 아니라 상태 전이다.
         if any(o.get("op") == "undo_last" for o in ops):
             last = self.latest(statuses=("applied", "approved"))
-            if last:
-                await self.revert(last.change_id, by=requested_by, via=via)
+            err = await self.revert(last.change_id, by=requested_by, via=via) if last else "되돌릴 변경이 없어요"
             ops = [o for o in ops if o.get("op") != "undo_last"]
             if not ops:
+                if err:  # 발화 워커가 stage failed로 남긴다(조용히 done으로 끝나지 않게)
+                    raise OpError(err)
                 return last
 
         ch = Change(change_id=new_id("c"), utt_id=utt_id, requested_by=requested_by, via=via,  # type: ignore[arg-type]
@@ -90,9 +94,12 @@ class ChangeManager:
         try:
             for op in ch.ops:
                 diff += apply_op(self.state, op)
-        except OpError as e:
+        except Exception as e:  # OpError 밖의 예외(없는 문서 KeyError 등)도 반쯤 적용된 채로 두지 않는다
             self.state.__dict__.update(snapshot.__dict__)
-            ch.status, ch.error = "failed", str(e)
+            if not isinstance(e, OpError):  # 엔진이나 op 형식 문제일 수 있어 traceback을 서버 로그에 남긴다
+                log.exception("apply failed change=%s ops=%s", change_id, ch.ops)
+            ch.status = "failed"
+            ch.error = str(e) if isinstance(e, OpError) else f"{type(e).__name__}: {e}"
             await self._emit("change.failed", ch)
             return
         ch.diff, ch.targets, ch.status = diff, anchors_of(diff), "applied"
@@ -102,20 +109,26 @@ class ChangeManager:
             self.state.provenance[a] = ch.change_id
         await self._emit("change.applied", ch)
 
-    async def approve(self, change_id: str, by: str, via: str = "button") -> None:
-        ch = self.changes[change_id]
+    async def approve(self, change_id: str, by: str, via: str = "button") -> str | None:
+        """승인할 변경이 없으면 이유 문장을 돌려준다. 이미 승인됐거나 반영 전인 경우는 조용히 넘긴다."""
+        ch = self.changes.get(change_id)
+        if ch is None:  # 리셋 전 변경이나 오래된 화면의 버튼
+            return "이미 없는 변경이에요"
         if ch.status == "proposed":  # 지연 중 엄지 위 → 바로 반영
             self._cancel_timer(change_id)
             await self.apply(change_id)
         if ch.status != "applied":
-            return
+            return None
         ch.approvals.append({"by": by, "via": via, "ts": self.now()})
         ch.status = "approved"
         await self._emit("change.approved", ch)
+        return None
 
     async def revert(self, change_id: str, by: str, via: str = "button") -> str | None:
         """되돌릴 수 없으면 이유 문장을 돌려준다."""
-        ch = self.changes[change_id]
+        ch = self.changes.get(change_id)
+        if ch is None:
+            return "이미 없는 변경이에요"
         if ch.status == "proposed":
             self._cancel_timer(change_id)
             ch.status = "discarded"
@@ -127,13 +140,36 @@ class ChangeManager:
         later = [a for a in ch.targets if self.state.provenance.get(a) not in (ch.change_id, None)]
         if later:
             return "이후에 바뀐 칸이라 되돌릴 수 없어요"
-        revert_diff(self.state, ch.diff)
+        # 이 변경이 새로 만든 행, 구역 안을 이후 변경이 고쳤으면 그것부터 되돌려야 한다
+        if self._dependents(ch):
+            return "이 변경에 딸린 이후 변경을 먼저 되돌려 주세요"
+        snapshot = copy.deepcopy(self.state)
+        try:
+            revert_diff(self.state, ch.diff)
+        except Exception as e:  # 되돌리기가 반쯤 끝난 상태를 남기지 않는다
+            # 반영도 의존 검사도 통과한 뒤의 실패라 엔진 상태 불일치(버그) 신호다
+            log.exception("revert_diff failed change=%s", change_id)
+            self.state.__dict__.update(snapshot.__dict__)
+            return f"되돌릴 수 없어요 ({type(e).__name__}: {e})"
         for a in ch.targets:
             self.state.provenance.pop(a, None)
         ch.status = "reverted"
         ch.approvals.append({"by": by, "via": via, "ts": self.now(), "action": "revert"})
         await self._emit("change.reverted", ch)
         return None
+
+    def _dependents(self, ch: Change) -> list[Change]:
+        """ch가 새로 만든 앵커(diff before가 None인 행, 구역) 아래를 고친, ch보다 나중의 살아 있는 변경.
+
+        이름 바꾸기나 삭제처럼 아무것도 만들지 않은 변경은 딸린 변경이 없다.
+        """
+        created = tuple(d["anchor"] + "/" for d in ch.diff if d.get("before") is None)
+        if not created:
+            return []
+        ids = list(self.changes)  # dict는 제안 순서를 지킨다
+        return [self.changes[i] for i in ids[ids.index(ch.change_id) + 1:]
+                if self.changes[i].status in ("applied", "approved")
+                and any(t.startswith(created) for t in self.changes[i].targets)]
 
     # ---- 조회 ----
     def latest(self, statuses: tuple[str, ...] = ("applied",), within_sec: float | None = None) -> Change | None:

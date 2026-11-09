@@ -21,9 +21,19 @@ def _ms(t0: float) -> int:
 
 
 async def handle_utterance(room: "Room", ev: Event) -> None:
+    """정상으로 끝나는 모든 갈래(ignore, ask, edit, op 없음)에서 stage "done"을 한 번 보낸다.
+
+    화면 상태 칩이 routing, asking, editing에서 벗어나는 신호다. 예외(LLM 시간 초과 포함)로 끝나면
+    done 대신 발화 워커(room.py)가 stage "failed"를 보낸다.
+    done의 ms는 발화가 서버에 도착한 때(ev.ts)부터 처리가 끝날 때까지의 벽시계 시간이다(큐 대기 포함).
+    """
     utt_id, speaker, text = ev.refs.utt_id, ev.payload["speaker"], ev.payload["text"]
     refs = {"utt_id": utt_id}
     transcript = room.transcript()
+
+    async def done(label: str) -> None:
+        await room.emit("agent.progress", "agent", refs,
+                        {"stage": "done", "label": label, "ms": int((room.now() - ev.ts) * 1000)})
 
     await room.emit("agent.progress", "agent", refs, {"stage": "routing"})
     t0 = time.perf_counter()
@@ -32,7 +42,7 @@ async def handle_utterance(room: "Room", ev: Event) -> None:
     await room.emit("agent.routed", "agent", refs, {"label": label, "ms": route_ms})
 
     if label == "ignore":
-        await room.emit("agent.progress", "agent", refs, {"stage": "done", "ms": route_ms})
+        await done(label)
         return
 
     if label == "ask":
@@ -40,15 +50,15 @@ async def handle_utterance(room: "Room", ev: Event) -> None:
         t1 = time.perf_counter()
         answer, evidence = await ask(text, room.state, transcript)
         await room.emit("ask.answered", "agent", refs, {"answer": answer, "evidence_utt_ids": evidence, "ms": _ms(t1)})
+        await done(label)
         return
 
     await room.emit("agent.progress", "agent", refs, {"stage": "editing"})
     t1 = time.perf_counter()
     ops = await edit(text, speaker, room.state, transcript, label)
     edit_ms = _ms(t1)
-    if not ops:
-        await room.emit("agent.progress", "agent", refs, {"stage": "done", "ms": route_ms + edit_ms})
-        return
-    await room.changes.propose(ops, requested_by=speaker, utt_id=utt_id, via="voice",
-                               reason=f"{speaker}: {text[:60]}",
-                               latency_ms={"route": route_ms, "edit": edit_ms})
+    if ops:
+        await room.changes.propose(ops, requested_by=speaker, utt_id=utt_id, via="voice",
+                                   reason=f"{speaker}: {text[:60]}",
+                                   latency_ms={"route": route_ms, "edit": edit_ms})
+    await done(label)
