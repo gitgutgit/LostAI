@@ -23,7 +23,7 @@ class Room:
     def __init__(self, room_id: str = "main", seed: str | None = None):
         self.room_id = room_id
         self.seed_name = seed or os.getenv("SEED", "sprint")
-        self.t0 = time.monotonic()
+        self.t0 = time.perf_counter()  # Windows monotonic은 15.6ms 단위라 지연 측정에 부족
         self.events: list[Event] = []
         self.sockets: dict[Socket, str] = {}  # socket → 참석자 이름
         self.participants: dict[str, dict[str, Any]] = {}
@@ -42,7 +42,7 @@ class Room:
 
     # ---- 시간 ----
     def now(self) -> float:
-        return round(time.monotonic() - self.t0, 3)
+        return round(time.perf_counter() - self.t0, 3)
 
     # ---- 이벤트 ----
     async def emit(self, type_: str, actor: str, refs: dict[str, Any] | None = None,

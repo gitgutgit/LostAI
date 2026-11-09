@@ -21,8 +21,10 @@ class FakeDocsApi:
         self.tabs = [{"tabProperties": {"tabId": "t.0", "title": "Tab 1"},
                       "documentTab": {"body": {"content": [{"endIndex": 264}]}}}]
         self.batches: list[list[dict]] = []
+        self.gets = 0
 
     def get(self, documentId, includeTabsContent=False, fields=None):
+        self.gets += 1
         return FakeReq({"tabs": self.tabs})
 
     def batchUpdate(self, documentId, body):
@@ -48,6 +50,7 @@ def api(monkeypatch):
     monkeypatch.setattr(gd, "_api", lambda: fake)
     gd._tabs.clear()
     gd._item_who.clear()
+    gd._tab_end.clear()
     return fake
 
 
@@ -104,3 +107,17 @@ def test_sheet_only_change_skips_docs(api):
     s = load_seed("sprint")
     gd.push(s, "change.applied", _change(s, [{"op": "set_cell", "doc": "board", "row": "r_pay423", "column": "추정", "value": 3}]))
     assert api.batches == []
+
+
+def test_push_skips_lookup_after_first_write(api):
+    s = load_seed("sprint")
+    gd.push_all(s)
+    gets = api.gets
+    gd.push(s, "change.applied", _change(s, [{"op": "insert_item", "doc": "notes", "section": "s_risk", "text": "리스크 하나"}]))
+    gd.push(s, "change.applied", _change(s, [{"op": "add_decision", "text": "결정 하나"}], cid="ch_2"))
+    assert api.gets == gets  # 조회 없이 batchUpdate만
+    # 기억한 길이가 실제 탭 길이(가짜 API가 계산)와 같아야 지우기 범위가 맞다
+    tab = next(t for t in api.tabs if t["tabProperties"]["title"] == "회의 노트")
+    assert gd._tab_end[("DOC_ID", "회의 노트")] == tab["documentTab"]["body"]["content"][-1]["endIndex"]
+    gd.push_all(s)
+    assert api.gets == gets + 1  # 전체 동기화는 항상 다시 조회

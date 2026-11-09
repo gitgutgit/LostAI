@@ -143,12 +143,14 @@ async def links(token: str):
 
 @app.get("/api/stats")
 async def stats():
-    """말 → 화면 지연 등. 단계별 latency_ms를 모은다."""
+    """말 → 화면 / 말 → Google 문서 / 단계별 지연 (이벤트 로그 기준, server/common/event_latency.py)."""
+    from server.agent.llm import is_live
+    from server.common.event_latency import summarize
     room = get_room()
-    rows = [c.latency_ms for c in room.changes.changes.values() if c.status != "failed"]
-    from server.common.latency import percentiles
-    keys = sorted({k for r in rows for k in r})
-    return {"changes": len(rows), "latency_ms": {k: percentiles([r[k] for r in rows if k in r]) for k in keys},
+    s = summarize(room.events)
+    return {"mode": "LIVE" if is_live() else "MOCK",
+            "changes": sum(1 for c in room.changes.changes.values() if c.status != "failed"),
+            "utterances": s["utterances"], "latency_ms": s["latency_ms"], "vs_goal": s["vs_goal"],
             "events": len(room.events)}
 
 
