@@ -278,3 +278,14 @@ html.livewall,html.livewall body{height:100%;overflow:hidden;background:var(--wa
 #stage.live #gesture-toggle{font:700 28px/34px var(--text);color:var(--ink2);background:none;border:2px solid transparent;padding:4px 12px;position:absolute;top:16px;left:850px;border-radius:2px;cursor:pointer}
 #stage.live #gesture-toggle:hover{border-color:var(--ink2)}
 #stage.live #gesture-toggle.on{background:var(--ink);border-color:var(--ink);color:#fff}
+/* ep: 표 칸은 자르지 않는다. 열 폭은 live.ts가 글자에 맞춰 늘리고, 상한을 넘는 글은 칸 안에서 줄을 바꿔 행이 높아진다.
+   한글 낱말은 끊지 않고(keep-all), 띄어쓰기 없는 긴 토큰(PAY-423 같은 번호, URL)만 아무 곳에서나 끊는다. 장면 모드 화소는 건드리지 않는다 */
+#stage.live .g>*:not(.src){white-space:normal;overflow:visible;overflow-wrap:anywhere;word-break:keep-all}
+#stage.live .g:not(.colh)>*:not(.src){padding-top:6px;padding-bottom:6px}
+/* ep: 출처 칩이 칸보다 길면 칩 안에서 줄을 바꾼다 */
+#stage.live .g .src{min-width:0}
+#stage.live .g .src .chip{max-width:100%;white-space:normal;overflow-wrap:anywhere;word-break:keep-all}
+/* ep: 행이 종이 높이를 넘으면 행 목록만 세로로 스크롤한다(열 머리줄은 위에 고정). 방금 고친 행으로는 Wall.tsx가 자동으로 옮긴다 */
+#stage.live #sheet{display:flex;flex-direction:column}
+#stage.live #rows{flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;scrollbar-width:thin}
+#stage.live #rows .g.colh{position:sticky;top:0;z-index:1;background:var(--card)}
