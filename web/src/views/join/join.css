@@ -1,0 +1,26 @@
+/* 입장 화면: 렌더 v0.4 무대 규약(wall.css 토큰과 부품)을 그대로 쓴다. 좌표는 1920x1080 기준.
+   왼쪽 큰 카드 = 카메라(결정 벽의 문서 자리), 오른쪽 열 x=1270 폭 626 = 이름 또는 손동작 카드(질문 카드 자리).
+   author: ProfessionalSeaweedDevourer */
+#stage.joinwall .slot{font-size:30px}
+#stage.joinwall .jcam{position:absolute;left:24px;top:96px;width:1222px;height:964px;background:var(--card);box-shadow:0 0 0 2px rgba(23,33,43,.18);padding:16px}
+#stage.joinwall .jcam video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);background:var(--bar);display:block}
+#stage.joinwall .jcam-off{position:absolute;inset:16px;display:grid;place-items:center;background:var(--bar);font:700 44px/52px var(--disp);color:var(--ink2)}
+#stage.joinwall .jcard{position:absolute;left:1270px;top:96px;width:626px;background:var(--card);padding:20px 24px 24px;border-radius:2px;transform:rotate(-.6deg)}
+#stage.joinwall .jcard label{display:block;font:700 28px/34px var(--text);color:var(--ink2)}
+#stage.joinwall .jcard input{display:block;width:100%;margin:8px 0 20px;font:400 44px/56px var(--text);color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:2px;padding:4px 16px;outline:none}
+#stage.joinwall .jcard input:focus{box-shadow:0 0 0 4px var(--yellow)}
+#stage.joinwall .jgo{display:block;width:100%;font:700 44px/56px var(--disp);color:#fff;background:var(--ink);border:0;border-radius:2px;padding:8px 16px;cursor:pointer}
+#stage.joinwall .jgo:disabled{background:#8A959E;cursor:default}
+#stage.joinwall .jprompt{text-align:center;padding:8px 0 4px}
+#stage.joinwall .jemoji{font-size:200px;line-height:240px}
+#stage.joinwall .jlabel{font:700 56px/64px var(--disp);color:var(--ink)}
+#stage.joinwall .jbar{height:20px;background:var(--bar);margin:14px 0 0;overflow:hidden}
+#stage.joinwall .jbar>div{height:100%;transition:width 50ms linear}
+#stage.joinwall .jbar.hold>div{background:var(--green)}
+#stage.joinwall .jbar.time>div{background:var(--yellow)}
+#stage.joinwall .jrow{display:flex;align-items:center;gap:16px;margin-top:20px}
+#stage.joinwall .jtime{font:700 36px/44px var(--text);color:var(--ink2);margin-right:auto;font-variant-numeric:tabular-nums}
+#stage.joinwall .jghost{font:700 28px/34px var(--text);color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:2px;padding:6px 16px;cursor:pointer}
+#stage.joinwall .jghost:hover{background:var(--ink);color:#fff}
+#stage.joinwall .jmsg{margin-top:16px;font:700 28px/34px var(--text);color:var(--red)}
+#stage.joinwall .jfoot{position:absolute;left:1270px;top:960px;width:626px;font:400 28px/34px var(--text);color:var(--ink2)}
