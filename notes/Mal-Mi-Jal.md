@@ -30,7 +30,9 @@
   - [x] 보정: `capture/normalize.ts` 보드에 있는 키와 번호가 맞으면 '페이사이삼'·'사백이십삼' → PAY-423 (node 14케이스)
   - [x] early final: interim이 1.2초 그대로면 먼저 final, 늦은 Chrome final은 중복 안 보냄, 끊길 때 들은 데까지 보냄 (가짜 인식기 6케이스)
   - [x] 지표 `stt_endpoint` (마지막 interim → final). 1차 측정 p50 2.0초 (early final 전)
-  - [ ] 2차 실제 확인 (early final·보정 후), LIVE로 한 번
+  - [x] 2차 실제 확인(12:28 서버): **버그** '경쟁 서비스 분석 일주일만 미뤄 줘' → '줘'만 보냄. Chrome이 말하는 중인 문장을 여러 결과 칸으로 쪼개 주는데 early final이 마지막 칸만 봄
+  - [x] 고침: Chrome final 전인 칸 전부를 이어 한 덩어리로 처리 (가짜 인식기, Chrome식 쪼갠 결과 7케이스)
+  - [ ] 3차 실제 확인 → PR
 - [x] (P0) 원본 문서 직접 쓰기 — #11 merge됨 (시작: 11:48, 사용자 결정: 원본 읽기·원본 쓰기 / 리셋=회의 전 복원 / 결정·액션 섹션은 처음 기록 때 끝에 추가)
   - [x] `server/sync/google_source.py` 원본 → DocState (시트1 23행×14열, Tab 1 목표·범위·마일스톤·리스크)
   - [x] Sheets 원본 칸 단위 쓰기 (값·메모·하이라이트, 행 추가·삭제), 기존 칸 서식 보존

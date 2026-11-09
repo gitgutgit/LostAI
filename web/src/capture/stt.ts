@@ -62,22 +62,24 @@ export function startStt(opts: SttOptions = {}): () => void {
   let retry: number | undefined;
   let lastInterim = "", lastInterimAt = 0;
   const fix = opts.normalize ?? ((t: string) => t);
-  // 먼저 보낸 final: 결과 칸(resultIndex)별로 이미 보낸 원문. Chrome final이 오면 그 뒤 나머지만 보낸다.
-  let committed = new Map<number, string>();
-  let early: { timer: number; index: number; text: string } | null = null;
+  // Chrome은 말하는 중인 문장을 여러 결과 칸으로 쪼개 준다 ("서비스 분" / "석 일주일만" / "미뤄 줘").
+  // 그래서 칸별이 아니라 "아직 Chrome final이 안 된 칸 전부를 이은 글"을 한 덩어리로 다룬다.
+  // committed: 그 덩어리 중 우리가 먼저(early) final로 보낸 앞부분.
+  let committed = "";
+  let early: { timer: number; text: string } | null = null;
 
   const sendFinal = (text: string) => {
     const t = fix(text).trim();
     if (t) send({ kind: "utterance.final", payload: { text: t } });
   };
+  const clearEarly = () => { if (early) { window.clearTimeout(early.timer); early = null; } };
   const fireEarly = () => {
-    if (!early) return;
-    const { index, text } = early;
-    window.clearTimeout(early.timer);
-    early = null;
-    const rest = committed.has(index) ? afterPrefix(text, committed.get(index)!) : text;
+    const pend = early;
+    clearEarly();
+    if (!pend) return;
+    const rest = committed ? afterPrefix(pend.text, committed) : pend.text;
     if (!rest) return;
-    committed.set(index, text);
+    committed = pend.text;
     opts.onInterim?.("");
     lastInterim = "";
     sendFinal(rest);
@@ -86,36 +88,44 @@ export function startStt(opts: SttOptions = {}): () => void {
   rec.onstart = () => status({ kind: "listening" });
   rec.onresult = (e: any) => {
     failures = 0;
+    let finals = "", interim = "";
     for (let i = e.resultIndex; i < e.results.length; i++) {
       const r = e.results[i];
-      const text = r[0].transcript.trim();
-      if (!text) continue;
-      const done = committed.get(i);
-      if (r.isFinal) {
-        const pend = early;
-        if (pend && pend.index === i) { window.clearTimeout(pend.timer); early = null; }
-        committed.delete(i);
-        opts.onInterim?.("");
-        lastInterim = "";
-        // 먼저 보낸 게 있으면 그 뒤에 더 말한 부분만. Chrome이 앞부분을 고쳐 썼으면 먼저 보낸 쪽을 믿고 버린다.
-        const rest = done === undefined ? text : afterPrefix(text, done);
-        if (rest) sendFinal(rest);
-        continue;
+      if (r.isFinal) finals += r[0].transcript;
+      else interim += r[0].transcript;
+    }
+    finals = finals.trim(); interim = interim.trim();
+
+    if (finals) {
+      // Chrome이 final을 줌: 먼저 보낸 부분(committed)은 빼고 나머지만 보낸다.
+      if (!committed) sendFinal(finals);
+      else {
+        const rest = afterPrefix(finals, committed);
+        if (rest !== null) { if (rest) sendFinal(rest); committed = ""; }
+        else {
+          // 먼저 보낸 게 이 final보다 길다(뒤 interim까지 포함) → final만큼만 덜어 내고 나머지는 계속 기억
+          const left = afterPrefix(committed, finals);
+          committed = left ?? ""; // null: Chrome이 앞부분을 고쳐 씀 → 먼저 보낸 쪽을 믿고 버린다
+        }
       }
-      const pending = done === undefined ? text : afterPrefix(text, done);
-      if (!pending) continue; // 먼저 보낸 부분을 Chrome이 고쳐 쓰는 중 → 무시
-      const shown = fix(pending);
-      opts.onInterim?.(shown); // 내 화면 미리보기는 매번
-      // 서버(=이벤트 로그)에는 바뀌었을 때만, 최대 4번/초. 로그가 interim으로 넘치지 않게.
-      const now = performance.now();
-      if (shown !== lastInterim && now - lastInterimAt >= INTERIM_MIN_GAP_MS) {
-        lastInterim = shown; lastInterimAt = now;
-        send({ kind: "utterance.interim", payload: { text: shown } });
-      }
-      if (EARLY_FINAL_MS > 0) {
-        if (early) window.clearTimeout(early.timer);
-        early = { index: i, text, timer: window.setTimeout(fireEarly, EARLY_FINAL_MS) };
-      }
+      clearEarly(); // 옛 interim 기준 타이머 → 아래에서 남은 interim으로 다시 건다
+      if (!interim) { opts.onInterim?.(""); lastInterim = ""; }
+    }
+    if (!interim) return;
+
+    const pending = committed ? afterPrefix(interim, committed) : interim;
+    if (!pending) return; // 먼저 보낸 부분을 Chrome이 고쳐 쓰는 중 → 무시
+    const shown = fix(pending);
+    opts.onInterim?.(shown); // 내 화면 미리보기는 매번
+    // 서버(=이벤트 로그)에는 바뀌었을 때만, 최대 4번/초. 로그가 interim으로 넘치지 않게.
+    const now = performance.now();
+    if (shown !== lastInterim && now - lastInterimAt >= INTERIM_MIN_GAP_MS) {
+      lastInterim = shown; lastInterimAt = now;
+      send({ kind: "utterance.interim", payload: { text: shown } });
+    }
+    if (EARLY_FINAL_MS > 0) {
+      clearEarly();
+      early = { text: interim, timer: window.setTimeout(fireEarly, EARLY_FINAL_MS) };
     }
   };
   rec.onerror = (e: any) => {
@@ -130,7 +140,7 @@ export function startStt(opts: SttOptions = {}): () => void {
   };
   rec.onend = () => {
     fireEarly(); // final 없이 끊긴 말(11-09 실측에서 한 문장 잃어버림)은 지금까지 들은 걸로 보낸다
-    committed = new Map(); // 새 세션은 결과 칸 번호가 0부터
+    committed = ""; // 새 세션: 이어지는 글 없음
     if (stopped) return;
     if (failures >= MAX_FAILURES) { stopped = true; status({ kind: "error", code: `${failures}번 연속 실패, 🎙 다시 켜 주세요` }); return; }
     // Chrome은 조용하면(또는 약 1분마다) 끊는다 → 바로 다시. 오류 뒤에는 0.5·1·2·4초로 늦춘다(무한 재시작 방지).
