@@ -9,6 +9,7 @@ import { cellIndex, docTabCounts, timeline } from "../../core/viewmodels";
 import { useRoom } from "../../core/store";
 import { useGesture } from "../../capture/gestures/useGesture"; // hs: 제스처 커스텀 훅
 import { startStt, sttStatusText, type SttStatus } from "../../capture/stt";
+import { normalizeTranscript, ticketKeys } from "../../capture/normalize";
 
 /** 마이크 없이 발화를 넣는 입력창. 팀 테스트용이자 시연 때 STT 백업. */
 function UtteranceInput() {
@@ -41,6 +42,8 @@ export function CanvasView() {
   useGesture(() => canvasRef.current); // hs: 제스처 커스텀 훅 (카메라+포인터+줌 전부)
   const cells = cellIndex(v);
   const counts = docTabCounts(v, seen);
+  const keysRef = useRef(new Map<string, string[]>()); // STT 보정용 보드 티켓 키 (매 렌더 최신)
+  keysRef.current = useMemo(() => ticketKeys(v.state), [v.state]);
 
   if (!v.state) return <div className="loading">연결 중…</div>;
   const doc = v.state.docs[tab];
@@ -51,7 +54,8 @@ export function CanvasView() {
         <AgentStatus v={v} />
         <button onClick={() => {
           if (mic) { mic(); setMic(null); setInterim(""); }
-          else setMic(() => startStt({ onStatus: setStt, onInterim: setInterim }));
+          else setMic(() => startStt({ onStatus: setStt, onInterim: setInterim,
+                                       normalize: (t) => normalizeTranscript(t, keysRef.current) }));
         }}>{mic ? "🎙 끄기" : "🎙 켜기"}</button>
         <span className={`stt ${stt.kind}`}>{sttStatusText(stt)}</span>
         <DocLinks />

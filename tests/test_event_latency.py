@@ -44,5 +44,5 @@ def test_stt_interim_to_final():
         {**ev(5, 9.0, "utterance.final", "u2", text="입력창"), "actor": "태우"},  # interim 없음(입력창) → 값 없음
     ]
     rows = per_utterance(log)
-    assert rows[0]["stt_interim_to_final"] == 1200
-    assert "stt_interim_to_final" not in rows[1]
+    assert rows[0]["stt_interim_to_final"] == 1200 and rows[0]["stt_endpoint"] == 700
+    assert "stt_interim_to_final" not in rows[1] and "stt_endpoint" not in rows[1]

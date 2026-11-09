@@ -8,8 +8,9 @@
 - proc_to_applied: 처리 시작 → change.applied               (대기를 뺀 순수 처리 = 라우터 + 에디터 + 적용)
 - route / edit / apply : change.latency_ms 단계값 (pipeline·ChangeManager가 잰 것)
 - sync_<대상>   : sync.ok payload.ms (Google 호출 자체)
-- stt_interim_to_final: 같은 사람의 첫 utterance.interim → utterance.final (≈ 말하는 시간 + Chrome이 말 끝을 판정하는 대기)
-  말 끝 → final 만 따로 떼어 내는 값은 서버 로그에 없다 (브라우저가 말 끝 시각을 안 알려 준다).
+- stt_interim_to_final: 같은 사람의 첫 utterance.interim → utterance.final (≈ 말하는 시간 + 말 끝 판정 대기)
+- stt_endpoint  : 같은 사람의 마지막 utterance.interim → utterance.final (≈ 말 끝 판정 대기. 화면 early final 1.2초가 상한)
+  interim은 화면이 바뀔 때만·최대 4번/초 보내므로 마지막 단어가 들린 시각과 0.25초 안쪽으로 맞는다.
 
     uv run python -m server.common.event_latency results/events_main_1109_140000.jsonl
 """
@@ -35,11 +36,13 @@ def per_utterance(events: Iterable[Any]) -> list[dict[str, Any]]:
     rows: dict[str, dict[str, Any]] = {}
     order: list[str] = []
     first_interim: dict[str, float] = {}  # 사람별 이번 발화의 첫 interim 시각
+    last_interim: dict[str, float] = {}
     for raw in events:
         e = _d(raw)
         refs, p, t, ts = e.get("refs") or {}, e.get("payload") or {}, e["type"], e["ts"]
         if t == "utterance.interim":
             first_interim.setdefault(str(e.get("actor")), ts)
+            last_interim[str(e.get("actor"))] = ts
             continue
         uid = refs.get("utt_id")
         if not uid:
@@ -47,8 +50,10 @@ def per_utterance(events: Iterable[Any]) -> list[dict[str, Any]]:
         if t == "utterance.final":
             rows[uid] = {"utt_id": uid, "text": p.get("text", ""), "t0": ts, "synced": {}}
             t_int = first_interim.pop(str(e.get("actor")), None)
-            if t_int is not None:
+            t_last = last_interim.pop(str(e.get("actor")), None)
+            if t_int is not None and t_last is not None:
                 rows[uid]["stt_interim_to_final"] = round((ts - t_int) * 1000)
+                rows[uid]["stt_endpoint"] = round((ts - t_last) * 1000)
             order.append(uid)
             continue
         r = rows.get(uid)
