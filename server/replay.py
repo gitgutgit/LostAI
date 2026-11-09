@@ -14,7 +14,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from server.common.latency import percentiles
+from server.agent.llm import is_live
+from server.common.event_latency import summarize
 
 
 def load_script(path: Path) -> list[dict]:
@@ -43,13 +44,15 @@ async def run(path: Path, out: Path | None, realtime: bool) -> dict:
     await room.utterance_queue.join()
 
     changes = list(room.changes.changes.values())
-    keys = sorted({k for c in changes for k in c.latency_ms})
+    e2e = summarize(room.events)  # 이벤트 로그 기준 말 → 화면 (리플레이는 Google 동기화를 돌리지 않는다)
     summary = {
         "script": str(path),
-        "utterances": sum(1 for e in room.events if e.type == "utterance.final"),
+        "mode": "LIVE" if is_live() else "MOCK",
+        "utterances": e2e["utterances"],
         "routes": [e.payload["label"] for e in room.events if e.type == "agent.routed"],
         "changes": {s: sum(1 for c in changes if c.status == s) for s in {c.status for c in changes}},
-        "latency_ms": {k: percentiles([c.latency_ms[k] for c in changes if k in c.latency_ms]) for k in keys},
+        "latency_ms": e2e["latency_ms"],
+        "vs_goal": e2e["vs_goal"],
         "event_log": str(room.log_path),
     }
     if out:

@@ -3,7 +3,8 @@
 방식: 로컬 Doc(doc_key)마다 Google Doc 안의 **전용 탭 하나**(탭 제목 = Doc.title)를 통째로 미러링한다.
 - 기존 탭(사람이 쓴 계획서 등)은 건드리지 않는다. 전용 탭이 없으면 `addDocumentTab`으로 만든다.
 - 섹션 제목 = 제목 2, 항목 = 글머리 기호. 이번 change가 바꾼 항목은 노란색, 끝에 회색으로 "· 누가".
-- push 1회 = 탭 길이 조회 1회 + batchUpdate 1회 (지우기 → 쓰기 → 서식). 탭 위치는 캐시.
+- push 1회 = batchUpdate 1회 (지우기 → 쓰기 → 서식). 탭 위치·길이는 캐시, 시작·리셋·실패 뒤에만 조회.
+  사람이 전용 탭을 직접 고치면 다음 전체 동기화(시작·리셋) 때 바로잡힌다.
 - Docs 인덱스는 UTF-16 코드 단위다 (이모지는 2칸) → `_u16`.
 
 호출은 Outbox 워커 하나에서만 온다 (동시 호출 금지, docs/ARCHITECTURE.md 3-5).
@@ -26,6 +27,8 @@ GRAY = {"color": {"rgbColor": {"red": 0.55, "green": 0.55, "blue": 0.55}}}
 _item_who: dict[str, tuple[str, str]] = {}  # anchor → (who, change_id)
 # (문서 ID, 탭 제목) → tabId
 _tabs: dict[tuple[str, str], str] = {}
+# (문서 ID, 탭 제목) → 마지막으로 쓴 뒤 탭 본문 endIndex
+_tab_end: dict[tuple[str, str], int] = {}
 
 
 def enabled() -> bool:
@@ -163,13 +166,26 @@ def _tab(did: str, title: str) -> tuple[str, int]:
     return tab_id, 2
 
 
-def mirror(state: DocState, key: str, highlight: set[str] | None = None) -> None:
+def mirror(state: DocState, key: str, highlight: set[str] | None = None, fresh: bool = False) -> None:
+    """전용 탭은 우리만 쓰므로 마지막에 쓴 길이를 기억해 조회를 건너뛴다 (push 1회 = Google 호출 1회).
+    실패하면 기억을 버린다 → Outbox 재시도 때 다시 조회. 시작·리셋 전체 동기화(fresh)는 항상 조회한다."""
     doc = state.doc(key)
     did = document_id()
-    tab_id, end = _tab(did, doc.title)
+    cached = None if fresh else _tab_end.get((did, doc.title))
+    if cached and (did, doc.title) in _tabs:
+        tab_id, end = _tabs[(did, doc.title)], cached
+    else:
+        tab_id, end = _tab(did, doc.title)
     reqs = mirror_requests(doc, key, tab_id, end, highlight or set())
-    if reqs:
+    if not reqs:
+        return
+    try:
         _api().batchUpdate(documentId=did, body={"requests": reqs}).execute()
+    except Exception:
+        _tab_end.pop((did, doc.title), None)
+        raise
+    text = next((r["insertText"]["text"] for r in reqs if "insertText" in r), "")
+    _tab_end[(did, doc.title)] = 1 + _u16(text) + 1  # 본문 시작 1 + 글 + 남겨 둔 마지막 줄바꿈
 
 
 def push(state: DocState, event_type: str, change: dict[str, Any]) -> None:
@@ -186,7 +202,7 @@ def push_all(state: DocState) -> list[str]:
     _item_who.clear()
     keys = [k for k, d in state.docs.items() if isinstance(d, Doc)]
     for k in keys:
-        mirror(state, k)
+        mirror(state, k, fresh=True)
     return keys
 
 

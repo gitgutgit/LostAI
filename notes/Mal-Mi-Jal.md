@@ -1,22 +1,29 @@
 # Note — 태우 (Mal-Mi-Jal) · 서버·UI 메인
 
-> 마지막 업데이트: 2026-11-09 14:00
-> 한 줄 상태: 🟢 진행 중 — Google Docs 동기화 동작 + 팀 공용 Sheet/Doc 연결, PR #6 올림
+> 마지막 업데이트: 2026-11-09 11:31
+> 한 줄 상태: 🟢 진행 중 — 지연 측정 도구 완료 (MOCK·Google 실측), LIVE 측정은 승인 대기
 > 실행: `uv run python -m server.sync.google_auth` · `uv run uvicorn server.app:app --reload --port 8000`  ·  모드: MOCK
 
 ## 현재 목표
-- PR #6 리뷰·merge → 지연 측정(리플레이 → `/api/stats`). Docs 동기화 1.3초 → 탭 길이 캐시로 조회 1회 줄이기
+- LIVE(haiku→sonnet)로 `uv run python -m server.replay fixtures/sample_sprint.jsonl --realtime` → 말 → 화면 p50 2.5초 목표 확인 (API 키 사용 승인 필요)
 
 ## 최근 결과
 | 지표 | 값 | 목표 | 언제 · 모드 | 결과 파일 |
 |---|---|---|---|---|
-| 테스트 | 11/11 통과 | 전부 통과 | 11-09 11:15 · MOCK | — |
+| 테스트 | 14/14 통과 | 전부 통과 | 11-09 11:15 · MOCK | — |
 | 말 → 화면 p50 | — | 2.5초 미만 | — | — |
-| Google Docs 동기화 | 시작 1867ms · 결정 추가 1286ms, sync.ok | — | 11-09 13:55 · MOCK, 팀 공용 Doc(전용 탭) | — |
-| Google Sheets 동기화 | 시작 2203ms · 행 추가 448ms · 취소 393ms, sync.ok | — | 11-09 13:55 · MOCK, 팀 공용 Sheet(별도 탭) | — |
+| 말 → 화면 (서버) | p50 3ms / p95 6ms (n=7) | 2.5초 미만 (LIVE 기준) | 11-09 11:31 · MOCK | `results/Mal-Mi-Jal_latency_live_google_1109_1135.json` |
+| 말 → Google Doc | p50 548ms / p95 607ms (n=5), 호출 자체 544ms | — | 11-09 11:31 · MOCK, 팀 공용 Doc | 같은 파일 |
+| 말 → Google Sheet | p50 440ms / p95 518ms (n=2) | — | 11-09 11:31 · MOCK, 팀 공용 Sheet | 같은 파일 |
 
 ## 진행 중
-- [ ] (P0) 회의 화면 텍스트 발화 입력창 + STT 상태 표시 (시작: 12:50)
+- [ ] (P0) 지연 측정 (시작: 14:30)
+  - [x] `server/common/event_latency.py` 이벤트 로그 → 단계별·전체 지연 (CLI 포함)
+  - [x] `server/replay.py` 요약 · `/api/stats`에 연결 (mode, vs_goal 포함)
+  - [x] MOCK 리플레이 숫자 / 실서버 숫자 (Google 포함)
+  - [ ] LIVE 리플레이 숫자 (승인 대기)
+  - [x] Docs 동기화 조회 1회 줄이기 (탭 길이 캐시): 1286ms → 544ms
+- [x] (P0) 회의 화면 텍스트 발화 입력창 + STT 상태 표시 — PR #6 merge
   - [x] `web/src/capture/stt.ts` 상태 콜백(듣는 중/권한 거부/미지원/오류), 언어 ko-KR 기본
   - [x] `web/src/views/canvas/CanvasView.tsx` 입력창 (Enter 전송, 연결 끊김 안내) + `core/ws.ts` `send()`가 성공 여부 반환 + `styles.css`
   - [x] typecheck · build 통과 (13:00)
@@ -68,3 +75,6 @@ odejs`
 - 고친 버그: Room/Outbox 워커가 첫 이벤트 루프에 묶여 TestClient를 두 번 띄우면 두 번째 발화가 멈춤 → `start()`에서 루프가 다르면 다시 만듦 (실서버 영향 없음)
 - JOIN_SECRET이 비어 있으면 서버 프로세스마다 토큰 키가 달라짐 → 서버 재시작하면 기존 화면은 다시 입장해야 함
 - 팀 공용 Sheet/Doc은 기존 PoC A 내용(WBS, 프로젝트 계획)이 있음 → 우리는 전용 탭에만 쓰고 기존 탭(`시트1`, `Tab 1`)은 안 건드림. 테스트 후 `/api/reset`으로 원상복구함
+- ⚠️ 이 노트의 11-09 10:40 ~ 14:30 시각 표기는 실제 시계를 안 보고 적은 추정값이라 틀림 (실제로는 10:26 ~ 11:29 사이 작업). 11:31부터는 `date` 확인 시각
+- 회의방 시계 `time.monotonic` → `time.perf_counter` (Windows monotonic 해상도 15.6ms라 지연이 0/16/31ms로만 찍혔음). 이전 로그의 utt_to_* 숫자는 15ms 단위로 부정확
+- 리플레이를 `--realtime` 없이 돌리면 발화가 한꺼번에 들어가 앞 발화 대기 시간이 utt_to_*에 섞임 → 지연 숫자는 `--realtime`으로
