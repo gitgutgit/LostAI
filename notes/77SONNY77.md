@@ -12,16 +12,18 @@
 
 | 파일 | 변경 내용 | 코멘트 위치 |
 |---|---|---|
-| `web/src/views/join/JoinView.tsx` | 제스처 이모지 표시, 5초 타이머, UI 개선 | 모든 추가/변경 줄에 `// hs:` 코멘트 |
+| `web/src/views/join/JoinView.tsx` | 제스처 이모지 표시, 10초 타이머, UI 개선, unmount 시 엔진+스트림 정리 | `// hs:` 코멘트 |
 | `web/src/styles.css` | JoinView 제스처 인증 UI 스타일 추가 | `/* hs: */` 코멘트 블록 |
 | `server/auth/challenge.py` | CANDIDATES를 기본 제스처 7개로 축소, CONFUSABLE 비움 | `# hs:` 코멘트 |
+| `web/src/capture/gestures/engine.ts` | `stop()`에서 `rec = null` 처리 (재시작 허용) | `// hs:` 코멘트 |
+| `web/src/capture/gestures/viewport.ts` | 포인터 커서 DOM, 줌 스무딩, snapMax/snapMin, moveCursor/showCursor | `// hs:` 코멘트 |
+| `web/src/views/canvas/CanvasView.tsx` | PoC 방식 카메라 재초기화, 검지 커서+줌 항상 동작 | `// hs:` 코멘트 |
 
 ### 아직 수정 안 한 파일 (예정)
 
 | 파일 | 예정 변경 | 상태 |
 |---|---|---|
-| `web/src/capture/gestures/viewport.ts` | 포인터 커서 UI, Closed_Fist→최소화, Open_Palm→최대화 | 대기 |
-| `web/src/views/canvas/CanvasView.tsx` | 줌 모드에서 최소화/최대화 호출 연결 | 대기 |
+| `web/src/capture/gestures/viewport.ts` | Closed_Fist→최소화, Open_Palm→최대화 | 대기 |
 
 ---
 
@@ -55,6 +57,41 @@
 - **CSS 속성값 내부**: CSS에서는 개별 속성에 인라인 코멘트를 달 수 없어서, `/* hs: */` 블록 코멘트를 섹션 시작에 한 번 표시함
 
 ---
+
+### 2026-11-09 — 검지 커서 + 줌/확대/축소 (CanvasView, PoC 방식)
+
+**`web/src/capture/gestures/viewport.ts`**
+- `MAX_SCALE`: 2.5 → 2.0 (PoC 검증값)
+- `ZOOM_SMOOTH = 0.06` 상수 추가: 확대 스무딩 계수 (PoC 검증값)
+- `targetScale` 필드: 스무딩용 목표 배율 (기존 `scale`과 분리)
+- `initCursor()`: 초록색 원(20px) DOM 요소 생성 (`#gesture-pointer`), body에 append
+- `showCursor(visible)`: 커서 표시/숨기기
+- `moveCursor(p)`: 검지 위치로 커서 DOM 이동 (항상 호출)
+- `setOpenness()`: 즉시 반영 → 스무딩 (`scale += 0.06 * (target - scale)`)
+- `snapMax()`: Open_Palm → 최대 확대 (빠른 스냅 0.25)
+- `snapMin()`: Closed_Fist → 최소 축소 (빠른 스냅 0.25)
+- `resetScale()`: `targetScale`도 같이 리셋
+
+**`web/src/capture/gestures/engine.ts`**
+- `stop()`에서 `this.rec = null` 추가: 재시작 시 GestureRecognizer 새로 생성되도록
+
+**`web/src/views/join/JoinView.tsx`** (추가 수정)
+- `streamRef` 추가: 카메라 스트림을 ref로 관리
+- unmount cleanup: `engine.stop()` + `stream.getTracks().forEach(stop)` — JoinView 떠날 때 카메라+엔진 완전 해제
+
+**`web/src/views/canvas/CanvasView.tsx`**
+- PoC `pa_hs_gesture_api.js` start() 방식 그대로 이식:
+  - `document.createElement("video")` 로 video 직접 생성 (JSX ref 아님)
+  - `getUserMedia` → `loadeddata` 대기 → `engine.start(vid)` 순서
+  - video를 webcam 컨테이너 div에 appendChild
+  - unmount 시 `engine.stop()` + 스트림 정리 + video DOM 제거
+- 인증 후 바로 동작 (기존 "브이로 줌 모드 켜기" 불필요)
+- 검지 포인터: hold_ms 체크 없이 항상 추적, `moveCursor()` + `showCursor()` 호출
+- Closed_Fist(confidence>0.6) → `snapMin()` (최소)
+- Open_Palm(confidence>0.6) → `snapMax()` (최대)
+- 그 외 → `setOpenness()` (손 벌림/오므림 → 연속 줌)
+- 줌 기준점은 항상 커서 위치 (`setPointer()`)
+- 기존 공유 신호(엄지 등 → 서버) 로직 유지
 
 ## 메모
 

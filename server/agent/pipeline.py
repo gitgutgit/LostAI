@@ -30,7 +30,6 @@ async def handle_utterance(room: "Room", ev: Event) -> None:
     utt_id, speaker, text = ev.refs.utt_id, ev.payload["speaker"], ev.payload["text"]
     refs = {"utt_id": utt_id}
     transcript = room.transcript()
-    queue_ms = int((room.now() - ev.ts) * 1000)
 
     async def done(label: str) -> None:
         await room.emit("agent.progress", "agent", refs,
@@ -61,5 +60,5 @@ async def handle_utterance(room: "Room", ev: Event) -> None:
     if ops:
         await room.changes.propose(ops, requested_by=speaker, utt_id=utt_id, via="voice",
                                    reason=f"{speaker}: {text[:60]}",
-                                   latency_ms={"queue": queue_ms, "route": route_ms, "edit": edit_ms})
+                                   latency_ms={"route": route_ms, "edit": edit_ms})
     await done(label)

@@ -149,7 +149,7 @@ def test_done_stage_after_edit_and_after_ask():
             seen = _until(ws, _is("agent.progress", stage="done"))
             assert "change.applied" in [_kind(m) for m in seen]
             applied = next(m for m in seen if _kind(m) == "change.applied")["event"]["payload"]
-            assert {"queue", "route", "edit", "apply", "total"} <= set(applied["latency_ms"])
+            assert {"route", "edit", "apply"} <= set(applied["latency_ms"])
 
             ws.send_json({"kind": "utterance.final", "payload": {"text": "그거 누가 맡았지?"}})
             seen = _until(ws, _is("agent.progress", stage="done"))
@@ -405,11 +405,11 @@ def test_llm_failure_emits_failed_not_done_and_worker_survives(monkeypatch):
             _until(ws, _is("change.applied"))
             _until(ws, _is("agent.progress", stage="done"))
         s = c.get("/api/stats").json()
-        assert s["failed_ms"]["n"] == 1
-        assert s["utterance_ms"]["all"]["n"] == 1
+        assert s["failed_utterances"] == 1
+        assert s["utterances"] == 2
 
 
-def test_stats_count_every_router_label():
+def test_stats_count_ignore_and_ask_utterances():
     from server import app as app_mod
 
     with TestClient(app_mod.app) as c:
@@ -420,6 +420,6 @@ def test_stats_count_every_router_label():
                 ws.send_json({"kind": "utterance.final", "payload": {"text": t}})
                 _until(ws, _is("agent.progress", stage="done"))
         s = c.get("/api/stats").json()
-        assert s["utterance_ms"]["all"]["n"] == 3
-        assert {"capture", "ask", "ignore"} <= set(s["utterance_ms"])
-        assert {"queue", "total"} <= set(s["latency_ms"])
+        assert s["utterances"] == 3
+        assert s["latency_ms"]["utt_to_routed"]["n"] == 3
+        assert s["failed_utterances"] == 0

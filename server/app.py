@@ -166,24 +166,20 @@ async def links(token: str):
 
 @app.get("/api/stats")
 async def stats():
-    """서버 쪽 지연. 음성 인식, 전송, 화면 그리기, 외부 문서 동기화 시간은 없다. 마지막 리셋 이후만 센다.
+    """말 → 화면 / 말 → Google 문서 / 단계별 지연 (이벤트 로그 기준, server/common/event_latency.py).
 
-    - latency_ms: 실패하지 않은 변경의 단계별 값(queue, route, edit, apply, total). total은 단계 합이라 벽시계보다 짧다
-    - utterance_ms: 발화 도착 → 처리 끝(done) 벽시계 시간, 라우터 라벨별과 전체(all). ignore, ask도 센다
-    - failed_ms: 처리 중 실패한 발화(LLM 시간 초과 등). 위 분포에는 들어가지 않으므로 따로 본다
+    failed_utterances: 처리 중 예외(LLM 시간 초과 등)로 끝난 발화 수. 지연 분포에는 들어가지 않으므로 따로 본다.
     """
+    from server.agent.llm import is_live
+    from server.common.event_latency import summarize
     room = get_room()
-    rows = [c.latency_ms for c in room.changes.changes.values() if c.status != "failed"]
-    from server.common.latency import percentiles
-    keys = sorted({k for r in rows for k in r})
-    done = [e.payload for e in room.events if e.type == "agent.progress" and e.payload.get("stage") == "done"]
-    labels = sorted({d.get("label", "?") for d in done})
-    utterance_ms = {lb: percentiles([d["ms"] for d in done if d.get("label", "?") == lb]) for lb in labels}
-    utterance_ms["all"] = percentiles([d["ms"] for d in done])
-    failed = [e.payload["ms"] for e in room.events
-              if e.type == "agent.progress" and e.payload.get("stage") == "failed" and "ms" in e.payload]
-    return {"changes": len(rows), "latency_ms": {k: percentiles([r[k] for r in rows if k in r]) for k in keys},
-            "utterance_ms": utterance_ms, "failed_ms": percentiles(failed), "events": len(room.events)}
+    s = summarize(room.events)
+    return {"mode": "LIVE" if is_live() else "MOCK",
+            "changes": sum(1 for c in room.changes.changes.values() if c.status != "failed"),
+            "utterances": s["utterances"], "latency_ms": s["latency_ms"], "vs_goal": s["vs_goal"],
+            "failed_utterances": sum(1 for e in room.events
+                                     if e.type == "agent.progress" and e.payload.get("stage") == "failed"),
+            "events": len(room.events)}
 
 
 @app.post("/api/reset")

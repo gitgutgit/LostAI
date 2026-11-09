@@ -105,9 +105,6 @@ class ChangeManager:
         ch.diff, ch.targets, ch.status = diff, anchors_of(diff), "applied"
         ch.applied_ts = self.now()
         ch.latency_ms["apply"] = int((self.now() - t0) * 1000)
-        # 단계 값의 합(음성 변경이면 queue + route + edit + apply). 단계 사이 emit, 브로드캐스트와
-        # 지연 정책의 대기 시간은 빠지므로 발화 도착 → 반영 벽시계 시간보다 짧다(벽시계는 done의 ms)
-        ch.latency_ms["total"] = sum(v for k, v in ch.latency_ms.items() if k != "total")
         for a in ch.targets:
             self.state.provenance[a] = ch.change_id
         await self._emit("change.applied", ch)

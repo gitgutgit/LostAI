@@ -36,7 +36,7 @@ export class GestureEngine {
     this.timer = window.setInterval(() => this.tick(video), 1000 / FPS);
   }
 
-  stop() { clearInterval(this.timer); this.rec?.close(); }
+  stop() { clearInterval(this.timer); this.rec?.close(); this.rec = null; } // hs: rec null 처리 — 재시작 시 새로 생성되도록
 
   subscribe(fn: (f: EngineFrame) => void): () => void { this.subs.add(fn); return () => { this.subs.delete(fn); }; }
 

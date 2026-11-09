@@ -33,7 +33,7 @@ class Room:
 
     def _init_meeting(self) -> None:
         """회의 내용(시간, 이벤트와 로그 파일, 일시정지, 문서, 변경, 발화 큐)만 처음 상태로. 접속과 참석자는 그대로."""
-        self.t0 = time.monotonic()
+        self.t0 = time.perf_counter()  # Windows monotonic은 15.6ms 단위라 지연 측정에 부족
         self.events: list[Event] = []
         self.paused = False
         self.utterance_queue: asyncio.Queue[Event] = asyncio.Queue()
@@ -73,7 +73,7 @@ class Room:
 
     # ---- 시간 ----
     def now(self) -> float:
-        return round(time.monotonic() - self.t0, 3)
+        return round(time.perf_counter() - self.t0, 3)
 
     # ---- 이벤트 ----
     async def emit(self, type_: str, actor: str, refs: dict[str, Any] | None = None,
