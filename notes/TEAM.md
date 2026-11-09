@@ -36,3 +36,4 @@
 ## 공지 · 요청
 - 11-09 10:20 gitgutgit: 뼈대 올라감. `CLAUDE.md` 읽고 시작, 자기 note 만들어 주세요.
 - 11-09 10:40 Mal-Mi-Jal: Google 의존성 3개 추가(`pyproject.toml`·`uv.lock`) → `uv sync` 해 주세요. Google 로그인 안내 `server/sync/GOOGLE_SETUP.md`, 확인 `uv run python -m server.sync.google_auth`
+- 11-09 12:20 Mal-Mi-Jal: PR #1(Google Sheets 동기화) main에 merge됨 → `uv sync` 필요. Windows Smart App Control 켜진 PC는 `pytest.exe`·rollup 네이티브가 막힘 → `uv run python -m pytest`, web은 Mal-Mi-Jal에게 문의

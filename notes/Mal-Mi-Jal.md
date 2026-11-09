@@ -1,11 +1,11 @@
 # Note — 태우 (Mal-Mi-Jal) · 서버·UI 메인
 
-> 마지막 업데이트: 2026-11-09 12:00
-> 한 줄 상태: 🟢 진행 중 — Sheets 동기화 PR #1 올림 (리뷰 대기: ProfessionalSeaweedDevourer)
+> 마지막 업데이트: 2026-11-09 12:20
+> 한 줄 상태: 🟢 진행 중 — PR #1 merge 완료, `Mal-Mi-Jal/canvas-view`에서 B 화면 확인 + https 터널 시작
 > 실행: `uv run python -m server.sync.google_auth` · `uv run uvicorn server.app:app --reload --port 8000`  ·  모드: MOCK
 
 ## 현재 목표
-- PR #1 리뷰 반영 → merge. 그다음 개발용 Sheet → 팀 공용 시연 Sheet 교체 후 실제 흐름 한 번 돌리고 다음 커밋
+- B 화면 보드·노트 탭을 브라우저에서 실제 서버로 확인 → cloudflared https 터널로 팀원 카메라·마이크 접속
 
 ## 최근 결과
 | 지표 | 값 | 목표 | 언제 · 모드 | 결과 파일 |
@@ -37,6 +37,7 @@
 
 ## 완료
 ### 2026-11-09
+- [x] PR #1 main merge (12:20)
 - [x] 로컬 폴더를 `gitgutgit/LostAI`에 연결, 브랜치 `Mal-Mi-Jal/sheets-sync` 커밋 4개 → PR #1 (리뷰어 ProfessionalSeaweedDevourer)
 - [x] (P0) 서버 시작·`/api/reset` 때 Outbox로 전체 미러링 (`outbox.enqueue_full_sync`, `app.py`) — 첫 발화 동기화 1849ms → 445ms (MOCK). `tests/conftest.py`로 테스트가 실제 Google에 안 쓰게 막음
 - [x] (P0) Google Sheets `push` 구현 — `server/sync/google_sheets.py` (탭 통째 미러링 batchUpdate 1회, 셀 메모=출처, 이번 변경 노란색), `tests/test_google_sheets.py` 4개. 발화 → `change.applied` → `sync.ok` 1849ms, 취소 → `change.reverted` → `sync.ok` 505ms (MOCK)
@@ -50,3 +51,5 @@
 - 전체 동기화도 Outbox 큐로만 보냄 (app.py에서 직접 Google 호출 금지 → 동시 호출 규칙 유지). payload는 기존 `{target, ms}` 그대로라 계약 변경 없음
 - 이전 스모크 테스트는 `.env`의 GOOGLE_SHEET_ID 때문에 실제 Sheet에 쓰고 있었음 → conftest로 수정
 - 이 레포 git 작성자: repo-local `Mal-Mi-Jal` + GitHub noreply 이메일 (전역 `namwoo0303`은 안 건드림). gh는 `C:\Program Files\GitHub CLI\gh.exe`
+- 이 PC는 Smart App Control On → rollup 네이티브 차단. `npm install --no-save "rollup@npm:@rollup/wasm-node@4.68.0"`로 node_modules만 우회 (package.json 안 바꿈. `npm ci` 다시 하면 재적용 필요). Node는 `C:\Program Files
+odejs`
