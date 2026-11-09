@@ -35,3 +35,4 @@
 
 ## 공지 · 요청
 - 11-09 10:20 gitgutgit: 뼈대 올라감. `CLAUDE.md` 읽고 시작, 자기 note 만들어 주세요.
+- 11-09 10:40 Mal-Mi-Jal: Google 의존성 3개 추가(`pyproject.toml`·`uv.lock`) → `uv sync` 해 주세요. Google 로그인 안내 `server/sync/GOOGLE_SETUP.md`, 확인 `uv run python -m server.sync.google_auth`
