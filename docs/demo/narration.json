@@ -1,0 +1,69 @@
+{
+  "title": "LostAI 데모 영상 내레이션",
+  "version": "초안 1 (2026-11-09 11:25), 콘티는 데모 기획 v0.3 개정판",
+  "author": "주현 (ProfessionalSeaweedDevourer)",
+  "plan_path": "meeting-agent-poc/design/video/hackathon_c0mpiled17_demo_plan_JoohyunPark_ko_v0_3_20261109.md",
+  "rules": [
+    "목소리는 아무도 말하지 않는 구간에만 넣는다. 연속 테이크(6~90초)의 대화는 제품 입력이자 진짜 데모의 근거라 목소리로 덮지 않는다.",
+    "목소리 구간의 자막은 읽는 문장과 똑같다. 대화 구간은 목소리 없이 자막만 넣는다.",
+    "대화 원문은 자막으로 넣지 않는다. 제품 화면 오른쪽 기록이 이미 발화를 보여 준다.",
+    "영어로 읽는다. 한국어는 Eric 참고용 뜻이고 영상에 넣지 않는다."
+  ],
+  "pace_ok": 2.5,
+  "cues": [
+    {"t": [0, 6], "kind": "vo", "scene": "첫 장면 픽토그램", "en": "Two people. Two launch dates. Nobody noticed until launch week.", "ko": "두 사람, 두 개의 출시일. 출시 주간이 될 때까지 아무도 몰랐다."},
+    {"t": [6, 10], "kind": "vo", "scene": "손으로 입장, 벽시계 켜짐", "en": "Everyone joins by hand, so every edit has a name.", "ko": "모두 손으로 입장하므로 모든 수정에 이름이 붙는다."},
+    {"t": [10, 26], "kind": "sub", "scene": "T1~T3: 칸이 빛남, 잡담 무시, 새 행", "en": "It edits the plan while you talk. Small talk changes nothing.", "ko": "말하는 동안 계획을 고친다. 잡담은 아무것도 바꾸지 않는다."},
+    {"t": [26, 33], "kind": "sub", "scene": "T4, T5: 엄지 아래로 되돌림", "en": "Wrong edit? Thumbs down. Undone.", "ko": "잘못 고쳤나? 엄지 아래. 되돌려졌다."},
+    {"t": [33, 40], "kind": "vo", "scene": "화면 반이 실제 Google Sheet, 셀 메모", "en": "The same edit lands in your real Google Sheet, with a note saying who said it.", "ko": "같은 수정이 실제 Google Sheet에 들어가고, 누가 말했는지 메모가 붙는다."},
+    {"t": [40, 48], "kind": "sub", "scene": "T6, T7: 일정 미룸, 출시 1월 21일", "en": "Two dates for one launch.", "ko": "한 출시에 날짜가 둘."},
+    {"t": [48, 56], "kind": "sub", "scene": "T8: 엇갈림 카드와 비용 줄", "en": "It stops writing and shows who said what, and what each date breaks.", "ko": "쓰기를 멈추고 누가 무엇을 말했는지, 각 날짜가 무엇을 깨는지 보인다."},
+    {"t": [56, 66], "kind": "sub", "scene": "T9, 첫 공개: 위 셋, 아래 하나", "en": "Everyone shows at once. One thumb down, and nothing gets written.", "ko": "모두 동시에 보인다. 엄지 하나가 아래면 아무것도 쓰지 않는다."},
+    {"t": [66, 78], "kind": "sub", "scene": "T10, 두 번째 공개: 위 넷, 마일스톤 고침", "en": "The person who disagreed speaks first. Then the room decides again.", "ko": "반대한 사람이 먼저 말하고, 방이 다시 정한다."},
+    {"t": [78, 90], "kind": "vo", "scene": "출시 칸 팝오버, 오른쪽 기록 카드", "en": "Click any cell to see who changed it, when, and why. One click undoes it. Everything the agent did is in the log.", "ko": "아무 칸이나 누르면 누가, 언제, 왜 바꿨는지 보인다. 한 번 누르면 되돌린다. 에이전트가 한 일은 모두 기록에 있다."},
+    {"t": [90, 105], "kind": "vo", "scene": "테이크 기록 파일과 당일 잰 숫자", "en": "This was one continuous take. The clock on screen matches the log file in our repo. Median time from speech to cell: {X} seconds.", "ko": "편집 없는 한 번의 테이크였다. 화면 시계가 리포의 기록 파일과 맞는다. 발화에서 칸까지 중앙값 {X}초.", "fill": ["{X}: 당일 리허설에서 잰 중앙값"]},
+    {"t": [105, 120], "kind": "vo", "scene": "끝 카드", "en": "Built for {BUYER}. Say it in the meeting. The plan changes. When two people disagree, it stops and asks the room.", "ko": "{BUYER}를 위해 만들었다. 회의에서 말하면 계획이 바뀐다. 두 사람이 엇갈리면 멈추고 방에 묻는다.", "fill": ["{BUYER}: 살 사람 한 줄, 팀이 정함(기획 판정 4번). 후보 eng leads who run plan reviews in Google Sheets"]}
+  ],
+  "card_text": "끝 카드 화면 글자(읽지 않음): N edits live, 1 undone, 1 conflict caught, 1 thumb down held the write.",
+  "pending": [
+    "{X}: 발화에서 칸까지 중앙값. 리허설 테이크로 잰 뒤 채운다. 2.5초를 넘으면 그 문장을 빼고 'The clock on screen matches the log file in our repo.'까지만 읽는다.",
+    "{BUYER}: 살 사람. 팀 결정 전이라 빈칸이다.",
+    "콘티 판정 대기 중 내레이션에 닿는 것: 첫 장면 6초(7번), 결정 장면을 동시 엄지 공개로(8번). 판정이 바뀌면 그 구간 문장을 고친다.",
+    "끝 카드의 N(수정 수)은 최종 테이크에서 센다."
+  ],
+  "ref_note": "meeting-agent-poc 경로는 주현의 로컬 폴더(git 밖)다. LostAI 경로와 공개 링크는 바로 열린다.",
+  "references": [
+    {"group": "이 내레이션의 원천", "items": [
+      {"path": "meeting-agent-poc/design/video/hackathon_c0mpiled17_demo_plan_JoohyunPark_ko_v0_3_20261109.md", "what": "120초 콘티와 자막 원안(2절), 판정 대기(7절)", "status": "현행"},
+      {"path": "meeting-agent-poc/design/video/hackathon_c0mpiled17_demo_plan_JoohyunPark_ko_v0_2_20261109.md", "what": "v0.3가 이어받은 심사위원 대응표, 당일 숫자 후보, 판정 기록", "status": "일부 승계"},
+      {"path": "meeting-agent-poc/design/video/research_video_tools.md", "what": "데모 영상 구성 원칙과 맥용 제작 도구 조사", "status": "참고"},
+      {"url": "https://github.com/gitgutgit/LostAI/blob/main/docs/ARCHITECTURE.md", "path": "LostAI/docs/ARCHITECTURE.md", "what": "P0, P1, P2 우선순위", "status": "현행"}
+    ]},
+    {"group": "심사진", "items": [
+      {"path": "meeting-agent-poc/design/hackathon_c0mpiled17_judges_research_ko_v0_1_20261108.md", "what": "심사위원 8명의 배경과 성향, 첫 15초와 끝 5초 원칙", "status": "현행"},
+      {"url": "https://claude.ai/artifact/95LyiKYwmgnWgHP6kJc9wA", "path": "심사진 조사 그림 페이지", "what": "위 조사를 그림으로 옮긴 팀 공유 페이지", "status": "참고"},
+      {"path": "meeting-agent-poc/design/hackathon_c0mpiled17_judge_scenarios_JoohyunPark_ko_v0_6_20261109.md", "what": "심사진 공략 시나리오 셋", "status": "현행"},
+      {"url": "https://merlinkafka.com/writing/human-in-the-loop-interface", "path": "Merlin Kafka, human-in-the-loop interface", "what": "네 질문 원문. 78~90초 문장이 답하는 대상", "status": "참고"},
+      {"url": "https://luma.com/compiled-8lsr", "path": "행사 페이지 (Luma)", "what": "심사 기준과 제출 규정", "status": "참고"}
+    ]},
+    {"group": "제품 기획과 화면", "items": [
+      {"path": "meeting-agent-poc/design/hackathon_c0mpiled17_facilitator_framing_JoohyunPark_ko_v0_5_20261109.md", "what": "진행자 AI 제품 프레이밍", "status": "현행"},
+      {"path": "meeting-agent-poc/design/hackathon_c0mpiled17_product_identity_C_JoohyunPark_ko_v0_1_20261109.md", "what": "문서가 곧 회의 화면(C안) 제품 정체성", "status": "현행"},
+      {"path": "meeting-agent-poc/design/wireframes/facilitator_v0_3/render_v04/index.html", "what": "최신 렌더 시안", "status": "현행"},
+      {"path": "meeting-agent-poc/design/wireframes/facilitator_v0_3/TEAM_CLAUDE_DESIGN_v1.md", "what": "팀원 Claude용 진행자 사양서", "status": "현행"},
+      {"path": "meeting-agent-poc/design/wireframes/facilitator_v0_2/research_unslop.md", "what": "AI 티를 빼는 조사와 읽는 거리 기준", "status": "참고"}
+    ]},
+    {"group": "이름과 로고 (미확정)", "items": [
+      {"path": "meeting-agent-poc/design/hackathon_c0mpiled17_naming_logo_instruction_JoohyunPark_ko_20261109.md", "what": "제품 이름과 로고를 정하는 지시서. 끝 카드 이름이 여기서 정해진다", "status": "현행"},
+      {"path": "meeting-agent-poc/design/brand/candidates_ko_20261109.md", "what": "이름 후보 채점과 충돌 검색", "status": "현행"},
+      {"path": "meeting-agent-poc/design/brand/logo/sheet_v1.html", "what": "MOAI 워드마크 시안", "status": "현행"}
+    ]},
+    {"group": "디자인 참고 소스 (공개 링크)", "items": [
+      {"url": "https://ui.shadcn.com/", "path": "shadcn/ui", "what": "컴포넌트 라이브러리 겸 디자인 시스템", "status": "참고"},
+      {"url": "https://github.com/google-labs-code/design.md", "path": "google-labs-code/design.md", "what": "디자인 규약 md 형식과 lint", "status": "참고"},
+      {"url": "https://github.com/VoltAgent/awesome-design-md/", "path": "VoltAgent/awesome-design-md", "what": "실제 브랜드 DESIGN.md 모음", "status": "참고"},
+      {"url": "https://stitch.withgoogle.com/", "path": "Google Stitch", "what": "AI 기반 UI 디자인 생성 도구", "status": "참고"},
+      {"url": "https://paper.design/", "path": "paper.design", "what": "HTML/CSS 캔버스 디자인 도구", "status": "참고"}
+    ]}
+  ]
+}

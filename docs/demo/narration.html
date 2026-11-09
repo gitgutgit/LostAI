@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LostAI 데모 영상 내레이션</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>/* Layout: one reading column of timed cues; voice cues stand out, subtitle-only cues stay quiet. Tokens follow the team kickoff page */
+:root{
+  --bg:#f5f7f6; --panel:#ffffff; --ink:#1c1f22; --muted:#5b6670; --line:#cfd6d4;
+  --blue:#1f4e9c; --green:#2c7a4b; --amber:#9a6a00; --red:#c3362b;
+  --tint:#e8eef7; --tint-green:#e4f1e8; --tint-amber:#f6eedb;
+  --sans:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15191c; --panel:#1d2226; --ink:#e7ecea; --muted:#9aa6ad; --line:#36404a;
+  --blue:#7fa8ec; --green:#6cc38f; --amber:#e0b04a; --red:#ef7a6f;
+  --tint:#1f2a3a; --tint-green:#1d3226; --tint-amber:#33291a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15191c; --panel:#1d2226; --ink:#e7ecea; --muted:#9aa6ad; --line:#36404a;
+  --blue:#7fa8ec; --green:#6cc38f; --amber:#e0b04a; --red:#ef7a6f;
+  --tint:#1f2a3a; --tint-green:#1d3226; --tint-amber:#33291a; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 var(--sans);word-break:keep-all;overflow-wrap:anywhere}
+.wrap{max-width:900px;margin:0 auto;padding-block:28px 96px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:36px}
+.wrap>*,section>*{min-width:0}
+h1{font-size:30px;line-height:1.25;margin:4px 0 8px;text-wrap:balance}
+h2{font-size:20px;margin:0 0 12px}
+h3{font-size:15px;margin:20px 0 8px;color:var(--muted)}
+a{color:var(--blue)}
+code,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{margin:0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.meta{margin:0;color:var(--muted);font-size:13px}
+.toc{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:14px;font-size:14px}
+.note{color:var(--muted);font-size:13px;margin:12px 0 0;max-width:70ch}
+.bluf ul,.pend-list{margin:0;padding-left:20px;display:grid;gap:6px;max-width:72ch}
+.stat{margin:14px 0 0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
+.stat b{font-size:22px;color:var(--blue)}
+.sep{width:1px;height:14px;background:var(--line);margin:0 8px}
+mark.slot{background:var(--tint-amber);color:var(--amber);font-family:var(--mono);font-size:.8em;padding:0 5px;border-radius:4px}
+/* timeline */
+.tl-wrap{overflow-x:auto;position:relative;padding-bottom:26px}
+.tl{display:flex;min-width:700px;height:52px;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.tl-seg{display:flex;flex-direction:column;justify-content:center;padding:4px 6px;border-right:1px solid var(--line);text-decoration:none;color:var(--ink);font-size:11px;line-height:1.25;min-width:0}
+.tl-seg:last-child{border-right:0}
+.tl-seg:hover,.tl-seg:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+.tl-t{font-family:var(--mono);color:var(--muted)}
+.tl-t,.tl-n{white-space:nowrap;overflow:hidden;text-overflow:clip}
+.k-vo.tl-seg,.lg.k-vo{background:var(--blue);color:var(--bg)}
+.k-vo .tl-t{color:inherit;opacity:.8}
+.k-sub.tl-seg,.lg.k-sub{background:var(--panel)}
+.tl-take{position:absolute;bottom:0;font-size:11px;color:var(--muted);border-top:2px solid var(--ink);padding-top:2px}
+.legend{font-size:12px;color:var(--muted);margin:4px 0 0}
+.lg{display:inline-block;width:14px;height:10px;border:1px solid var(--line);margin:0 4px 0 10px;vertical-align:middle}
+.lg:first-child{margin-left:0}
+/* cues */
+.cues{display:grid;gap:10px}
+.cue{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px 12px}
+.cue.k-vo{border-left:5px solid var(--blue)}
+.cue.k-sub{background:transparent}
+.cue header{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-size:13px}
+.kind{font-weight:700}
+.k-vo .kind{color:var(--blue)}
+.k-sub .kind{color:var(--muted)}
+.scene{color:var(--muted)}
+.pace{margin-left:auto;color:var(--muted);font-size:12px}
+.pace.fast{color:var(--red);font-weight:600}
+.en{margin:8px 0 2px;font-size:24px;line-height:1.4;font-weight:600}
+.k-sub .en{font-size:18px;font-weight:400}
+.ko{margin:0;color:var(--muted);font-size:14px}
+.fill{margin:6px 0 0;padding-left:18px;font-size:12px;color:var(--amber)}
+button{font:inherit;color:inherit;cursor:pointer}
+.copy,.read-here{margin-top:8px;margin-right:8px;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:2px 10px;font-size:12px}
+button:focus-visible,a:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+/* references */
+.refs{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+.refs li{display:grid;grid-template-columns:72px 1fr;gap:10px;align-items:start}
+.refs li div{min-width:0}
+.refs p{margin:0;font-size:13px;color:var(--muted)}
+.path{font-size:12px;word-break:break-all}
+.st{font-size:11px;text-align:center;border-radius:4px;border:1px solid var(--line)}
+.st-ok{background:var(--tint-green);color:var(--green);border-color:transparent}
+.st-mid{background:var(--tint-amber);color:var(--amber);border-color:transparent}
+.foot{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+/* reader */
+.fab{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));padding:10px 18px;border-radius:999px;border:0;background:var(--ink);color:var(--bg);font-weight:600;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.reader{position:fixed;inset:0;z-index:20;background:var(--bg);display:grid;grid-template-rows:auto auto 1fr auto;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.r-top{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;padding:14px 0 10px;font-size:14px}
+#r-clock{font-size:20px}
+#r-scene{color:var(--muted)}
+#r-close{margin-left:auto}
+.r-bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.r-bar i{display:block;height:100%;width:0;background:var(--muted)}
+.reader.is-vo .r-bar i{background:var(--blue)}
+.r-body{display:flex;flex-direction:column;justify-content:center;gap:14px;max-width:1100px;width:100%;margin:0 auto;min-height:0;overflow:auto}
+.r-state{margin:0;font-size:16px;color:var(--muted)}
+.reader.is-vo .r-state{color:var(--blue);font-weight:700}
+.r-say{margin:0;font-size:clamp(26px,4.6vw,54px);line-height:1.28;font-weight:600;opacity:.35}
+.reader.is-vo .r-say{opacity:1}
+.r-ko{margin:0;color:var(--muted);font-size:clamp(14px,1.6vw,18px)}
+.r-side{margin:12px 0 0;color:var(--muted);font-size:15px}
+.r-bot{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;padding:12px 0 16px}
+.r-top button,.r-bot button{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:8px 16px}
+.r-bot button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink);min-width:88px}
+@media (max-width:560px){.en{font-size:20px}h1{font-size:25px}.pace{margin-left:0}.refs li{grid-template-columns:1fr}.st{justify-self:start;padding:0 8px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header class="top">
+  <p class="eyebrow">c0mpiled-17 Seoul 제출 영상 120초</p>
+  <h1>LostAI 데모 영상 내레이션</h1>
+  <p class="meta">초안 1 (2026-11-09 11:25), 콘티는 데모 기획 v0.3 개정판, 주현 (ProfessionalSeaweedDevourer)</p>
+  <nav class="toc"><a href="#script">대본</a><a href="#pending">채울 것</a><a href="#refs">참고 자료</a></nav>
+</header>
+
+<section class="bluf"><h2>읽는 법</h2><ul><li>목소리는 아무도 말하지 않는 구간에만 넣는다. 연속 테이크(6~90초)의 대화는 제품 입력이자 진짜 데모의 근거라 목소리로 덮지 않는다.</li><li>목소리 구간의 자막은 읽는 문장과 똑같다. 대화 구간은 목소리 없이 자막만 넣는다.</li><li>대화 원문은 자막으로 넣지 않는다. 제품 화면 오른쪽 기록이 이미 발화를 보여 준다.</li><li>영어로 읽는다. 한국어는 Eric 참고용 뜻이고 영상에 넣지 않는다.</li></ul>
+<p class="stat"><b class="num">6</b>개 구간을 읽음 <span class="sep"></span><b class="num">59</b>초 동안 <b class="num">106</b>단어 <span class="sep"></span>나머지 <b class="num">61</b>초는 자막만</p>
+<p class="note">오른쪽 아래 <b>읽기 모드</b>는 0초부터 120초까지 시계를 돌리며 지금 읽을 문장을 크게 띄운다. 스페이스 시작과 멈춤, 오른쪽 화살표 다음 읽기 구간, 왼쪽 화살표 이전 구간, Esc 닫기. 녹음할 때 영상 편집본을 같이 틀고 맞춰 읽는다.</p></section>
+
+<section><h2>120초 흐름</h2><div class="tl-wrap"><div class="tl"><a class="tl-seg k-vo" style="width:5.000%" href="#cue-0" title="0~6초 목소리"><span class="tl-t">0~6</span><span class="tl-n">목소리</span></a><a class="tl-seg k-vo" style="width:3.333%" href="#cue-1" title="6~10초 목소리"><span class="tl-t">6~10</span><span class="tl-n">목소리</span></a><a class="tl-seg k-sub" style="width:13.333%" href="#cue-2" title="10~26초 자막"><span class="tl-t">10~26</span><span class="tl-n">자막</span></a><a class="tl-seg k-sub" style="width:5.833%" href="#cue-3" title="26~33초 자막"><span class="tl-t">26~33</span><span class="tl-n">자막</span></a><a class="tl-seg k-vo" style="width:5.833%" href="#cue-4" title="33~40초 목소리"><span class="tl-t">33~40</span><span class="tl-n">목소리</span></a><a class="tl-seg k-sub" style="width:6.667%" href="#cue-5" title="40~48초 자막"><span class="tl-t">40~48</span><span class="tl-n">자막</span></a><a class="tl-seg k-sub" style="width:6.667%" href="#cue-6" title="48~56초 자막"><span class="tl-t">48~56</span><span class="tl-n">자막</span></a><a class="tl-seg k-sub" style="width:8.333%" href="#cue-7" title="56~66초 자막"><span class="tl-t">56~66</span><span class="tl-n">자막</span></a><a class="tl-seg k-sub" style="width:10.000%" href="#cue-8" title="66~78초 자막"><span class="tl-t">66~78</span><span class="tl-n">자막</span></a><a class="tl-seg k-vo" style="width:10.000%" href="#cue-9" title="78~90초 목소리"><span class="tl-t">78~90</span><span class="tl-n">목소리</span></a><a class="tl-seg k-vo" style="width:12.500%" href="#cue-10" title="90~105초 목소리"><span class="tl-t">90~105</span><span class="tl-n">목소리</span></a><a class="tl-seg k-vo" style="width:12.500%" href="#cue-11" title="105~120초 목소리"><span class="tl-t">105~120</span><span class="tl-n">목소리</span></a></div><div class="tl-take" style="left:5.000%;width:70.000%">연속 테이크 6~90초</div></div><p class="legend"><span class="lg k-vo"></span>Eric이 읽음(자막 같음) <span class="lg k-sub"></span>목소리 없이 자막만</p></section>
+
+<section id="script"><h2>대본</h2><div class="cues"><article class="cue k-vo" id="cue-0"><header><b class="num">0~6초</b><span class="kind">읽기</span><span class="scene">첫 장면 픽토그램</span><span class="pace num">10단어, 초당 1.7</span></header><p class="en" lang="en">Two people. Two launch dates. Nobody noticed until launch week.</p><p class="ko">두 사람, 두 개의 출시일. 출시 주간이 될 때까지 아무도 몰랐다.</p><button type="button" class="copy" data-text="Two people. Two launch dates. Nobody noticed until launch week.">자막 복사</button><button type="button" class="read-here" data-i="0">여기부터 읽기</button></article>
+<article class="cue k-vo" id="cue-1"><header><b class="num">6~10초</b><span class="kind">읽기</span><span class="scene">손으로 입장, 벽시계 켜짐</span><span class="pace num">10단어, 초당 2.5</span></header><p class="en" lang="en">Everyone joins by hand, so every edit has a name.</p><p class="ko">모두 손으로 입장하므로 모든 수정에 이름이 붙는다.</p><button type="button" class="copy" data-text="Everyone joins by hand, so every edit has a name.">자막 복사</button><button type="button" class="read-here" data-i="1">여기부터 읽기</button></article>
+<article class="cue k-sub" id="cue-2"><header><b class="num">10~26초</b><span class="kind">자막만</span><span class="scene">T1~T3: 칸이 빛남, 잡담 무시, 새 행</span><span class="pace num">16초 동안 띄움</span></header><p class="en" lang="en">It edits the plan while you talk. Small talk changes nothing.</p><p class="ko">말하는 동안 계획을 고친다. 잡담은 아무것도 바꾸지 않는다.</p><button type="button" class="copy" data-text="It edits the plan while you talk. Small talk changes nothing.">자막 복사</button><button type="button" class="read-here" data-i="2">여기부터 읽기</button></article>
+<article class="cue k-sub" id="cue-3"><header><b class="num">26~33초</b><span class="kind">자막만</span><span class="scene">T4, T5: 엄지 아래로 되돌림</span><span class="pace num">7초 동안 띄움</span></header><p class="en" lang="en">Wrong edit? Thumbs down. Undone.</p><p class="ko">잘못 고쳤나? 엄지 아래. 되돌려졌다.</p><button type="button" class="copy" data-text="Wrong edit? Thumbs down. Undone.">자막 복사</button><button type="button" class="read-here" data-i="3">여기부터 읽기</button></article>
+<article class="cue k-vo" id="cue-4"><header><b class="num">33~40초</b><span class="kind">읽기</span><span class="scene">화면 반이 실제 Google Sheet, 셀 메모</span><span class="pace num">16단어, 초당 2.3</span></header><p class="en" lang="en">The same edit lands in your real Google Sheet, with a note saying who said it.</p><p class="ko">같은 수정이 실제 Google Sheet에 들어가고, 누가 말했는지 메모가 붙는다.</p><button type="button" class="copy" data-text="The same edit lands in your real Google Sheet, with a note saying who said it.">자막 복사</button><button type="button" class="read-here" data-i="4">여기부터 읽기</button></article>
+<article class="cue k-sub" id="cue-5"><header><b class="num">40~48초</b><span class="kind">자막만</span><span class="scene">T6, T7: 일정 미룸, 출시 1월 21일</span><span class="pace num">8초 동안 띄움</span></header><p class="en" lang="en">Two dates for one launch.</p><p class="ko">한 출시에 날짜가 둘.</p><button type="button" class="copy" data-text="Two dates for one launch.">자막 복사</button><button type="button" class="read-here" data-i="5">여기부터 읽기</button></article>
+<article class="cue k-sub" id="cue-6"><header><b class="num">48~56초</b><span class="kind">자막만</span><span class="scene">T8: 엇갈림 카드와 비용 줄</span><span class="pace num">8초 동안 띄움</span></header><p class="en" lang="en">It stops writing and shows who said what, and what each date breaks.</p><p class="ko">쓰기를 멈추고 누가 무엇을 말했는지, 각 날짜가 무엇을 깨는지 보인다.</p><button type="button" class="copy" data-text="It stops writing and shows who said what, and what each date breaks.">자막 복사</button><button type="button" class="read-here" data-i="6">여기부터 읽기</button></article>
+<article class="cue k-sub" id="cue-7"><header><b class="num">56~66초</b><span class="kind">자막만</span><span class="scene">T9, 첫 공개: 위 셋, 아래 하나</span><span class="pace num">10초 동안 띄움</span></header><p class="en" lang="en">Everyone shows at once. One thumb down, and nothing gets written.</p><p class="ko">모두 동시에 보인다. 엄지 하나가 아래면 아무것도 쓰지 않는다.</p><button type="button" class="copy" data-text="Everyone shows at once. One thumb down, and nothing gets written.">자막 복사</button><button type="button" class="read-here" data-i="7">여기부터 읽기</button></article>
+<article class="cue k-sub" id="cue-8"><header><b class="num">66~78초</b><span class="kind">자막만</span><span class="scene">T10, 두 번째 공개: 위 넷, 마일스톤 고침</span><span class="pace num">12초 동안 띄움</span></header><p class="en" lang="en">The person who disagreed speaks first. Then the room decides again.</p><p class="ko">반대한 사람이 먼저 말하고, 방이 다시 정한다.</p><button type="button" class="copy" data-text="The person who disagreed speaks first. Then the room decides again.">자막 복사</button><button type="button" class="read-here" data-i="8">여기부터 읽기</button></article>
+<article class="cue k-vo" id="cue-9"><header><b class="num">78~90초</b><span class="kind">읽기</span><span class="scene">출시 칸 팝오버, 오른쪽 기록 카드</span><span class="pace num">23단어, 초당 1.9</span></header><p class="en" lang="en">Click any cell to see who changed it, when, and why. One click undoes it. Everything the agent did is in the log.</p><p class="ko">아무 칸이나 누르면 누가, 언제, 왜 바꿨는지 보인다. 한 번 누르면 되돌린다. 에이전트가 한 일은 모두 기록에 있다.</p><button type="button" class="copy" data-text="Click any cell to see who changed it, when, and why. One click undoes it. Everything the agent did is in the log.">자막 복사</button><button type="button" class="read-here" data-i="9">여기부터 읽기</button></article>
+<article class="cue k-vo" id="cue-10"><header><b class="num">90~105초</b><span class="kind">읽기</span><span class="scene">테이크 기록 파일과 당일 잰 숫자</span><span class="pace num">25단어, 초당 1.7</span></header><p class="en" lang="en">This was one continuous take. The clock on screen matches the log file in our repo. Median time from speech to cell: <mark class="slot">X</mark> seconds.</p><p class="ko">편집 없는 한 번의 테이크였다. 화면 시계가 리포의 기록 파일과 맞는다. 발화에서 칸까지 중앙값 <mark class="slot">X</mark>초.</p><ul class="fill"><li>{X}: 당일 리허설에서 잰 중앙값</li></ul><button type="button" class="copy" data-text="This was one continuous take. The clock on screen matches the log file in our repo. Median time from speech to cell: {X} seconds.">자막 복사</button><button type="button" class="read-here" data-i="10">여기부터 읽기</button></article>
+<article class="cue k-vo" id="cue-11"><header><b class="num">105~120초</b><span class="kind">읽기</span><span class="scene">끝 카드</span><span class="pace num">22단어, 초당 1.5</span></header><p class="en" lang="en">Built for <mark class="slot">BUYER</mark>. Say it in the meeting. The plan changes. When two people disagree, it stops and asks the room.</p><p class="ko"><mark class="slot">BUYER</mark>를 위해 만들었다. 회의에서 말하면 계획이 바뀐다. 두 사람이 엇갈리면 멈추고 방에 묻는다.</p><ul class="fill"><li>{BUYER}: 살 사람 한 줄, 팀이 정함(기획 판정 4번). 후보 eng leads who run plan reviews in Google Sheets</li></ul><button type="button" class="copy" data-text="Built for {BUYER}. Say it in the meeting. The plan changes. When two people disagree, it stops and asks the room.">자막 복사</button><button type="button" class="read-here" data-i="11">여기부터 읽기</button></article></div>
+<p class="note">끝 카드 화면 글자(읽지 않음): N edits live, 1 undone, 1 conflict caught, 1 thumb down held the write.</p></section>
+
+<section id="pending"><h2>채울 것</h2><ul class="pend-list"><li><mark class="slot">X</mark>: 발화에서 칸까지 중앙값. 리허설 테이크로 잰 뒤 채운다. 2.5초를 넘으면 그 문장을 빼고 &#x27;The clock on screen matches the log file in our repo.&#x27;까지만 읽는다.</li><li><mark class="slot">BUYER</mark>: 살 사람. 팀 결정 전이라 빈칸이다.</li><li>콘티 판정 대기 중 내레이션에 닿는 것: 첫 장면 6초(7번), 결정 장면을 동시 엄지 공개로(8번). 판정이 바뀌면 그 구간 문장을 고친다.</li><li>끝 카드의 N(수정 수)은 최종 테이크에서 센다.</li></ul></section>
+
+<section id="refs"><h2>참고 자료</h2><p class="note">meeting-agent-poc 경로는 주현의 로컬 폴더(git 밖)다. LostAI 경로와 공개 링크는 바로 열린다.</p><h3>이 내레이션의 원천</h3><ul class="refs"><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/video/hackathon_c0mpiled17_demo_plan_JoohyunPark_ko_v0_3_20261109.md</code><p>120초 콘티와 자막 원안(2절), 판정 대기(7절)</p></div></li><li><span class="st st-mid">일부 승계</span><div><code class="path">meeting-agent-poc/design/video/hackathon_c0mpiled17_demo_plan_JoohyunPark_ko_v0_2_20261109.md</code><p>v0.3가 이어받은 심사위원 대응표, 당일 숫자 후보, 판정 기록</p></div></li><li><span class="st st-ref">참고</span><div><code class="path">meeting-agent-poc/design/video/research_video_tools.md</code><p>데모 영상 구성 원칙과 맥용 제작 도구 조사</p></div></li><li><span class="st st-ok">현행</span><div><a href="https://github.com/gitgutgit/LostAI/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener">LostAI/docs/ARCHITECTURE.md</a><p>P0, P1, P2 우선순위</p></div></li></ul><h3>심사진</h3><ul class="refs"><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/hackathon_c0mpiled17_judges_research_ko_v0_1_20261108.md</code><p>심사위원 8명의 배경과 성향, 첫 15초와 끝 5초 원칙</p></div></li><li><span class="st st-ref">참고</span><div><a href="https://claude.ai/artifact/95LyiKYwmgnWgHP6kJc9wA" target="_blank" rel="noopener">심사진 조사 그림 페이지</a><p>위 조사를 그림으로 옮긴 팀 공유 페이지</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/hackathon_c0mpiled17_judge_scenarios_JoohyunPark_ko_v0_6_20261109.md</code><p>심사진 공략 시나리오 셋</p></div></li><li><span class="st st-ref">참고</span><div><a href="https://merlinkafka.com/writing/human-in-the-loop-interface" target="_blank" rel="noopener">Merlin Kafka, human-in-the-loop interface</a><p>네 질문 원문. 78~90초 문장이 답하는 대상</p></div></li><li><span class="st st-ref">참고</span><div><a href="https://luma.com/compiled-8lsr" target="_blank" rel="noopener">행사 페이지 (Luma)</a><p>심사 기준과 제출 규정</p></div></li></ul><h3>제품 기획과 화면</h3><ul class="refs"><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/hackathon_c0mpiled17_facilitator_framing_JoohyunPark_ko_v0_5_20261109.md</code><p>진행자 AI 제품 프레이밍</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/hackathon_c0mpiled17_product_identity_C_JoohyunPark_ko_v0_1_20261109.md</code><p>문서가 곧 회의 화면(C안) 제품 정체성</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/wireframes/facilitator_v0_3/render_v04/index.html</code><p>최신 렌더 시안</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/wireframes/facilitator_v0_3/TEAM_CLAUDE_DESIGN_v1.md</code><p>팀원 Claude용 진행자 사양서</p></div></li><li><span class="st st-ref">참고</span><div><code class="path">meeting-agent-poc/design/wireframes/facilitator_v0_2/research_unslop.md</code><p>AI 티를 빼는 조사와 읽는 거리 기준</p></div></li></ul><h3>이름과 로고 (미확정)</h3><ul class="refs"><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/hackathon_c0mpiled17_naming_logo_instruction_JoohyunPark_ko_20261109.md</code><p>제품 이름과 로고를 정하는 지시서. 끝 카드 이름이 여기서 정해진다</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/brand/candidates_ko_20261109.md</code><p>이름 후보 채점과 충돌 검색</p></div></li><li><span class="st st-ok">현행</span><div><code class="path">meeting-agent-poc/design/brand/logo/sheet_v1.html</code><p>MOAI 워드마크 시안</p></div></li></ul><h3>디자인 참고 소스 (공개 링크)</h3><ul class="refs"><li><span class="st st-ref">참고</span><div><a href="https://ui.shadcn.com/" target="_blank" rel="noopener">shadcn/ui</a><p>컴포넌트 라이브러리 겸 디자인 시스템</p></div></li><li><span class="st st-ref">참고</span><div><a href="https://github.com/google-labs-code/design.md" target="_blank" rel="noopener">google-labs-code/design.md</a><p>디자인 규약 md 형식과 lint</p></div></li><li><span class="st st-ref">참고</span><div><a href="https://github.com/VoltAgent/awesome-design-md/" target="_blank" rel="noopener">VoltAgent/awesome-design-md</a><p>실제 브랜드 DESIGN.md 모음</p></div></li><li><span class="st st-ref">참고</span><div><a href="https://stitch.withgoogle.com/" target="_blank" rel="noopener">Google Stitch</a><p>AI 기반 UI 디자인 생성 도구</p></div></li><li><span class="st st-ref">참고</span><div><a href="https://paper.design/" target="_blank" rel="noopener">paper.design</a><p>HTML/CSS 캔버스 디자인 도구</p></div></li></ul></section>
+
+<footer class="foot">원천 meeting-agent-poc/design/video/hackathon_c0mpiled17_demo_plan_JoohyunPark_ko_v0_3_20261109.md. 이 페이지는 LostAI docs/demo/build.py가 narration.json에서 만든다.</footer>
+</main>
+
+<div id="reader" class="reader" hidden role="dialog" aria-modal="true" aria-label="읽기 모드">
+  <div class="r-top"><span id="r-clock" class="num">0:00 / 2:00</span><span id="r-scene"></span><button type="button" id="r-close">닫기</button></div>
+  <div class="r-bar"><i id="r-fill"></i></div>
+  <div class="r-body"><p id="r-state" class="r-state"></p><p id="r-cur" class="r-say" lang="en"></p><p id="r-ko" class="r-ko"></p><p id="r-next" class="r-side"></p></div>
+  <div class="r-bot"><button type="button" id="r-back">이전 구간</button><button type="button" id="r-reset">처음부터</button><button type="button" id="r-fwd">다음 읽기</button><button type="button" id="r-play" class="primary">시작</button></div>
+</div>
+<button type="button" id="open-reader" class="fab">읽기 모드</button>
+<script id="cue-data" type="application/json">{"cues": [{"t": [0, 6], "kind": "vo", "scene": "첫 장면 픽토그램", "en": "Two people. Two launch dates. Nobody noticed until launch week.", "ko": "두 사람, 두 개의 출시일. 출시 주간이 될 때까지 아무도 몰랐다."}, {"t": [6, 10], "kind": "vo", "scene": "손으로 입장, 벽시계 켜짐", "en": "Everyone joins by hand, so every edit has a name.", "ko": "모두 손으로 입장하므로 모든 수정에 이름이 붙는다."}, {"t": [10, 26], "kind": "sub", "scene": "T1~T3: 칸이 빛남, 잡담 무시, 새 행", "en": "It edits the plan while you talk. Small talk changes nothing.", "ko": "말하는 동안 계획을 고친다. 잡담은 아무것도 바꾸지 않는다."}, {"t": [26, 33], "kind": "sub", "scene": "T4, T5: 엄지 아래로 되돌림", "en": "Wrong edit? Thumbs down. Undone.", "ko": "잘못 고쳤나? 엄지 아래. 되돌려졌다."}, {"t": [33, 40], "kind": "vo", "scene": "화면 반이 실제 Google Sheet, 셀 메모", "en": "The same edit lands in your real Google Sheet, with a note saying who said it.", "ko": "같은 수정이 실제 Google Sheet에 들어가고, 누가 말했는지 메모가 붙는다."}, {"t": [40, 48], "kind": "sub", "scene": "T6, T7: 일정 미룸, 출시 1월 21일", "en": "Two dates for one launch.", "ko": "한 출시에 날짜가 둘."}, {"t": [48, 56], "kind": "sub", "scene": "T8: 엇갈림 카드와 비용 줄", "en": "It stops writing and shows who said what, and what each date breaks.", "ko": "쓰기를 멈추고 누가 무엇을 말했는지, 각 날짜가 무엇을 깨는지 보인다."}, {"t": [56, 66], "kind": "sub", "scene": "T9, 첫 공개: 위 셋, 아래 하나", "en": "Everyone shows at once. One thumb down, and nothing gets written.", "ko": "모두 동시에 보인다. 엄지 하나가 아래면 아무것도 쓰지 않는다."}, {"t": [66, 78], "kind": "sub", "scene": "T10, 두 번째 공개: 위 넷, 마일스톤 고침", "en": "The person who disagreed speaks first. Then the room decides again.", "ko": "반대한 사람이 먼저 말하고, 방이 다시 정한다."}, {"t": [78, 90], "kind": "vo", "scene": "출시 칸 팝오버, 오른쪽 기록 카드", "en": "Click any cell to see who changed it, when, and why. One click undoes it. Everything the agent did is in the log.", "ko": "아무 칸이나 누르면 누가, 언제, 왜 바꿨는지 보인다. 한 번 누르면 되돌린다. 에이전트가 한 일은 모두 기록에 있다."}, {"t": [90, 105], "kind": "vo", "scene": "테이크 기록 파일과 당일 잰 숫자", "en": "This was one continuous take. The clock on screen matches the log file in our repo. Median time from speech to cell: {X} seconds.", "ko": "편집 없는 한 번의 테이크였다. 화면 시계가 리포의 기록 파일과 맞는다. 발화에서 칸까지 중앙값 {X}초.", "fill": ["{X}: 당일 리허설에서 잰 중앙값"]}, {"t": [105, 120], "kind": "vo", "scene": "끝 카드", "en": "Built for {BUYER}. Say it in the meeting. The plan changes. When two people disagree, it stops and asks the room.", "ko": "{BUYER}를 위해 만들었다. 회의에서 말하면 계획이 바뀐다. 두 사람이 엇갈리면 멈추고 방에 묻는다.", "fill": ["{BUYER}: 살 사람 한 줄, 팀이 정함(기획 판정 4번). 후보 eng leads who run plan reviews in Google Sheets"]}]}</script>
+<script>(function () {
+  var C = JSON.parse(document.getElementById('cue-data').textContent).cues;
+  var END = C[C.length - 1].t[1];
+  var $ = function (id) { return document.getElementById(id); };
+  var R = $('reader'), pos = 0, base = null, tick = null;
+  function mmss(s) { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+  function slot(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML.replace(/\{([A-Z]+)\}/g, '<mark class="slot">$1</mark>'); }
+  function now() { return base == null ? pos : Math.min(END, (Date.now() - base) / 1000); }
+  function at(t) { for (var i = 0; i < C.length; i++) { if (t < C[i].t[1]) return i; } return C.length - 1; }
+  function nextVo(i) { for (var k = i + 1; k < C.length; k++) { if (C[k].kind === 'vo') return k; } return -1; }
+
+  function render() {
+    var t = now(), i = at(t), c = C[i], n = nextVo(i);
+    $('r-clock').textContent = mmss(t) + ' / ' + mmss(END);
+    $('r-scene').textContent = c.t[0] + '~' + c.t[1] + '초 ' + c.scene;
+    $('r-fill').style.width = ((t - c.t[0]) / (c.t[1] - c.t[0]) * 100).toFixed(1) + '%';
+    R.classList.toggle('is-vo', c.kind === 'vo');
+    if (c.kind === 'vo') {
+      $('r-state').textContent = '읽기, 남은 ' + Math.ceil(c.t[1] - t) + '초';
+      $('r-cur').innerHTML = slot(c.en);
+      $('r-ko').innerHTML = slot(c.ko);
+    } else {
+      $('r-state').textContent = '쉬기. 자막만: ' + c.en;
+      $('r-cur').innerHTML = n >= 0 ? slot(C[n].en) : '';
+      $('r-ko').textContent = n >= 0 ? C[n].t[0] + '초에 읽을 문장, ' + Math.ceil(C[n].t[0] - t) + '초 뒤' : '';
+    }
+    $('r-next').innerHTML = c.kind === 'vo' && n >= 0 ? '다음 읽기 ' + C[n].t[0] + '초: ' + slot(C[n].en) : '';
+    if (base != null && t >= END) stop();
+  }
+  function start() { base = Date.now() - pos * 1000; tick = setInterval(render, 100); $('r-play').textContent = '멈춤'; render(); }
+  function stop() { pos = now(); base = null; if (tick) clearInterval(tick); tick = null; $('r-play').textContent = pos >= END ? '다시' : '시작'; render(); }
+  function toggle() { if (base == null) { if (pos >= END) pos = 0; start(); } else stop(); }
+  function seek(t) { var run = base != null; if (run) stop(); pos = Math.max(0, Math.min(END, t)); if (run) start(); else render(); }
+  function jump(dir) {
+    var i = at(now()), k = i + dir;
+    while (k >= 0 && k < C.length && C[k].kind !== 'vo') k += dir;
+    if (k >= 0 && k < C.length) seek(C[k].t[0]); else if (dir < 0) seek(0);
+  }
+  function open(t) { R.hidden = false; document.body.style.overflow = 'hidden'; seek(t || 0); $('r-play').focus(); }
+  function close() { stop(); R.hidden = true; document.body.style.overflow = ''; }
+
+  $('open-reader').addEventListener('click', function () { open(0); });
+  document.querySelectorAll('.read-here').forEach(function (b) { b.addEventListener('click', function () { open(C[+b.getAttribute('data-i')].t[0]); }); });
+  document.querySelectorAll('.copy').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var txt = b.getAttribute('data-text');
+      var done = function () { b.textContent = '복사됨'; setTimeout(function () { b.textContent = '자막 복사'; }, 1200); };
+      var fallback = function () {
+        var p = b.parentNode.querySelector('.en'), r = document.createRange(); r.selectNodeContents(p);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = '선택됨, 복사하세요';
+      };
+      try { navigator.clipboard.writeText(txt).then(done, fallback); } catch (e) { fallback(); }
+    });
+  });
+  $('r-close').addEventListener('click', close);
+  $('r-play').addEventListener('click', toggle);
+  $('r-fwd').addEventListener('click', function () { jump(1); });
+  $('r-back').addEventListener('click', function () { jump(-1); });
+  $('r-reset').addEventListener('click', function () { seek(0); });
+  document.addEventListener('keydown', function (e) {
+    if (R.hidden) return;
+    if (e.key === 'Escape') close();
+    else if (e.key === ' ' && e.target.tagName !== 'BUTTON') { e.preventDefault(); toggle(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); jump(1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); jump(-1); }
+  });
+})();
+</script>
+</body>
+</html>
