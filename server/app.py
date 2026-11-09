@@ -164,7 +164,8 @@ async def ws_endpoint(ws: WebSocket, token: str = ""):  # 토큰이 빠져도 �
         await ws.close(code=4401)
         return
     room = get_room()  # 리셋은 같은 방 객체를 그 자리에서 비우므로 이 참조는 계속 유효하다
-    await room.connect(ws, name)
+    if await room.connect(ws, name):
+        await room.emit("participant.verified", name, {}, {"name": name, "result": "pass", "via": "rejoin"})
     try:
         while True:
             raw = await ws.receive_text()
@@ -176,8 +177,8 @@ async def ws_endpoint(ws: WebSocket, token: str = ""):  # 토큰이 빠져도 �
     except WebSocketDisconnect:
         pass
     finally:
-        room.disconnect(ws)
-        await room.emit("participant.left", name, {}, {"name": name})
+        if room.disconnect(ws):  # 같은 이름의 다른 탭이 남아 있으면 나간 게 아니다
+            await room.emit("participant.left", name, {}, {"name": name})
 
 
 @app.get("/api/state")

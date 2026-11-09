@@ -51,7 +51,8 @@ function tally(raw: Record<string, number>, values: number[]) {
 const valuesFor = (c?: Conflict) => (isRatingCard(c) ? [3, 2, 1] : c!.positions.slice(0, 4).map((_, i) => i + 1));
 const optName = (c: Conflict | undefined, n: number) => (isRatingCard(c) ? RATING[n] : c?.positions[n - 1]?.says ?? `Option ${n}`);
 const voteLine = (c: Conflict | undefined, t: ReturnType<typeof tally>) =>
-  isRatingCard(c) ? `${t.count[3]} good, ${t.count[2]} okay, ${t.count[1]} no` : valuesFor(c).map((n) => `${n} ${optName(c, n)} ${t.count[n]}`).join(" · ");
+  // gitgutgit 11-09: 표 수는 ×N 으로 쓴다. "2 good"은 손가락 2개로 읽혀서 3·2·1 규칙과 헷갈렸다.
+  isRatingCard(c) ? `good ×${t.count[3]} · okay ×${t.count[2]} · no ×${t.count[1]}` : valuesFor(c).map((n) => `${n} ${optName(c, n)} ×${t.count[n]}`).join(" · ");
 
 function mapColumns(sheet: Sheet): Record<(typeof KEYS)[number], string | null> {
   const out = {} as Record<(typeof KEYS)[number], string | null>;
@@ -276,14 +277,20 @@ export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseU
       foot: "Every edit in the doc carries a speaker and a line. No AI recommendation on any question." } };
   } else if (v.paused) cardB = { flap: "PAUSED", msg: { kind: "headline", big: ["Paused"], sub: ["Show the T sign again to resume."], subTop: 4 } };
   else if (countShown) {
-    const cast = v.events.filter((e) => e.type === "vote.cast" && e.refs.vote_id === vOpen!.refs.vote_id).length;
+    // gitgutgit 11-09: 표결 중에도 집계를 공개한다 — 누가 냈는지(✓)와 지금까지의 표. 내 손이 읽혔는지 바로 보이게.
+    const castBy: Record<string, number> = {};
+    for (const e of v.events) if (e.type === "vote.cast" && e.refs.vote_id === vOpen!.refs.vote_id) castBy[e.actor] = Number(e.payload.value);
+    const cast = Object.keys(castBy).length;
     const vq = cardOf(vOpen!);
+    const now = tally(castBy, valuesFor(vq));
+    const who = Object.entries(castBy).map(([n, val]) => `${n}${n === me ? " (you)" : ""} ✓ ${optName(vq, val).toLowerCase()}`).join(", ");
+    const live = cast ? ` Now: ${voteLine(vq, now)}. Voted: ${who}.` : "";
     const prompt = isRatingCard(vq) ? RATING_PROMPT : `Pick a number: ${valuesFor(vq).map((n) => `${n} ${optName(vq, n)}`).join(", ")}. Show fingers, or say "two" or "option two" (2번).`;
     // gitgutgit: 남은 초를 글자판에 숫자로 (서버가 준 closes_in 기준). 모르면 예전처럼 "3 2 1".
     const left = voteLeftSec != null ? Math.max(0, voteLeftSec) : null;
     cardB = left != null
-      ? { flap: String(left), take: "count", msg: { kind: "countdown", q: vq ? qOf(vq) : "Q", title: vq?.topic ?? "Vote", prompt: `${prompt} ${cast} read. Closes in ${left}s.` } }
-      : { flap: "3 2 1", off: [0, 4], take: "count", msg: { kind: "countdown", q: vq ? qOf(vq) : "Q", title: vq?.topic ?? "Vote", prompt: `${prompt} ${cast} read.` } };
+      ? { flap: String(left), take: "count", msg: { kind: "countdown", q: vq ? qOf(vq) : "Q", title: vq?.topic ?? "Vote", prompt: `${prompt}${live || ` ${cast} read.`} Closes in ${left}s.` } }
+      : { flap: "3 2 1", off: [0, 4], take: "count", msg: { kind: "countdown", q: vq ? qOf(vq) : "Q", title: vq?.topic ?? "Vote", prompt: `${prompt}${live || ` ${cast} read.`}` } };
   } else if (vClosed && tally((vClosed.payload.votes ?? {}) as Record<string, number>, valuesFor(cardOf(vClosed))).votes.length === 0 && (!lastAgent || vClosed.seq > lastAgent.seq)) {
     const vq = cardOf(vClosed);
     cardB = { flap: "NO VOTE", msg: { kind: "headline", big: ["No hands read"], sub: [`${isRatingCard(vq) ? RATING_PROMPT : "Show fingers or say a number."} Then call the vote again.`], subTop: 4 } };

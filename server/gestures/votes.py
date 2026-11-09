@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 OPEN_WINDOW_SEC = 4.0   # gitgutgit 11-09: 2초 → 4초 (표결 시간 2배)
 QUIET_CLOSE_SEC = 10.0  # 5초 → 10초
+ALL_IN_CLOSE_SEC = 2.0  # gitgutgit 11-09: 입장한 사람이 모두 냈으면 화면에 ✓를 보일 만큼만 기다리고 마감
 VOICE_OPEN_SEC = 40.0  # ep: 말로 연 표결의 첫 마감 시한
 RATINGS = {3: "좋음", 2: "보통", 1: "싫음"}  # gitgutgit: 찬반 카드의 손가락 수 → 뜻
 _AGAINST = {"반대", "no"}
@@ -36,6 +37,7 @@ class Votes:
         self.vote_id: str | None = None
         self.cast: dict[str, int] = {}
         self._closer: asyncio.Task | None = None
+        self.deadline: float | None = None  # gitgutgit: 마감 시각(monotonic). 표가 들어와도 앞당기지 않는다
         self.mode = "rating"          # "rating"(3·2·1) | "options"(1~N)
         self.max_option = 3
 
@@ -79,13 +81,11 @@ class Votes:
             self.vote_id = f"v{len(room.events) + 1}"
             # TODO(P2): 직전 대사로 질문을 LLM이 비동기로 만든다. 지금은 가장 최근 열린 질문(없으면 None).
             question = self._set_mode(room, None)
-            await room.emit("vote.opened", "server", {"vote_id": self.vote_id}, {"question": question, "closes_in": QUIET_CLOSE_SEC})
+            await room.emit("vote.opened", "server", {"vote_id": self.vote_id}, {"question": question, "closes_in": self._arm(room, QUIET_CLOSE_SEC)})
             for k, (m, _) in self.pending.items():
                 if self.valid(m):
                     await self._cast(room, k, m)
             self.pending.clear()
-            if not self.cast:  # 연 손이 모두 이 카드에서 안 세는 수였으면, 열린 채 남지 않게 마감 시계를 건다
-                self._closer = asyncio.create_task(self._close_later(room))
         else:
             await self._cast(room, who, n)
 
@@ -95,8 +95,7 @@ class Votes:
             return False
         self.vote_id = f"v{len(room.events) + 1}"
         self._set_mode(room, question)
-        await room.emit("vote.opened", by, {"vote_id": self.vote_id}, {"question": question, "closes_in": VOICE_OPEN_SEC})
-        self._closer = asyncio.create_task(self._close_later(room, VOICE_OPEN_SEC))
+        await room.emit("vote.opened", by, {"vote_id": self.vote_id}, {"question": question, "closes_in": self._arm(room, VOICE_OPEN_SEC)})
         return True
 
     async def cast_by_voice(self, room: "Room", who: str, n: int) -> None:
@@ -108,17 +107,32 @@ class Votes:
         if not self.valid(n):
             return
         self.cast[who] = n
-        # closes_in: 이 표로 마감 시계가 다시 시작된다 → 화면이 남은 초를 숫자로 보인다
-        await room.emit("vote.cast", who, {"vote_id": self.vote_id}, {"value": n, "closes_in": QUIET_CLOSE_SEC})
-        if self._closer:
-            self._closer.cancel()
-        self._closer = asyncio.create_task(self._close_later(room))
+        # gitgutgit 11-09: 예전에는 표 하나마다 마감을 '지금부터 10초'로 다시 걸어서, 말로 연 40초 표결이
+        # 대본 화자들의 첫 표에 10초로 줄어 사람이 손을 들기 전에 끝났다. 이제 마감은 늦출 수만 있다.
+        # 입장한 사람(room.participants)이 모두 냈으면 ALL_IN_CLOSE_SEC 뒤에 바로 마감한다.
+        people = set(getattr(room, "participants", {}) or {})
+        if people and people <= set(self.cast):
+            left = self._arm(room, ALL_IN_CLOSE_SEC, shorten=True)
+        else:
+            left = self._arm(room, QUIET_CLOSE_SEC)
+        await room.emit("vote.cast", who, {"vote_id": self.vote_id}, {"value": n, "closes_in": left})
+
+    def _arm(self, room: "Room", at_least: float, shorten: bool = False) -> float:
+        """마감 시각을 '지금 + at_least' 이후로 맞추고 남은 초를 돌려준다. shorten이면 앞당기는 것도 허용."""
+        now = time.monotonic()
+        want = now + at_least
+        if self.deadline is None or shorten or want > self.deadline:
+            self.deadline = want
+            if self._closer:
+                self._closer.cancel()
+            self._closer = asyncio.create_task(self._close_later(room, self.deadline - now))
+        return round(self.deadline - now, 1)
 
     async def _close_later(self, room: "Room", wait: float = QUIET_CLOSE_SEC) -> None:
         await asyncio.sleep(wait)
         await room.emit("vote.closed", "server", {"vote_id": self.vote_id},
                         {"votes": self.cast, "counted": len(self.cast)})
-        self.vote_id, self.cast = None, {}
+        self.vote_id, self.cast, self.deadline = None, {}, None
 
 
 votes = Votes()
