@@ -34,11 +34,13 @@ export class Viewport {
     if (this.cursorEl) this.cursorEl.style.display = visible ? "block" : "none";
   }
 
-  // hs: 검지 위치 → 커서 이동 (항상 호출, PoC의 smoothPointer 방식)
+  // hs: 검지 위치 → 커서 이동 (중앙 기준 2배 증폭)
   moveCursor(p: { x: number; y: number }) {
     if (this.cursorEl) {
-      this.cursorEl.style.left = `${p.x * innerWidth}px`;
-      this.cursorEl.style.top = `${p.y * innerHeight}px`;
+      const ax = Math.min(1, Math.max(0, 0.5 + (p.x - 0.5) * 2)); // hs: 2배 속도
+      const ay = Math.min(1, Math.max(0, 0.5 + (p.y - 0.5) * 2)); // hs: 2배 속도
+      this.cursorEl.style.left = `${ax * innerWidth}px`;
+      this.cursorEl.style.top = `${ay * innerHeight}px`;
     }
   }
 
