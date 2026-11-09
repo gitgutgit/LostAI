@@ -1,11 +1,11 @@
 # Note — 태우 (Mal-Mi-Jal) · 서버·UI 메인
 
 > 마지막 업데이트: 2026-11-09 14:00
-> 한 줄 상태: 🟢 진행 중 — Google Docs 동기화 동작 + 팀 공용 Sheet/Doc 연결, PR #2 올림
+> 한 줄 상태: 🟢 진행 중 — Google Docs 동기화 동작 + 팀 공용 Sheet/Doc 연결, PR #6 올림
 > 실행: `uv run python -m server.sync.google_auth` · `uv run uvicorn server.app:app --reload --port 8000`  ·  모드: MOCK
 
 ## 현재 목표
-- PR #2 리뷰·merge → 지연 측정(리플레이 → `/api/stats`). Docs 동기화 1.3초 → 탭 길이 캐시로 조회 1회 줄이기
+- PR #6 리뷰·merge → 지연 측정(리플레이 → `/api/stats`). Docs 동기화 1.3초 → 탭 길이 캐시로 조회 1회 줄이기
 
 ## 최근 결과
 | 지표 | 값 | 목표 | 언제 · 모드 | 결과 파일 |
