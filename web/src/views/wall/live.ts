@@ -51,7 +51,8 @@ function tally(raw: Record<string, number>, values: number[]) {
 const valuesFor = (c?: Conflict) => (isRatingCard(c) ? [3, 2, 1] : c!.positions.slice(0, 4).map((_, i) => i + 1));
 const optName = (c: Conflict | undefined, n: number) => (isRatingCard(c) ? RATING[n] : c?.positions[n - 1]?.says ?? `Option ${n}`);
 const voteLine = (c: Conflict | undefined, t: ReturnType<typeof tally>) =>
-  isRatingCard(c) ? `${t.count[3]} good, ${t.count[2]} okay, ${t.count[1]} no` : valuesFor(c).map((n) => `${n} ${optName(c, n)} ${t.count[n]}`).join(" · ");
+  // gitgutgit 11-09: 표 수는 ×N 으로 쓴다. "2 good"은 손가락 2개로 읽혀서 3·2·1 규칙과 헷갈렸다.
+  isRatingCard(c) ? `good ×${t.count[3]} · okay ×${t.count[2]} · no ×${t.count[1]}` : valuesFor(c).map((n) => `${n} ${optName(c, n)} ×${t.count[n]}`).join(" · ");
 
 function mapColumns(sheet: Sheet): Record<(typeof KEYS)[number], string | null> {
   const out = {} as Record<(typeof KEYS)[number], string | null>;
@@ -282,7 +283,7 @@ export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseU
     const cast = Object.keys(castBy).length;
     const vq = cardOf(vOpen!);
     const now = tally(castBy, valuesFor(vq));
-    const who = Object.keys(castBy).map((n) => `${n}${n === me ? " (you)" : ""} ✓`).join("  ");
+    const who = Object.entries(castBy).map(([n, val]) => `${n}${n === me ? " (you)" : ""} ✓ ${optName(vq, val).toLowerCase()}`).join(", ");
     const live = cast ? ` Now: ${voteLine(vq, now)}. Voted: ${who}.` : "";
     const prompt = isRatingCard(vq) ? RATING_PROMPT : `Pick a number: ${valuesFor(vq).map((n) => `${n} ${optName(vq, n)}`).join(", ")}. Show fingers, or say "two" or "option two" (2번).`;
     // gitgutgit: 남은 초를 글자판에 숫자로 (서버가 준 closes_in 기준). 모르면 예전처럼 "3 2 1".
