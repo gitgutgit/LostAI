@@ -9,6 +9,7 @@ from server.events import RouteLabel
 
 _MOCK_RULES: list[tuple[str, RouteLabel]] = [
     (r"(취소|undo|되돌|cancel|pause|멈춰|resume)", "command"),
+    (r"(투표|표결|vote|뭐가 더|어느 (쪽|게|것)|which)", "capture"),  # ep: 고르기 질문과 표결 부르기는 질문 카드로
     (r"(\?|뭐였|누구|언제|what|who|when|how many)", "ask"),
     (r"(바꿔|넣어|빼|추가|지워|set|add|remove|change|move|update|delete)", "edit"),
     (r"(결정|하기로|리스크|위험|담당|decide|decided|risk|action|will do|owner)", "capture"),

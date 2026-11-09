@@ -13,7 +13,7 @@ from server.ops.registry import tool_schemas
 async def edit(text: str, speaker: str, state: DocState, transcript: list[dict[str, str]],
                label: str) -> list[dict[str, Any]]:
     if not llm.is_live():
-        return _mock_edit(text, speaker, label)
+        return _mock_edit(text, speaker, label, transcript)
 
     # 상태는 발화마다 바뀌므로 캐시 대상이 아니다. 고정된 tools + system 까지만 캐시된다.
     resp = await llm.client().messages.create(
@@ -31,8 +31,15 @@ async def edit(text: str, speaker: str, state: DocState, transcript: list[dict[s
     return [{"op": b.name, **b.input} for b in resp.content if b.type == "tool_use"]
 
 
-def _mock_edit(text: str, speaker: str, label: str) -> list[dict[str, Any]]:
+def _mock_edit(text: str, speaker: str, label: str, transcript: list[dict[str, str]] | None = None) -> list[dict[str, Any]]:
     """LLM 없이 화면·엔진을 돌려 보기 위한 최소 규칙."""
+    if re.search(r"(투표|표결|vote|뭐가 더|어느 (쪽|게|것)|which)", text, re.IGNORECASE):
+        # ep: 고르기 질문 → 질문 카드. 선택지는 최근 대화의 티켓 번호 두 개, 없으면 찬성/반대.
+        recent = [l["text"] for l in (transcript or [])[-6:]] + [text]
+        ids = list(dict.fromkeys(re.findall(r"[A-Z]{2,}-\d+", " ".join(recent))))[-2:]
+        topic = next((t for t in reversed(recent) if "?" in t), text)[:80]
+        opts = ids if len(ids) == 2 else ["찬성", "반대"]
+        return [{"op": "open_conflict", "topic": topic, "positions": [{"who": speaker, "says": o} for o in opts]}]
     if re.search(r"(취소|undo|되돌)", text, re.IGNORECASE):
         return [{"op": "undo_last"}]
     if re.search(r"(결정|decid)", text, re.IGNORECASE):

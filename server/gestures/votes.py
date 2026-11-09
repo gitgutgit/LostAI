@@ -1,4 +1,5 @@
-"""손가락 표결 집계 (P2). 확인된 참석자 2명 이상이 2초 안에 손가락을 보이면 표결 시작, 5초 조용하면 마감."""
+"""손가락 표결 집계 (P2). 확인된 참석자 2명 이상이 2초 안에 손가락을 보이면 표결 시작, 5초 조용하면 마감.
+ep: 말로 여는 표결(open_by_voice)과 말로 하는 한 표(cast_by_voice)를 더했다. 말로 연 표결은 아무도 안 내면 20초 뒤 마감."""
 from __future__ import annotations
 
 import asyncio
@@ -10,6 +11,7 @@ if TYPE_CHECKING:
 
 OPEN_WINDOW_SEC = 2.0
 QUIET_CLOSE_SEC = 5.0
+VOICE_OPEN_SEC = 20.0  # ep: 말로 연 표결의 첫 마감 시한
 
 
 class Votes:
@@ -40,6 +42,20 @@ class Votes:
         else:
             await self._cast(room, who, n)
 
+    async def open_by_voice(self, room: "Room", by: str, question: str | None) -> bool:
+        """ep: 표결을 말로 연다. 이미 열려 있으면 아무것도 하지 않는다."""
+        if self.vote_id is not None:
+            return False
+        self.vote_id = f"v{len(room.events) + 1}"
+        await room.emit("vote.opened", by, {"vote_id": self.vote_id}, {"question": question})
+        self._closer = asyncio.create_task(self._close_later(room, VOICE_OPEN_SEC))
+        return True
+
+    async def cast_by_voice(self, room: "Room", who: str, n: int) -> None:
+        """ep: 열린 표결에 말로 한 표('2번')."""
+        if self.vote_id is not None:
+            await self._cast(room, who, n)
+
     async def _cast(self, room: "Room", who: str, n: int) -> None:
         self.cast[who] = n
         await room.emit("vote.cast", who, {"vote_id": self.vote_id}, {"value": n})
@@ -47,8 +63,8 @@ class Votes:
             self._closer.cancel()
         self._closer = asyncio.create_task(self._close_later(room))
 
-    async def _close_later(self, room: "Room") -> None:
-        await asyncio.sleep(QUIET_CLOSE_SEC)
+    async def _close_later(self, room: "Room", wait: float = QUIET_CLOSE_SEC) -> None:
+        await asyncio.sleep(wait)
         await room.emit("vote.closed", "server", {"vote_id": self.vote_id},
                         {"votes": self.cast, "counted": len(self.cast)})
         self.vote_id, self.cast = None, {}
