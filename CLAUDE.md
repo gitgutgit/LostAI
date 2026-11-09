@@ -83,13 +83,13 @@ uv run python -m server.replay fixtures/sample_sprint.jsonl
 
 - 브랜치 `<GitHub 아이디>/<짧은 주제>`, main은 PR로만.
 - **충돌 방지 (자세히는 `init-collab` §3-1)**
-  - 새 작업은 언제나 최신 main에서 딴다: `git fetch origin && git switch -c <GitHub 아이디>/<주제> origin/main`. 로컬 main에 커밋하지 않고, 머지 안 된 다른 브랜치 위에 따지 않는다.
+  - 새 작업은 언제나 최신 main에서 딴다: `git fetch origin && git switch -c <GitHub 아이디>/<주제> origin/main`. 기능 작업은 로컬 main에 커밋하지 않고(문서 오타, 자기 note는 예외), 머지 안 된 다른 브랜치 위에 따지 않는다.
   - PR은 한 가지만, 열고 2시간 안에 머지를 목표로 한다. 길어지면 쪼갠다.
-  - 자주 겹치는 파일(`server/app.py`, `server/room.py`, `web/src/styles.css`, `notes/TEAM.md`)을 고치기 전에 `uv run python scripts/pr_guard.py`로 같은 파일을 고치는 열린 PR을 보고, 있으면 그 작성자와 먼저 말을 맞춘다.
-  - main 받기: PR을 열기 전에는 `git rebase origin/main`, PR을 연 뒤에는 `git merge origin/main`. force push는 하지 않는다.
+  - 자주 겹치는 파일(`server/app.py`, `server/room.py`, `web/src/styles.css`, `web/src/views/canvas/CanvasView.tsx`)을 고치기 전에 `python3 scripts/pr_guard.py`로 같은 파일을 고치는 열린 PR을 보고, 있으면 그 작성자와 먼저 말을 맞춘다.
+  - main 받기: 한 번도 push하지 않은 브랜치는 `git rebase origin/main`, push한 뒤에는 `git merge origin/main`. force push는 하지 않는다.
   - 머지한 사람은 그 뒤 main과 충돌하는 열린 PR의 작성자에게 알린다. 충돌을 풀 때는 그 파일 파트 메인의 설계를 따른다.
   - 한 컴퓨터에서 Claude 세션을 여럿 돌리면 세션마다 `git worktree add`로 작업 폴더를 나눈다.
-  - `.claude/settings.json` 훅이 `git push`, `gh pr create|ready|merge` 때 `scripts/pr_guard.py`를 부른다. main과 충돌하면 막고, PR을 연 뒤와 머지한 뒤에는 겹치는 열린 PR을 알린다.
+  - `.claude/settings.json` 훅이 `git push`, `gh pr create|ready|merge` 때 `scripts/pr_guard.py`를 부른다. 대상이 main과 충돌하면 막고, PR을 연 뒤에는 같은 파일을 고치는 열린 PR을, 머지한 뒤에는 main과 충돌하는 열린 PR을 알린다.
 - 커밋 앞에 태그: `[agent]` `[gesture]` `[eval]` `[server]` `[sync]` `[ui]` `[contract]` `[docs]`
 - 사람 prefix(`pa_` 등) 금지. 파일·함수는 하는 일 그대로 이름 짓는다.
 - 결과 파일: `results/<GitHub>_<무엇>_<MMDD_HHMM>.json`
