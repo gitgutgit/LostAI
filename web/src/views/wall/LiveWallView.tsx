@@ -17,6 +17,15 @@ import { sayAs } from "./puppets";
 import { DocLinks } from "../../components/DocLinks";
 import { TestSeedPicker } from "../../components/TestSeedPicker";
 import { DemoPlayer } from "../../components/DemoPlayer";
+import { useSceneTransition } from "./sceneTransition";
+
+/** 벽 + 장면 전환. 글자판 낱말, 전체화면 여부, 질문 카드와 띠 배치가 바뀌면 장면 재생기처럼 카드가 옮겨 가며 바뀐다. */
+function SceneWall(props: Parameters<typeof Wall>[0]) {
+  const { w, band } = props;
+  const key = `${w.cardB.flap}|${w.cardB.take ?? ""}|${w.cardA ? 1 : 0}|${band ? 1 : 0}`;
+  const shown = useSceneTransition({ w, band }, key);
+  return <Wall {...props} w={shown.w} band={shown.band} />;
+}
 
 const BACK_AFTER_SEC = 5;
 
@@ -131,7 +140,7 @@ export function LiveWallView({ me }: { me?: string }) {
       {/* ep: Google Sheet, Doc 바로가기 + 테스트 대본 선택(임시). 무대(1920x1080) 배치는 건드리지 않게 창 왼쪽 아래 층에 둔다. 문서가 바뀌면(제목) 다시 받는다 */}
       <div id="wall-tools"><DocLinks refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} /><TestSeedPicker /><DemoPlayer refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} /></div>
     </>}>
-      <Wall w={w} band={band} animate onOpenMinutes={() => setMinutes(true)}
+      <SceneWall w={w} band={band} animate onOpenMinutes={() => setMinutes(true)}
         live={{ mic, onMic: toggleMic, gesture, onGesture: () => setGesture(!gesture), connected: v.connected, typing, onType: () => setTyping(true), onTypeEnd: () => setTyping(false), // hs: gesture 토글 전달
           mode, hint: import.meta.env.DEV ? "Ines: line speaks as Ines.  /up /down /1 /2 /t for hands" : undefined,
           // 개발 서버: 'Ines: 줄'은 Ines로, '/2'는 손 신호로(1인 시험, puppets.ts). 운영 빌드는 내 발화만.
