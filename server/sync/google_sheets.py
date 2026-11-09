@@ -155,6 +155,10 @@ def mirror(state: DocState, key: str, highlight: set[str] | None = None) -> None
 
 def push(state: DocState, event_type: str, change: dict[str, Any]) -> None:
     """event_type: change.applied | change.reverted. 실패하면 예외를 올린다 (Outbox가 재시도)."""
+    from server.sync import google_source
+    if google_source.active():  # 원본 모드: 바뀐 칸만 원본 탭에 직접
+        google_source.push_sheet(event_type, change)
+        return
     record_notes(event_type, change)
     for key in sheet_keys_in(change):
         if key not in state.docs:
@@ -165,7 +169,11 @@ def push(state: DocState, event_type: str, change: dict[str, Any]) -> None:
 
 
 def push_all(state: DocState) -> list[str]:
-    """모든 시트를 미러링 (서버 시작·리셋 때). 새 방이므로 이전 출처 메모도 지운다. 미러링한 doc_key 목록."""
+    """모든 시트를 미러링 (서버 시작·리셋 때). 새 방이므로 이전 출처 메모도 지운다. 미러링한 doc_key 목록.
+    원본 모드에서는 아무것도 안 한다 (원본이 곧 시작 상태, 리셋 복원은 google_source.cleanup)."""
+    from server.sync import google_source
+    if google_source.active():
+        return []
     _cell_notes.clear()
     keys = [k for k, d in state.docs.items() if isinstance(d, Sheet)]
     for k in keys:
