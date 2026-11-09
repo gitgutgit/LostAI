@@ -38,7 +38,26 @@ def token_path() -> Path:
     return ROOT / os.getenv("GOOGLE_TOKEN", "token.json")
 
 
+def materialize_from_env() -> None:
+    """배포 환경(Railway 등)에는 파일을 못 올리므로 환경 변수 GOOGLE_TOKEN_JSON / GOOGLE_CREDENTIALS_JSON 에
+    파일 내용을 그대로 넣는다 → 파일이 없을 때만 써 둔다 (토큰 갱신도 그 파일에 저장된다)."""
+    import base64
+    for path, var in ((token_path(), "GOOGLE_TOKEN"), (credentials_path(), "GOOGLE_CREDENTIALS")):
+        if path.exists():
+            continue
+        raw = os.getenv(f"{var}_JSON", "").strip().strip("'\"")  # 대시보드에서 따옴표로 감싸 넣은 경우
+        b64 = os.getenv(f"{var}_B64", "").strip()  # 붙여넣기 실수가 적은 한 줄 base64 (results/railway_token_b64.txt)
+        if b64:
+            try:
+                raw = base64.b64decode(b64).decode("utf-8")
+            except ValueError:
+                raw = ""
+        if raw.startswith("{"):
+            path.write_text(raw, encoding="utf-8")
+
+
 def available() -> bool:
+    materialize_from_env()
     return token_path().exists() or credentials_path().exists()
 
 
@@ -48,6 +67,7 @@ def get_creds(interactive: bool = True):
     from google.auth.transport.requests import Request
     from google.oauth2.credentials import Credentials
 
+    materialize_from_env()
     tok = token_path()
     creds = None
     if tok.exists():
@@ -74,6 +94,7 @@ def get_creds(interactive: bool = True):
 def has_scope(scope: str) -> bool:
     """지금 토큰이 그 권한을 받았는지 (Google 호출 없음). 예전 토큰은 Drive 목록 권한이 없다 → --relogin."""
     import json
+    materialize_from_env()
     tok = token_path()
     if not tok.exists():
         return False

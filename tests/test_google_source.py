@@ -284,3 +284,30 @@ def test_reset_same_room_restores_original(g, tmp_path, monkeypatch):
     syncs = [e for e in room.events if e.type.startswith("sync.")]
     assert syncs and all(e.type == "sync.ok" for e in syncs)
     assert all(e.refs.utt_id is None for e in syncs)  # 옛 회의 u1~u3이 새 회의 지연 집계에 섞이지 않는다
+
+
+def test_shutdown_restores_original(g, tmp_path, monkeypatch):
+    """서버 종료(Railway 재배포 SIGTERM) 때 회의 중 변경을 되돌려 원본을 회의 전으로."""
+    import asyncio
+
+    from server import app as app_mod
+    from server import room as room_mod
+    from server.sync.outbox import outbox
+
+    docs, sheets, _ = g
+    monkeypatch.setenv("EVENT_LOG_DIR", str(tmp_path))
+
+    async def run():
+        room = room_mod.Room("main", seed="google")
+        monkeypatch.setitem(room_mod.rooms, "main", room)
+        room.start()
+        outbox.start()
+        await room.changes.propose([{"op": "add_decision", "text": "출시를 1주 미룬다"}], "Owen", utt_id="u1")
+        await room.changes.propose([{"op": "set_cell", "doc": "board", "row": "r_g2", "column": "상태", "value": "보류"}],
+                                   "Ines", utt_id="u2")
+        await outbox.queue.join()
+        assert doc_view(docs) != ORIGINAL_DOC and sheets.view() != ORIGINAL_SHEET
+        await app_mod.restore_on_shutdown(timeout=5)
+
+    asyncio.run(run())
+    assert doc_view(docs) == ORIGINAL_DOC and sheets.view() == ORIGINAL_SHEET
