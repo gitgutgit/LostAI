@@ -130,9 +130,32 @@ export function liveWall(v: RoomView, me?: string): WallState {
     return out;
   };
 
-  // 시트에 없는 열은 숨기고, 번호 열은 가장 긴 번호에 맞춘다(시안의 64px는 WBS 번호 기준).
-  const WIDTH: Record<string, string> = { o: "150px", s: "100px", e: "100px", d: "90px", st: "180px" };
-  const firstPx = (rs: DocRow[], minChars: number) => Math.min(180, Math.max(64, 20 + 16 * Math.max(minChars, ...rs.map((r) => r.w.length))));
+  // ep: 열 폭은 글자에 맞춘다(28px 글꼴에서 한글 같은 넓은 글자 약 28px, 나머지 약 16px, 좌우 여백 16px). 상한을 넘는 글자는 칸 안에서 줄을 바꾼다(wall.css).
+  const textPx = (t: string) => [...t].reduce((a, c) => a + (/[ᄀ-ᇿ⺀-鿿가-힯＀-￯]/.test(c) ? 28 : 16), 0) + 16;
+  const fitPx = (texts: string[], min: number, max: number) => Math.min(max, Math.max(min, ...texts.map(textPx)));
+  const fit = (texts: string[], min: number, max: number) => `${fitPx(texts, min, max)}px`;
+  const LIMIT: Record<"o" | "s" | "e" | "d" | "st", [number, number]> = { o: [120, 220], s: [90, 190], e: [90, 190], d: [70, 120], st: [130, 240] };
+  // 날짜, 기간 같은 짧은 값은 끊으면 읽기 어렵다(2026- / 11-20) → 이 열들은 글자 폭 그대로를 최소 폭으로 지키고, 줄 바꿈은 글이 긴 열(작업, 담당, 상태)이 맡는다.
+  const NO_WRAP = new Set(["s", "e", "d"]);
+  // 종이 안쪽 폭 1174px(1222 - 좌우 24). 모든 열의 합이 이 폭을 넘지 않게 나눈다(넘으면 오른쪽 열이 종이 밖에서 잘린다).
+  // 1) 항목 열에 360px를 남기고, 가운데 열이 넘치면 가장 넓은 열부터 같은 상한까지 깎되 열마다 제 최소 폭 아래로는 깎지 않는다.
+  // 2) 그래도 모자라면 출처 열을 SRC_MIN까지, 다음으로 항목 열을 240px까지 줄인다. 깎인 열의 글은 칸 안에서 줄을 바꾼다.
+  const SRC_MIN = 120, TASK_MAX = 360, TASK_MIN = 240, PAPER = 1174;
+  const gridOf = (first: number, mid: [number, number][], src: number) => {
+    const sum = (cap: number) => mid.reduce((a, [w, min]) => a + Math.max(min, Math.min(w, cap)), 0);
+    let cap = Math.max(...mid.map(([w]) => w), 0);
+    while (sum(cap) > PAPER - TASK_MAX - first - src && cap > 60) cap -= 2;
+    let srcW = Math.max(SRC_MIN, Math.min(src, PAPER - TASK_MAX - first - sum(cap)));
+    const left = () => PAPER - first - sum(cap) - srcW;
+    if (left() < TASK_MIN) srcW = Math.max(SRC_MIN, srcW - (TASK_MIN - left()));
+    const task = Math.max(TASK_MIN, Math.min(TASK_MAX, left()));
+    return [`${first}px`, `minmax(${task}px, 1fr)`, ...mid.map(([w, min]) => `${Math.max(min, Math.min(w, cap))}px`), `${srcW}px`].join(" ");
+  };
+  // 출처 열 폭: 칩이 둘 이상인 행은 높은 행(96px)이라 칩이 두 줄까지 들어간다. 가장 긴 칩과 칩 폭 합의 절반 중 큰 쪽(칸 왼쪽 여백 8px).
+  const srcFit = (rs: DocRow[]) => Math.min(300, Math.max(SRC_MIN, ...rs.map((r) => {
+    const ws = r.src.map((c) => textPx(c.t));
+    return Math.max(0, ...ws, Math.ceil((ws.reduce((a, w) => a + w + 6, 0)) / 2)) + 8;
+  })));
 
   let docTitle = sheet?.title ?? "Doc", docSub = "", docCols = cols ? KEYS.map((k) => cols[k] ?? HEAD[k]) : undefined;
   let docHide: CellKey[] = cols ? (["o", "s", "e", "d", "st"] as const).filter((k) => !cols[k]) : [];
@@ -140,14 +163,16 @@ export function liveWall(v: RoomView, me?: string): WallState {
   if (sheet && cols) {
     // 보드 아래: 노트 문서마다 이번 회의에서 고친 항목
     if (s) for (const [nk, nd] of Object.entries(s.docs)) if (nd.kind === "doc") docRows = [...docRows, ...noteRows(nk, nd as Doc, true)];
-    docGrid = [`${firstPx(docRows, 3)}px`, "minmax(240px, 1fr)", ...(["o", "s", "e", "d", "st"] as const).filter((k) => cols[k]).map((k) => WIDTH[k]), "300px"].join(" ");
+    const colText = (k: (typeof KEYS)[number]) => [cols[k] ?? HEAD[k], ...docRows.map((r) => (k === "w" ? r.w : str((r[k as CellKey] as CellVal).v)))];
+    const mid = (["o", "s", "e", "d", "st"] as const).filter((k) => cols[k]).map((k): [number, number] => { const w = fitPx(colText(k), ...LIMIT[k]); return [w, NO_WRAP.has(k) ? w : LIMIT[k][0]]; });
+    docGrid = gridOf(fitPx(colText("w"), 64, 200), mid, srcFit(docRows));
   } else if (notesEntry) {
     const [nk, nd] = notesEntry;
     docRows = noteRows(nk, nd, false);
     docTitle = nd.title;
     docCols = ["Section", "Item", "Owner", "Start", "End", "Days", "State"];
     docHide = ["s", "e", "d", "st"];
-    docGrid = `${firstPx(docRows, 4)}px minmax(240px, 1fr) 150px 300px`;
+    docGrid = `${fit(["Section", ...docRows.map((r) => r.w)], 64, 200)} minmax(240px, 1fr) ${fit(["Owner", ...docRows.map((r) => r.o.v)], ...LIMIT.o)} 300px`;
   }
 
   const lastLine = fresh ? L(fresh) : "";
