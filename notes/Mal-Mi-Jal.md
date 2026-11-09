@@ -78,6 +78,9 @@
 - [x] `notes/Mal-Mi-Jal.md` 생성
 
 ## 메모
+- 12:30 PR #11을 main(#8 room.reset 구조)으로 rebase. reset 흐름: room.reset()이 멈춘 뒤의 옛 변경 반환 → enqueue_restore(같은 방) → full_sync → warmup. 복원 sync 이벤트는 utt_id 지움(새 회의 u1과 안 섞이게). 실제 팀 문서: 변경 4개 → 리셋 → 백업과 동일 (Doc·Sheet)
+- 주의: 원본 모드에서 서버를 리셋 없이 끄면 회의 중 변경이 원본에 남고, 다음 시작 때 그게 원본으로 읽힌다 (12:25 STT 테스트 한 줄이 남아 손으로 지움)
+- tests/test_server_robustness.py는 Windows에서 SIGALRM 없음 → shim으로 돌림, join_secret 0600 권한 테스트 2개는 Windows라 실패 (main과 같음)
 - 이 PC: uv는 `python -m uv`로 실행 (pip --user 설치, PATH에 없음). `pytest.exe`는 Windows 앱 제어 정책에 막힘 → `uv run python -m pytest`
 - 환경변수 `GOOGLE_CREDENTIALS` / `GOOGLE_TOKEN`으로 파일 경로를 바꿀 수 있음 (선택, `.env.example`에는 안 넣음 — 루트 파일이라 승인 필요)
 - 개발용 Sheet `[meeting-agent] dev sync test (Mal-Mi-Jal)`를 내 Drive에 만들어 `.env` GOOGLE_SHEET_ID에 연결함 (ID는 기록 안 함)
