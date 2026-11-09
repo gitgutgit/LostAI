@@ -18,7 +18,11 @@ QUIET_CLOSE_SEC = 5.0
 VOICE_OPEN_SEC = 20.0  # ep: 말로 연 표결의 첫 마감 시한
 RATINGS = {3: "좋음", 2: "보통", 1: "싫음"}  # gitgutgit: 찬반 카드의 손가락 수 → 뜻
 _AGAINST = {"반대", "no"}
-_RATING_WORDS = re.compile(r"^\s*(?:[^:\s][^:]{0,11}:\s*)?(좋아요?|좋음|좋습니다|찬성|보통(이에요|이요)?|그저 그래요?|싫어요?|싫음|별로(예요|에요)?|반대|good|okay|ok|no)\s*[.!]?\s*$", re.IGNORECASE)
+# 찬반 카드에서 말 한마디로 한 표. 영어 회의(기본)와 한국어 회의 둘 다. 문장 전체가 이 말일 때만 센다.
+_GOOD = r"좋아요?|좋음|좋습니다|찬성|good|yes|yeah|yep|agree|i agree|sounds good|for it|thumbs up"
+_OKAY = r"보통(이에요|이요)?|그저 그래요?|괜찮아요|okay|ok|fine|neutral|so-so|so so|meh|maybe"
+_NO = r"싫어요?|싫음|별로(예요|에요)?|반대|no|nope|bad|disagree|i disagree|against( it)?|thumbs down"
+_RATING_WORDS = re.compile(rf"^\s*(?:[^:\s][^:]{{0,11}}:\s*)?(?:i say |i'?m |i vote |it'?s |that'?s )?({_GOOD}|{_OKAY}|{_NO})\s*[.!]?\s*$", re.IGNORECASE)
 
 
 def is_rating_card(positions: list[dict[str, str]]) -> bool:
@@ -52,9 +56,9 @@ class Votes:
         if self.vote_id is None or self.mode != "rating" or not (m := _RATING_WORDS.match(text)):
             return None
         w = m.group(1).lower()
-        if w.startswith(("좋", "찬성", "good")):
+        if re.fullmatch(_GOOD, w, re.IGNORECASE):
             return 3
-        if w.startswith(("보통", "그저", "okay", "ok")):
+        if re.fullmatch(_OKAY, w, re.IGNORECASE):
             return 2
         return 1
 

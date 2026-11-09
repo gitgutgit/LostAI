@@ -26,7 +26,7 @@ const str = (x: unknown) => (x === null || x === undefined ? "" : String(x));
  *  선택지 카드: 실제 선택지가 2~4개 → 번호 1~N 고르기. 범위 밖의 값은 세지 않는다. */
 const RATING: Record<number, string> = { 3: "Good", 2: "Okay", 1: "No" };
 const isRatingCard = (c?: Conflict) => !c || c.positions.length < 2 || c.positions.some((p) => /^(반대|no)$/i.test(p.says.trim()));
-const RATING_PROMPT = "3 fingers good, 2 okay, 1 no (좋음 · 보통 · 싫음). Or say it.";
+const RATING_PROMPT = "3 fingers good, 2 okay, 1 no. Or say good, okay or no (좋아요 · 보통 · 싫어요).";
 /** 회의를 끝내는 말과 다시 여는 말. 마지막 확정 발화 기준으로 CLOSED 끝 화면을 띄운다. */
 const CLOSE_RE = /(회의(를|는)?\s*(종료|마치|마무리|끝내|끝냅|끝)|회의\s*끝|오늘(은)?\s*여기까지|\bend (the )?meeting\b|\blet'?s (wrap|close)( it)? up\b|\bthat'?s a wrap\b|\bmeeting (is )?(over|closed)\b)/i;
 const REOPEN_RE = /(회의\s*(계속|재개|다시)|다시\s*시작|\b(reopen|resume) the meeting\b)/i;
@@ -278,7 +278,7 @@ export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseU
   else if (countShown) {
     const cast = v.events.filter((e) => e.type === "vote.cast" && e.refs.vote_id === vOpen!.refs.vote_id).length;
     const vq = cardOf(vOpen!);
-    const prompt = isRatingCard(vq) ? RATING_PROMPT : `Pick a number: ${valuesFor(vq).map((n) => `${n} ${optName(vq, n)}`).join(", ")}. Fingers or say it.`;
+    const prompt = isRatingCard(vq) ? RATING_PROMPT : `Pick a number: ${valuesFor(vq).map((n) => `${n} ${optName(vq, n)}`).join(", ")}. Show fingers, or say "two" or "option two" (2번).`;
     cardB = { flap: "3 2 1", off: [0, 4], take: "count", msg: { kind: "countdown", q: vq ? qOf(vq) : "Q", title: vq?.topic ?? "Vote", prompt: `${prompt} ${cast} read.` } };
   } else if (vClosed && tally((vClosed.payload.votes ?? {}) as Record<string, number>, valuesFor(cardOf(vClosed))).votes.length === 0 && (!lastAgent || vClosed.seq > lastAgent.seq)) {
     const vq = cardOf(vClosed);
