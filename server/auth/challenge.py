@@ -45,7 +45,8 @@ def load_secret(configured: str, path: Path) -> bytes:
     return key
 
 
-# results/는 .gitignore 대상이라 키 파일이 커밋되지 않는다
+# 키는 이벤트 로그 폴더(EVENT_LOG_DIR, 기본 results/)에 둔다. 기본 results/는 .gitignore 대상이다.
+# 이 파일을 지우면 기존 토큰이 모두 무효가 된다
 _SECRET = load_secret(os.getenv("JOIN_SECRET", ""),
                       Path(os.getenv("EVENT_LOG_DIR", "results")) / ".join_secret")
 
@@ -107,6 +108,7 @@ def make_token(name: str) -> str:
 
 def verify_token(token: str) -> str | None:
     name, _, sig = token.rpartition(".")
-    if name and hmac.compare_digest(make_token(name), token):
+    # bytes로 비교: compare_digest는 ASCII가 아닌 str(한글 이름)에 TypeError를 낸다
+    if name and hmac.compare_digest(make_token(name).encode(), token.encode()):
         return name
     return None

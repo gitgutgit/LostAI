@@ -104,7 +104,7 @@ def test_revert_blocked_while_later_change_depends_on_new_row():
 def test_unknown_change_id_is_a_message_not_a_crash():
     cm, _ = _manager()
     assert asyncio.run(cm.revert("c_missing", by="Ines"))
-    assert asyncio.run(cm.approve("c_missing", by="Ines")) is None
+    assert asyncio.run(cm.approve("c_missing", by="Ines"))
 
 
 # ---------------------------------------------------------------- pipeline and websocket
@@ -183,3 +183,63 @@ def test_join_secret_persists_across_restarts(tmp_path):
     assert load_secret("", path) == first
     assert (path.stat().st_mode & 0o777) == 0o600
     assert load_secret("fixed", path) == b"fixed"
+
+
+def test_korean_name_token_verifies():
+    from server.auth.challenge import make_token, verify_token
+
+    assert verify_token(make_token("지원")) == "지원"
+    assert verify_token("지원.bad") is None
+
+
+def test_revert_not_blocked_when_nothing_was_created():
+    cm, _ = _manager()
+
+    async def run():
+        await cm.propose([{"op": "add_decision", "text": "출시 연기"}], requested_by="Ines")
+        rename = await cm.propose([{"op": "rename_section", "doc": "notes", "section": "s_dec", "heading": "결정"}],
+                                  requested_by="Ines")
+        assert await cm.revert(rename.change_id, by="Ines") is None
+
+        await cm.propose([{"op": "set_cell", "doc": "board", "row": "r_pay423", "column": "추정", "value": 8}],
+                         requested_by="Ines")
+        delete = await cm.propose([{"op": "delete_row", "doc": "board", "row": "r_pay423"}], requested_by="Ines")
+        assert await cm.revert(delete.change_id, by="Ines") is None
+        _, row = next((i, r) for i, r in enumerate(cm.state.sheet("board").rows) if r.row_id == "r_pay423")
+        assert row.cells["추정"] == 8
+
+    asyncio.run(run())
+
+
+def test_voice_undo_with_nothing_to_undo_is_a_failure_not_done():
+    from server.ops.engine import OpError
+
+    cm, _ = _manager()
+    with pytest.raises(OpError):
+        asyncio.run(cm.propose([{"op": "undo_last"}], requested_by="Ines"))
+
+
+def test_thumb_down_refusal_is_broadcast():
+    from server.gestures import fastpath
+    from server.room import Room
+
+    async def run():
+        room = Room("t_thumb")
+        sent: list[str] = []
+
+        class Sock:
+            async def send_text(self, data):
+                sent.append(data)
+
+        room.sockets[Sock()] = "Ines"
+        a = await room.changes.propose([{"op": "add_row", "doc": "board", "values": {"제목": "x"}}], requested_by="Ines")
+        row_id = a.targets[0].split("/")[1]
+        b = await room.changes.propose([{"op": "set_cell", "doc": "board", "row": row_id, "column": "추정", "value": 3}],
+                                       requested_by="Ines")
+        await room.changes.approve(b.change_id, by="Kim")  # Thumb_Down now targets a (latest applied)
+        fastpath._last.clear()
+        await fastpath.handle_gesture(room, "Ines", "Thumb_Down", 0.9, 700)
+        assert a.status == "applied"
+        assert any('"notice"' in s for s in sent)
+
+    asyncio.run(run())

@@ -19,6 +19,11 @@ class Votes:
         self.cast: dict[str, int] = {}
         self._closer: asyncio.Task | None = None
 
+    def reset(self) -> None:
+        if self._closer:
+            self._closer.cancel()
+        self.__init__()
+
     async def on_fingers(self, room: "Room", who: str, n: int) -> None:
         now = time.monotonic()
         if self.vote_id is None:

@@ -13,6 +13,7 @@ def is_live() -> bool:
 
 
 # 호출 하나가 멈추면 발화 큐 전체가 멈춘다(워커 하나가 순서대로 처리). SDK 기본값은 600초에 재시도 2회.
+# 지금 값이면 호출 하나는 최악 약 40초(20초 x 2회 + 백오프), 시간 초과는 워커가 stage failed로 남긴다.
 LLM_TIMEOUT_SEC = 20.0
 LLM_MAX_RETRIES = 1
 

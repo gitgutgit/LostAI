@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from contextlib import asynccontextmanager
 
@@ -20,6 +21,8 @@ from server.events import ClientMessage  # noqa: E402
 from server.gestures.fastpath import handle_gesture  # noqa: E402
 from server.room import get_room  # noqa: E402
 from server.sync.outbox import outbox  # noqa: E402
+
+log = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -91,21 +94,22 @@ async def _handle_client_message(room, name: str, raw: str, ws: WebSocket) -> No
     p = msg.payload
     if msg.kind in ("utterance.final", "utterance.interim"):
         text = p.get("text")
-        if not isinstance(text, str) or not text.strip():
-            return  # 빈 인식 결과: 조용히 버린다
+        if not isinstance(text, str):  # 화면 쪽 형식 오류는 알린다(조용히 버리면 에이전트가 말을 무시하는 것처럼 보인다)
+            raise ValueError(f"utterance payload has no text: keys={sorted(p)}")
+        if not text.strip():
+            return  # 빈 인식 결과
         await room.submit_utterance(name, text, final=msg.kind == "utterance.final")
     elif msg.kind == "gesture":
         await handle_gesture(room, name, p["kind"], float(p.get("confidence", 1)), int(p.get("hold_ms", 0)))
-    elif msg.kind == "change.approve":
-        await room.changes.approve(p["change_id"], by=name, via="button")
-    elif msg.kind == "change.revert":
-        err = await room.changes.revert(p["change_id"], by=name, via="button")
+    elif msg.kind in ("change.approve", "change.revert"):
+        act = room.changes.approve if msg.kind == "change.approve" else room.changes.revert
+        err = await act(p["change_id"], by=name, via="button")
         if err:
             await _notice(ws, err)
 
 
 @app.websocket("/ws")
-async def ws_endpoint(ws: WebSocket, token: str = ""):
+async def ws_endpoint(ws: WebSocket, token: str = ""):  # 토큰이 빠져도 검증 오류(403) 대신 4401로 닫는다
     name = challenge.verify_token(token)
     # accept 전에 close하면 uvicorn이 HTTP 403으로 바꿔 보내 브라우저는 4401을 못 보고 계속 다시 붙는다
     await ws.accept()
@@ -119,8 +123,9 @@ async def ws_endpoint(ws: WebSocket, token: str = ""):
             raw = await ws.receive_text()
             try:
                 await _handle_client_message(room, name, raw, ws)
-            except Exception as e:  # 잘못된 메시지 하나로 접속을 끊지 않는다
-                await _notice(ws, f"요청을 처리하지 못했어요 ({type(e).__name__})")
+            except Exception as e:  # 잘못된 메시지 하나로 접속을 끊지 않는다. 원인은 서버 로그에 남긴다
+                log.exception("ws message failed name=%s raw=%.200s", name, raw)
+                await _notice(ws, f"요청을 처리하지 못했어요 ({type(e).__name__}: {str(e)[:120]})")
     except WebSocketDisconnect:
         pass
     finally:
@@ -161,10 +166,11 @@ async def links(token: str):
 
 @app.get("/api/stats")
 async def stats():
-    """서버 쪽 지연. 음성 인식과 화면 그리기 시간은 들어 있지 않다.
+    """서버 쪽 지연. 음성 인식, 전송, 화면 그리기, 외부 문서 동기화 시간은 없다. 마지막 리셋 이후만 센다.
 
-    - latency_ms: 반영된 변경의 단계별 값(queue, route, edit, apply, total)
-    - utterance_ms: 발화 도착 → 처리 끝(done) 시간, 라우터 라벨별과 전체(all). ignore, ask도 센다
+    - latency_ms: 실패하지 않은 변경의 단계별 값(queue, route, edit, apply, total). total은 단계 합이라 벽시계보다 짧다
+    - utterance_ms: 발화 도착 → 처리 끝(done) 벽시계 시간, 라우터 라벨별과 전체(all). ignore, ask도 센다
+    - failed_ms: 처리 중 실패한 발화(LLM 시간 초과 등). 위 분포에는 들어가지 않으므로 따로 본다
     """
     room = get_room()
     rows = [c.latency_ms for c in room.changes.changes.values() if c.status != "failed"]
@@ -174,8 +180,10 @@ async def stats():
     labels = sorted({d.get("label", "?") for d in done})
     utterance_ms = {lb: percentiles([d["ms"] for d in done if d.get("label", "?") == lb]) for lb in labels}
     utterance_ms["all"] = percentiles([d["ms"] for d in done])
+    failed = [e.payload["ms"] for e in room.events
+              if e.type == "agent.progress" and e.payload.get("stage") == "failed" and "ms" in e.payload]
     return {"changes": len(rows), "latency_ms": {k: percentiles([r[k] for r in rows if k in r]) for k in keys},
-            "utterance_ms": utterance_ms, "events": len(room.events)}
+            "utterance_ms": utterance_ms, "failed_ms": percentiles(failed), "events": len(room.events)}
 
 
 @app.post("/api/reset")

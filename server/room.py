@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import time
 from pathlib import Path
@@ -13,6 +14,8 @@ from server.model.docs import DocState, load_seed
 from server.ops.changes import ChangeManager
 
 RECENT_EVENTS_ON_CONNECT = 500
+
+log = logging.getLogger(__name__)
 
 
 class Socket(Protocol):
@@ -29,7 +32,7 @@ class Room:
         self._init_meeting()
 
     def _init_meeting(self) -> None:
-        """회의 내용(시간, 이벤트, 문서, 변경, 발화 큐)만 처음 상태로. 접속과 참석자는 건드리지 않는다."""
+        """회의 내용(시간, 이벤트와 로그 파일, 일시정지, 문서, 변경, 발화 큐)만 처음 상태로. 접속과 참석자는 그대로."""
         self.t0 = time.monotonic()
         self.events: list[Event] = []
         self.paused = False
@@ -45,21 +48,26 @@ class Room:
         self.log_path = log_dir / f"events_{self.room_id}_{time.strftime('%m%d_%H%M%S')}.jsonl"
 
     async def reset(self) -> None:
-        """같은 방 객체를 처음 상태로 되돌린다.
+        """같은 방 객체에서 회의 내용만 시드 상태로 되돌린다. 접속과 참석자는 그대로 둔다.
 
         방 객체를 새로 만들면 접속 중인 화면은 옛 방에 남아(옛 방 워커는 멈춤) 이후 발화가 처리되지 않는다.
-        진행 중이던 발화 처리와 지연 반영 타이머는 취소해, 리셋 전 결과가 새 회의에 끼어들지 않게 한다.
+        진행 중이던 발화 처리, 지연 반영 타이머, 표결은 취소하고 큐에서 기다리던 발화는 버린다.
+        그 순간 처리 중이던 소켓 요청(버튼, 제스처)까지는 막지 않는다.
         """
         worker, self._worker = self._worker, None
         if worker is not None:
             worker.cancel()
-            if worker.get_loop() is asyncio.get_running_loop():  # 끝날 때까지 기다려 옛 결과가 새 방에 emit되지 않게
+            if worker.get_loop() is asyncio.get_running_loop():  # 취소가 끝날 때까지 기다려 옛 결과가 새 회의에 emit되지 않게
                 try:
                     await worker
                 except asyncio.CancelledError:
                     pass
+                except Exception:  # 이미 죽어 있던 워커: 기록만 하고 리셋은 끝까지 한다
+                    log.exception("utterance worker had died before reset")
         for t in self.changes._timers.values():
             t.cancel()
+        from server.gestures.votes import votes  # 순환 import 방지
+        votes.reset()  # 옛 회의의 표결 마감이 새 회의에 끼어들지 않게
         self._init_meeting()
         self.start()
 
@@ -138,8 +146,10 @@ class Room:
                 if not self.paused:
                     await handle_utterance(self, ev)
             except Exception as e:  # 회의는 멈추지 않는다
+                log.exception("utterance failed utt=%s", ev.refs.utt_id)
                 await self.emit("agent.progress", "agent", {"utt_id": ev.refs.utt_id},
-                                {"stage": "failed", "error": str(e)[:200]})
+                                {"stage": "failed", "error": str(e)[:200],
+                                 "ms": int((self.now() - ev.ts) * 1000)})
             finally:
                 self.utterance_queue.task_done()
 
