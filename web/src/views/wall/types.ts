@@ -106,4 +106,6 @@ export interface WallState {
   glyph?: "cam" | "fd" | "thumb" | "";
   big?: boolean;
   lit: string[];
+  // hs: 투표 중 누가 뭘 투표했는지 (비익명 모드)
+  voteCast?: { name: string; value: number; label: string }[];
 }

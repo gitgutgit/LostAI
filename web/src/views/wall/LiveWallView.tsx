@@ -29,7 +29,7 @@ function SceneWall(props: Parameters<typeof Wall>[0]) {
   return <Wall {...props} w={shown.w} band={shown.band} />;
 }
 
-const BACK_AFTER_SEC = 5;
+const BACK_AFTER_SEC = 8; // hs: 투표 결과 화면 자동 닫기 시간 (5→8초, 결과 확인 여유)
 
 /** 평상시 화면으로 돌아가는 버튼 + 카운트다운. 0이 되거나 누르면 onBack. 부모가 key를 바꾸면 새로 센다. */
 function BackCountdown({ onBack }: { onBack: () => void }) {
@@ -149,8 +149,12 @@ export function LiveWallView({ me, onLeave }: { me?: string; onLeave?: () => voi
   const qHidden = !!qKey && qKey === hiddenQ && !w0.cardB.take;
   const w = qHidden ? { ...w0, cardA: null, idle: [`${w0.cardA!.q} is still open.`, "Say an option, or call a vote, to bring it back."] } : w0;
   const band = !!w.cardA && !w.cardB.take;
-  // 평상시 화면으로 돌아가기: 표결 전체화면이 우선, 그다음 질문 띠. key가 바뀌면 카운트다운이 처음부터 다시 돈다.
-  const back = isClosed ? null : w.cardB.take ? { key: `take ${voteSeq}`, go: () => setHideTakeUpTo(voteSeq) }
+  // hs: 투표 카운트다운 중(take === "count")에는 자동 닫기 없음 — 투표가 끝날 때까지 유지.
+  // 투표 결과 화면(CONVERGED, SPLIT, NO VOTE 등)이나 질문 띠에서만 자동 닫기.
+  const isVoteCountdown = w.cardB.take === "count";
+  const back = isClosed ? null
+    : isVoteCountdown ? null  // hs: 투표 진행 중에는 Back 버튼 없음
+    : w.cardB.take ? { key: `take ${voteSeq}`, go: () => setHideTakeUpTo(voteSeq) }
     : band ? { key: `q ${qKey}`, go: () => setHiddenQ(qKey) } : null;
 
   return (

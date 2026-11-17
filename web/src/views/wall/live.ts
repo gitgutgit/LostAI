@@ -241,6 +241,11 @@ export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseU
   const lastAgent = lastOf((e) => e.type === "agent.progress" || e.type === "ask.answered" || e.type === "change.failed" || e.type === "change.applied" || e.type === "change.reverted");
   const stage = lastAgent?.type === "agent.progress" ? str(lastAgent.payload.stage) : "";
   let cardB: CardB = { flap: "LISTENING", side: stage === "editing" ? "writing" : stage === "routing" ? "heard" : "", msg: { kind: "headline", big: ["Writing what the team says"], sub: ["Small talk is ignored. Any edit can be undone."], subTop: 4 } };
+  // hs: 투표 현황 패널 데이터 — 투표 중일 때 누가 뭘 투표했는지 (비익명)
+  const voteCastBy: Record<string, number> = {};
+  if (voting && vOpen) for (const e of v.events) if (e.type === "vote.cast" && e.refs.vote_id === vOpen.refs.vote_id) voteCastBy[e.actor] = Number(e.payload.value);
+  const voteCardForPanel = voting && vOpen ? cardOf(vOpen) : undefined;
+  const voteCastArr = Object.entries(voteCastBy).map(([name, value]) => ({ name, value, label: voteCardForPanel ? optName(voteCardForPanel, value) : String(value) }));
   // ---------------------------------------------------------------- 회의 끝(CLOSED)
   // 마지막으로 '회의를 종료하죠'류 발화가 나온 뒤 '회의 계속'류가 없으면 끝 화면. 결정된 질문, 남은 결정, 마지막 변경, 숫자.
   const closeSeq = lastCloseSeq(v);
@@ -365,6 +370,7 @@ export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseU
     parked: [],
     said, log, people, turn: turn >= 0 ? turn : undefined,
     glyph: voting ? "cam" : "", big: countShown, lit,
+    voteCast: voteCastArr.length ? voteCastArr : undefined, // hs: 투표 현황 패널
   };
 }
 

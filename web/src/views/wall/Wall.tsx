@@ -401,6 +401,19 @@ export function Wall({ w, band, animate, onOpenMinutes, live }: { w: WallState; 
             </div>}
         <div id="log" onClick={onOpenMinutes} title={onOpenMinutes ? "회의록 전문" : undefined}><b>Log</b><RichEl rich={typeof w.log[0] === "string" ? [` ${w.log[0]}`, ...w.log.slice(1)] : [" ", ...w.log]} /></div>
 
+        {/* hs: 투표 현황 패널 — 투표 중일 때 우측 상단에 누가 뭘 투표했는지 표시 */}
+        {w.voteCast && w.voteCast.length > 0 && (
+          <div id="vote-panel">
+            <div className="vp-title">Votes</div>
+            {w.voteCast.map((vc) => (
+              <div className="vp-row" key={vc.name}>
+                <span className="vp-name">{vc.name}</span>
+                <span className="vp-val">{vc.value}</span>
+                <span className="vp-label">{vc.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
         <div id="people">
           {w.people.map((p, i) => {
             let g: string = w.glyph ?? "";
