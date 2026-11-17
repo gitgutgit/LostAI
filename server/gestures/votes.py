@@ -6,9 +6,12 @@ ep: 말로 여는 표결(open_by_voice)과 말로 하는 한 표(cast_by_voice)�
 from __future__ import annotations
 
 import asyncio
+import logging
 import re
 import time
 from typing import TYPE_CHECKING
+
+log = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from server.room import Room
@@ -42,6 +45,7 @@ class Votes:
         self.opened_at = 0.0
         self.mode = "rating"          # "rating"(3·2·1) | "options"(1~N)
         self.max_option = 3
+        self._conflict_id: str | None = None  # hs: 투표 대상 conflict ID (자동 resolve용)
 
     def _set_mode(self, room: "Room", question: str | None) -> str | None:
         """표결할 질문 카드를 찾아 종류를 정한다. 질문을 안 주면 가장 최근 열린 질문(화면과 같은 기준)."""
@@ -50,6 +54,7 @@ class Votes:
         positions = card.positions if card else []
         self.mode = "rating" if is_rating_card(positions) else "options"
         self.max_option = 3 if self.mode == "rating" else min(len(positions), 4)
+        self._conflict_id = card.conflict_id if card else None  # hs: 자동 resolve용
         return card.topic if card else question
 
     def valid(self, n: int) -> bool:
@@ -116,7 +121,11 @@ class Votes:
         now = time.monotonic()
         people = set(getattr(room, "participants", {}) or {})
         if people and people <= set(self.cast):
-            at = now + ALL_IN_CLOSE_SEC
+            # hs: 2명 이상 모두 투표 → 빠르게 마감. 1명만 있을 때는 MIN_OPEN_SEC 대기 (카메라 초기화 시간 확보)
+            if len(people) >= 2:
+                at = now + ALL_IN_CLOSE_SEC
+            else:
+                at = max(now + ALL_IN_CLOSE_SEC, self.opened_at + MIN_OPEN_SEC)
         else:
             at = max(now + QUIET_CLOSE_SEC, self.opened_at + MIN_OPEN_SEC)
         await room.emit("vote.cast", who, {"vote_id": self.vote_id}, {"value": n, "closes_in": self._set_deadline(room, at)})
@@ -136,9 +145,77 @@ class Votes:
 
     async def _close_later(self, room: "Room", wait: float = QUIET_CLOSE_SEC) -> None:
         await asyncio.sleep(wait)
+        cast_copy = dict(self.cast)
+        conflict_id = self._conflict_id
         await room.emit("vote.closed", "server", {"vote_id": self.vote_id},
-                        {"votes": self.cast, "counted": len(self.cast)})
-        self.vote_id, self.cast, self.deadline = None, {}, None
+                        {"votes": cast_copy, "counted": len(cast_copy)})
+        self.vote_id, self.cast, self.deadline, self._conflict_id = None, {}, None, None
+        # hs: 투표 결과로 conflict 자동 resolve — 과반 이상 한 쪽이면 결정
+        log.info("_close_later: conflict_id=%s cast=%s", conflict_id, cast_copy)
+        if conflict_id and cast_copy:
+            await self._auto_resolve(room, conflict_id, cast_copy)
+        else:
+            log.info("_close_later: skip auto_resolve (no conflict_id or empty cast)")
+
+    async def _auto_resolve(self, room: "Room", conflict_id: str, cast: dict[str, int]) -> None:
+        """hs: 투표 결과 과반 이상이면 conflict를 자동 resolve한다."""
+        from collections import Counter
+        counts = Counter(cast.values())
+        if not counts:
+            return
+        top_val, top_count = counts.most_common(1)[0]
+        total = sum(counts.values())
+        # 동점이면 resolve 안 함 (SPLIT)
+        if len(counts) > 1 and counts.most_common(2)[1][1] == top_count:
+            return
+        # conflict 찾기
+        card = None
+        for c in room.state.conflicts:
+            if c.conflict_id == conflict_id and not c.resolved:
+                card = c
+                break
+        if not card:
+            return
+        # 결과 텍스트 생성
+        positions = card.positions
+        if is_rating_card(positions):
+            label = RATINGS.get(top_val, str(top_val))
+            resolution = f"Vote result: {label} ({top_count}/{total})"
+        else:
+            opt = positions[top_val - 1].get("says", f"Option {top_val}") if top_val <= len(positions) else f"Option {top_val}"
+            resolution = f"Vote result: {opt} ({top_count}/{total})"
+        # hs: resolve_conflict op 실행
+        try:
+            op = {"op": "resolve_conflict", "conflict": conflict_id, "resolution": resolution}
+            log.info("auto_resolve: conflict=%s resolution=%s", conflict_id, resolution)
+            await room.changes.propose(
+                ops=[op], requested_by="server", utt_id=None, via="gesture"
+            )
+        except Exception:
+            log.exception("auto_resolve FAILED conflict=%s", conflict_id)
+            return
+        # hs: 찬성(Good=3)이면 원래 발화를 agent에 다시 보내서 셀 편집 실행
+        approved = (is_rating_card(positions) and top_val == 3) or (not is_rating_card(positions) and top_count > total / 2)
+        if not approved:
+            return
+        # 원래 발화 찾기: conflict를 연 change → utt_id → utterance event
+        for ch_obj in room.changes.changes.values():
+            for op_item in ch_obj.ops:
+                if op_item.get("op") == "open_conflict":
+                    for d in ch_obj.diff:
+                        if d.get("kind") == "conflict" and conflict_id in d.get("anchor", ""):
+                            if ch_obj.utt_id:
+                                for ev in room.events:
+                                    if ev.type == "utterance.final" and ev.refs.utt_id == ch_obj.utt_id:
+                                        speaker = ev.payload.get("speaker", ch_obj.requested_by)
+                                        text = ev.payload.get("text", "")
+                                        # hs: 투표 관련 단어 제거 → 순수 편집 명령으로
+                                        text = re.sub(r'(에 대한|에 대해|하는|는)?\s*(투표|표결)\s*(을|를)?\s*(열어\s*줘?|시작\s*해?\s*줘?|해\s*줘?|하자|합시다|부탁)?', '', text).strip()
+                                        if not text:
+                                            return
+                                        log.info("auto_resolve: re-submitting edit speaker=%s text=%s", speaker, text)
+                                        await room.submit_utterance(speaker, text, final=True)
+                                        return
 
 
 votes = Votes()

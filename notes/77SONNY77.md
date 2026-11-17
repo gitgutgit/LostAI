@@ -122,6 +122,31 @@
 **`web/src/views/wall/wall.css`**
 - `#gesture-toggle` 스타일: #mark과 동일 (font, border, hover, .on 상태), "No Questions Yet"과 "Now" 사이 배치 (`left:850px`)
 
+### 2026-11-17 — 투표 카메라 인식 버그 수정 + 투표 현황 패널
+
+**버그 원인:** `server/gestures/votes.py`의 `_cast()`에서 `ALL_IN_CLOSE_SEC = 2.0` 경로가 `MIN_OPEN_SEC = 20.0`을 무시. 참가자가 1명이면 그 사람 투표 즉시 2초 후 마감 → 다른 참여자 카메라 초기화 시간 부족.
+
+**`server/gestures/votes.py`**
+- `_cast()`: ALL_IN 경로에서도 `MIN_OPEN_SEC` 존중하도록 `max(now + ALL_IN_CLOSE_SEC, self.opened_at + MIN_OPEN_SEC)` 적용
+
+**`web/src/views/wall/types.ts`** (서버·UI 파트 — 담당 외)
+- `WallState`에 `voteCast?: { name: string; value: number; label: string }[]` 필드 추가
+
+**`web/src/views/wall/live.ts`** (서버·UI 파트 — 담당 외)
+- 투표 중 `vote.cast` 이벤트에서 `voteCastArr` 계산, return에 `voteCast` 추가
+
+**`web/src/views/wall/Wall.tsx`** (서버·UI 파트 — 담당 외)
+- `#vote-panel` 렌더: 투표 중일 때 우측 상단에 누가 뭘 투표했는지 표시
+
+**`web/src/views/wall/wall.css`** (서버·UI 파트 — 담당 외)
+- `#vote-panel` 스타일: navy 배경, 이름 + 숫자 + 라벨 행
+
+## 다른 영역 관련
+- [x] `web/src/views/wall/types.ts` — WallState에 voteCast 필드 추가 → Mal-Mi-Jal (상태: 완료, 승인 대기)
+- [x] `web/src/views/wall/live.ts` — voteCast 계산 로직 추가 → Mal-Mi-Jal (상태: 완료, 승인 대기)
+- [x] `web/src/views/wall/Wall.tsx` — #vote-panel 렌더 추가 → Mal-Mi-Jal (상태: 완료, 승인 대기)
+- [x] `web/src/views/wall/wall.css` — #vote-panel 스타일 추가 → Mal-Mi-Jal (상태: 완료, 승인 대기)
+
 ## 메모
 
 - `~/hand-liveness-beta`의 `GESTURES` 객체(이모지+한국어 라벨)를 React 상수로 이식
