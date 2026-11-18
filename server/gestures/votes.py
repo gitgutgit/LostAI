@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 OPEN_WINDOW_SEC = 4.0   # gitgutgit 11-09: 2초 → 4초 (표결 시간 2배)
 QUIET_CLOSE_SEC = 10.0  # 5초 → 10초
-MIN_OPEN_SEC = 20.0     # gitgutgit 11-09: 사람이 카메라를 켜고 손을 들 시간. 이 안에는 표가 들어와도 마감하지 않는다
+MIN_OPEN_SEC = 40.0     # hs: 투표 시간 40초로 넉넉하게
 ALL_IN_CLOSE_SEC = 2.0  # gitgutgit 11-09: 입장한 사람이 모두 냈으면 화면에 ✓를 보일 만큼만 기다리고 마감
 VOICE_OPEN_SEC = 40.0  # ep: 말로 연 표결의 첫 마감 시한
 RATINGS = {3: "좋음", 2: "보통", 1: "싫음"}  # gitgutgit: 찬반 카드의 손가락 수 → 뜻

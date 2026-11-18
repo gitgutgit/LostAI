@@ -46,7 +46,8 @@ export function useGesture(getEl: () => HTMLElement | null, enabled = true, onDi
       vid.autoplay = true;
       vid.playsInline = true;
       vid.muted = true;
-      vid.style.cssText = "position:fixed;bottom:8px;right:8px;width:160px;border-radius:12px;transform:scaleX(-1);z-index:50;border:2px solid #333;";
+      // hs: 카메라 미리보기 숨김 — video는 엔진에만 쓰고 화면에 안 보임
+      vid.style.cssText = "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1;";
       document.body.appendChild(vid);
 
       try {
