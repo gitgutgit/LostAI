@@ -149,17 +149,18 @@ export function LiveWallView({ me, onLeave }: { me?: string; onLeave?: () => voi
   const qHidden = !!qKey && qKey === hiddenQ && !w0.cardB.take;
   const w = qHidden ? { ...w0, cardA: null, idle: [`${w0.cardA!.q} is still open.`, "Say an option, or call a vote, to bring it back."] } : w0;
   const band = !!w.cardA && !w.cardB.take;
-  // hs: 투표 카운트다운 중(take === "count")에는 자동 닫기 없음 — 투표가 끝날 때까지 유지.
-  // 투표 결과 화면(CONVERGED, SPLIT, NO VOTE 등)이나 질문 띠에서만 자동 닫기.
+  // hs: 투표 카운트다운 중에는 자동 닫기 없이 수동 닫기 버튼만.
+  // 투표 결과 화면(CONVERGED, SPLIT 등)은 자동 닫기(8초).
   const isVoteCountdown = w.cardB.take === "count";
   const back = isClosed ? null
-    : isVoteCountdown ? null  // hs: 투표 진행 중에는 Back 버튼 없음
     : w.cardB.take ? { key: `take ${voteSeq}`, go: () => setHideTakeUpTo(voteSeq) }
     : band ? { key: `q ${qKey}`, go: () => setHiddenQ(qKey) } : null;
 
   return (
     <FitStage overlay={<>
-      {back && <BackCountdown key={back.key} onBack={back.go} />}
+      {/* hs: 투표 카운트다운 중에는 수동 닫기 버튼만, 결과 화면은 자동 카운트다운 */}
+      {back && !isVoteCountdown && <BackCountdown key={back.key} onBack={back.go} />}
+      {back && isVoteCountdown && <button id="back-normal" onClick={back.go} title="투표 화면 접기">✕ 메인으로</button>}
       {isClosed && <button id="back-normal" onClick={() => setHideCloseUpTo(closeSeq)} title="끝 화면을 접고 회의 화면으로">✕ 회의 화면으로</button>}
       {minutes && <Minutes onClose={() => setMinutes(false)} />}
       {v.notice && <div id="notice">{v.notice}</div>}

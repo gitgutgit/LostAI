@@ -46,7 +46,8 @@ export function useGesture(getEl: () => HTMLElement | null, enabled = true, onDi
       vid.autoplay = true;
       vid.playsInline = true;
       vid.muted = true;
-      vid.style.cssText = "position:fixed;bottom:8px;right:8px;width:160px;border-radius:12px;transform:scaleX(-1);z-index:50;border:2px solid #333;";
+      // hs: 카메라 미리보기 숨김 — video는 엔진에만 쓰고 화면에 안 보임
+      vid.style.cssText = "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1;";
       document.body.appendChild(vid);
 
       try {
@@ -86,18 +87,17 @@ export function useGesture(getEl: () => HTMLElement | null, enabled = true, onDi
   useEffect(() => {
     if (!enabled) return;
     let lastSent = "";
-    // gitgutgit: 표결 중 — 손가락 수(랜드마크)만 본다. 1개는 Pointing_Up, 2개는 Victory로 이름 붙어도 1·2로 센다.
+    // hs: 투표 중 — Thumb_Up(찬성) / Thumb_Down(반대)만 인식. GR 내장 제스처라 인식률 높음.
     if (opts.voteOnly) {
       viewport.showCursor(false);
-      let held: { n: number | null; since: number } = { n: null, since: 0 };
+      const VOTE_HOLD_MS = 400; // hs: 엄지 0.4초 유지하면 투표
       return engine.subscribe((f) => {
-        const now = performance.now();
-        const n = f.fingers != null && f.fingers >= 1 && f.fingers <= 4 ? f.fingers : null;
-        if (n !== held.n) held = { n, since: now };
-        if (n == null) { lastSent = ""; return; }
-        if (now - held.since >= HOLD_MS && lastSent !== `Fingers_${n}`) {
-          lastSent = `Fingers_${n}`;
-          send({ kind: "gesture", payload: { kind: `Fingers_${n}` as GestureKind, confidence: 0.9, hold_ms: Math.round(now - held.since) } });
+        const g = f.gesture;
+        if (g !== "Thumb_Up" && g !== "Thumb_Down") { lastSent = ""; return; }
+        if (f.confidence < 0.6) return;
+        if (f.hold_ms >= VOTE_HOLD_MS && lastSent !== g) {
+          lastSent = g;
+          send({ kind: "gesture", payload: { kind: g, confidence: f.confidence, hold_ms: f.hold_ms } });
         }
       });
     }

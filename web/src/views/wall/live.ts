@@ -26,7 +26,7 @@ const str = (x: unknown) => (x === null || x === undefined ? "" : String(x));
  *  선택지 카드: 실제 선택지가 2~4개 → 번호 1~N 고르기. 범위 밖의 값은 세지 않는다. */
 const RATING: Record<number, string> = { 3: "Good", 2: "Okay", 1: "No" };
 const isRatingCard = (c?: Conflict) => !c || c.positions.length < 2 || c.positions.some((p) => /^(반대|no)$/i.test(p.says.trim()));
-const RATING_PROMPT = "3 fingers good, 2 okay, 1 no. Or say good, okay or no (좋아요 · 보통 · 싫어요).";
+const RATING_PROMPT = "👍 Thumb Up = approve, 👎 Thumb Down = reject. Or say \"good\" or \"bad\" (찬성 · 반대)."; // hs: 엄지 찬반 투표
 /** 회의를 끝내는 말과 다시 여는 말. 마지막 확정 발화 기준으로 CLOSED 끝 화면을 띄운다. */
 const CLOSE_RE = /(회의(를|는)?\s*(종료|마치|마무리|끝내|끝냅|끝)|회의\s*끝|오늘(은)?\s*여기까지|\bend (the )?meeting\b|\blet'?s (wrap|close)( it)? up\b|\bthat'?s a wrap\b|\bmeeting (is )?(over|closed)\b)/i;
 const REOPEN_RE = /(회의\s*(계속|재개|다시)|다시\s*시작|\b(reopen|resume) the meeting\b)/i;
@@ -345,7 +345,15 @@ export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseU
   const present = v.participants ?? {};
   const gone = (n: string) => !(n in present) && (lastOut.get(n) ?? -1) > (lastIn.get(n) ?? -1);
   const names = [...new Set([...Object.keys(present), ...utters.map((u) => u.who)])].filter((n) => n && !gone(n)).slice(0, 4);
-  const people: Person[] = names.map((n) => ({ name: n, status: lastU?.who === n ? "speaking" : n === me ? "you" : "here", tone: lastU?.who === n ? "ok" : "" }));
+  // hs: 투표 중이면 투표한 사람은 "voted N" 표시, 안 한 사람은 "waiting"
+  const people: Person[] = names.map((n) => {
+    if (voting && voteCastBy[n] != null) {
+      const vLabel = voteCardForPanel ? optName(voteCardForPanel, voteCastBy[n]) : String(voteCastBy[n]);
+      return { name: n, status: `voted ${voteCastBy[n]} ${vLabel}`, tone: "ok" as const };
+    }
+    if (voting) return { name: n, status: "waiting", tone: "" as const };
+    return { name: n, status: lastU?.who === n ? "speaking" : n === me ? "you" : "here", tone: lastU?.who === n ? "ok" as const : "" as const };
+  });
   const turn = lastU ? names.indexOf(lastU.who) : -1;
 
   // ---------------------------------------------------------------- 머리줄
@@ -369,7 +377,7 @@ export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseU
     decidedMarks: decided.map(qOf),
     parked: [],
     said, log, people, turn: turn >= 0 ? turn : undefined,
-    glyph: voting ? "cam" : "", big: countShown, lit,
+    glyph: voting ? "cam" : "", big: false, lit, // hs: 투표 중에도 메인페이지 보이게 (전체화면 안 가림)
     voteCast: voteCastArr.length ? voteCastArr : undefined, // hs: 투표 현황 패널
   };
 }

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 OPEN_WINDOW_SEC = 4.0   # gitgutgit 11-09: 2초 → 4초 (표결 시간 2배)
 QUIET_CLOSE_SEC = 10.0  # 5초 → 10초
-MIN_OPEN_SEC = 20.0     # gitgutgit 11-09: 사람이 카메라를 켜고 손을 들 시간. 이 안에는 표가 들어와도 마감하지 않는다
+MIN_OPEN_SEC = 40.0     # hs: 투표 시간 40초로 넉넉하게
 ALL_IN_CLOSE_SEC = 2.0  # gitgutgit 11-09: 입장한 사람이 모두 냈으면 화면에 ✓를 보일 만큼만 기다리고 마감
 VOICE_OPEN_SEC = 40.0  # ep: 말로 연 표결의 첫 마감 시한
 RATINGS = {3: "좋음", 2: "보통", 1: "싫음"}  # gitgutgit: 찬반 카드의 손가락 수 → 뜻
@@ -194,28 +194,38 @@ class Votes:
         except Exception:
             log.exception("auto_resolve FAILED conflict=%s", conflict_id)
             return
-        # hs: 찬성(Good=3)이면 원래 발화를 agent에 다시 보내서 셀 편집 실행
+        # hs: 찬성(Good=3)이면 conflict topic에서 편집 명령을 뽑아 agent에 보내서 셀 편집 실행
         approved = (is_rating_card(positions) and top_val == 3) or (not is_rating_card(positions) and top_count > total / 2)
         if not approved:
             return
-        # 원래 발화 찾기: conflict를 연 change → utt_id → utterance event
+        # hs: topic에서 편집 명령 추출 — "XXX을 Y로 바꿀까요?" → "XXX을 Y로 바꿔줘"
+        topic = card.topic
+        edit_text = re.sub(r'[?？]$', '', topic).strip()  # 물음표 제거
+        edit_text = re.sub(r'(할까요|할까|바꿀까요|바꿀까|될까요|될까|좋을까요|좋을까)$', '해줘', edit_text)
+        # hs: 영어 질문도 처리 — "Should we ..." → "Please ..."
+        edit_text = re.sub(r'^[Ss]hould we ', 'Please ', edit_text)
+        edit_text = re.sub(r'^[Ss]hall we ', 'Please ', edit_text)
+        if not edit_text or edit_text == topic.rstrip('?？ '):
+            edit_text = topic.rstrip('?？ ') + ' 적용해줘'
+        # 원래 요청자 찾기
+        speaker = "server"
         for ch_obj in room.changes.changes.values():
             for op_item in ch_obj.ops:
                 if op_item.get("op") == "open_conflict":
                     for d in ch_obj.diff:
                         if d.get("kind") == "conflict" and conflict_id in d.get("anchor", ""):
-                            if ch_obj.utt_id:
-                                for ev in room.events:
-                                    if ev.type == "utterance.final" and ev.refs.utt_id == ch_obj.utt_id:
-                                        speaker = ev.payload.get("speaker", ch_obj.requested_by)
-                                        text = ev.payload.get("text", "")
-                                        # hs: 투표 관련 단어 제거 → 순수 편집 명령으로
-                                        text = re.sub(r'(에 대한|에 대해|하는|는)?\s*(투표|표결)\s*(을|를)?\s*(열어\s*줘?|시작\s*해?\s*줘?|해\s*줘?|하자|합시다|부탁)?', '', text).strip()
-                                        if not text:
-                                            return
-                                        log.info("auto_resolve: re-submitting edit speaker=%s text=%s", speaker, text)
-                                        await room.submit_utterance(speaker, text, final=True)
-                                        return
+                            speaker = ch_obj.requested_by
+                            break
+        # hs: 라우터 건너뛰고 에디터 직접 호출 — LLM 라우터가 ignore로 분류하는 문제 방지
+        log.info("auto_resolve: direct edit speaker=%s text=%s", speaker, edit_text)
+        try:
+            from server.agent.editor import edit as agent_edit
+            ops = await agent_edit(edit_text, speaker, room.state, room.transcript(), "edit")
+            if ops:
+                await room.changes.propose(ops, requested_by=speaker, utt_id=None, via="gesture",
+                                           reason=f"vote resolved: {edit_text[:60]}")
+        except Exception:
+            log.exception("auto_resolve edit FAILED text=%s", edit_text)
 
 
 votes = Votes()
