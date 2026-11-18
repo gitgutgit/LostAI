@@ -13,7 +13,7 @@ _MOCK_RULES: list[tuple[str, RouteLabel]] = [
     (VOTE_CALL.pattern, "capture"),        # ep: 표결 부르기와 고르기 질문은 질문 카드로
     (CHOICE_QUESTION.pattern, "capture"),
     (r"(\?|뭐였|누구|언제|what|who|when|how many)", "ask"),
-    (r"(바꿔|넣어|빼|추가|지워|set|add|remove|change|move|update|delete)", "edit"),
+    (r"(바꿔|넣어|빼|추가|지워|해줘|해주세요|적용|set|add|remove|change|move|update|delete|please)", "edit"),  # hs: 해줘/적용/please 추가
     (r"(결정|하기로|리스크|위험|담당|decide|decided|risk|action|will do|owner)", "capture"),
 ]
 
