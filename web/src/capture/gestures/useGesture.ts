@@ -87,17 +87,26 @@ export function useGesture(getEl: () => HTMLElement | null, enabled = true, onDi
     if (!enabled) return;
     let lastSent = "";
     // gitgutgit: 표결 중 — 손가락 수(랜드마크)만 본다. 1개는 Pointing_Up, 2개는 Victory로 이름 붙어도 1·2로 센다.
+    // hs: 안정화 — 손가락 수가 1~2프레임 흔들려도 hold를 리셋하지 않음 (STABLE_FRAMES만큼 연속 바뀌어야 리셋)
     if (opts.voteOnly) {
       viewport.showCursor(false);
+      const VOTE_HOLD_MS = 350; // hs: 투표 모드에서는 0.35초로 줄여 인식 반응성 개선
+      const STABLE_FRAMES = 3;  // hs: 3프레임(~200ms) 연속 바뀌어야 손가락 수 변경 인정
       let held: { n: number | null; since: number } = { n: null, since: 0 };
+      let diffCount = 0;
+      let lastDiffN: number | null = null;
       return engine.subscribe((f) => {
         const now = performance.now();
         const n = f.fingers != null && f.fingers >= 1 && f.fingers <= 4 ? f.fingers : null;
-        if (n !== held.n) held = { n, since: now };
-        if (n == null) { lastSent = ""; return; }
-        if (now - held.since >= HOLD_MS && lastSent !== `Fingers_${n}`) {
-          lastSent = `Fingers_${n}`;
-          send({ kind: "gesture", payload: { kind: `Fingers_${n}` as GestureKind, confidence: 0.9, hold_ms: Math.round(now - held.since) } });
+        if (n !== held.n) {
+          // hs: 같은 다른 값이 연속으로 나와야 변경 인정
+          if (n === lastDiffN) { diffCount++; } else { diffCount = 1; lastDiffN = n; }
+          if (diffCount >= STABLE_FRAMES) { held = { n, since: now }; diffCount = 0; }
+        } else { diffCount = 0; lastDiffN = null; }
+        if (held.n == null) { lastSent = ""; return; }
+        if (now - held.since >= VOTE_HOLD_MS && lastSent !== `Fingers_${held.n}`) {
+          lastSent = `Fingers_${held.n}`;
+          send({ kind: "gesture", payload: { kind: `Fingers_${held.n}` as GestureKind, confidence: 0.9, hold_ms: Math.round(now - held.since) } });
         }
       });
     }

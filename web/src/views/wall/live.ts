@@ -345,7 +345,15 @@ export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseU
   const present = v.participants ?? {};
   const gone = (n: string) => !(n in present) && (lastOut.get(n) ?? -1) > (lastIn.get(n) ?? -1);
   const names = [...new Set([...Object.keys(present), ...utters.map((u) => u.who)])].filter((n) => n && !gone(n)).slice(0, 4);
-  const people: Person[] = names.map((n) => ({ name: n, status: lastU?.who === n ? "speaking" : n === me ? "you" : "here", tone: lastU?.who === n ? "ok" : "" }));
+  // hs: 투표 중이면 투표한 사람은 "voted N" 표시, 안 한 사람은 "waiting"
+  const people: Person[] = names.map((n) => {
+    if (voting && voteCastBy[n] != null) {
+      const vLabel = voteCardForPanel ? optName(voteCardForPanel, voteCastBy[n]) : String(voteCastBy[n]);
+      return { name: n, status: `voted ${voteCastBy[n]} ${vLabel}`, tone: "ok" as const };
+    }
+    if (voting) return { name: n, status: "waiting", tone: "" as const };
+    return { name: n, status: lastU?.who === n ? "speaking" : n === me ? "you" : "here", tone: lastU?.who === n ? "ok" as const : "" as const };
+  });
   const turn = lastU ? names.indexOf(lastU.who) : -1;
 
   // ---------------------------------------------------------------- 머리줄
