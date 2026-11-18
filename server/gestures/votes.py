@@ -216,8 +216,16 @@ class Votes:
                         if d.get("kind") == "conflict" and conflict_id in d.get("anchor", ""):
                             speaker = ch_obj.requested_by
                             break
-        log.info("auto_resolve: submitting edit from topic speaker=%s text=%s", speaker, edit_text)
-        await room.submit_utterance(speaker, edit_text, final=True)
+        # hs: 라우터 건너뛰고 에디터 직접 호출 — LLM 라우터가 ignore로 분류하는 문제 방지
+        log.info("auto_resolve: direct edit speaker=%s text=%s", speaker, edit_text)
+        try:
+            from server.agent.editor import edit as agent_edit
+            ops = await agent_edit(edit_text, speaker, room.state, room.transcript(), "edit")
+            if ops:
+                await room.changes.propose(ops, requested_by=speaker, utt_id=None, via="gesture",
+                                           reason=f"vote resolved: {edit_text[:60]}")
+        except Exception:
+            log.exception("auto_resolve edit FAILED text=%s", edit_text)
 
 
 votes = Votes()
