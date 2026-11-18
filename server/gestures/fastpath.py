@@ -22,6 +22,12 @@ async def handle_gesture(room: "Room", who: str, kind: str, confidence: float, h
     await room.emit("gesture", who, {}, {"kind": kind, "confidence": confidence, "hold_ms": hold_ms})
 
     if kind in ("Thumb_Up", "Thumb_Down"):
+        # hs: 투표가 열려있으면 엄지를 투표로 처리 (Thumb_Up=찬성=3, Thumb_Down=반대=1)
+        from server.gestures.votes import votes
+        if votes.vote_id is not None:
+            value = 3 if kind == "Thumb_Up" else 1
+            await votes.on_fingers(room, who, value)
+            return
         target = room.changes.latest(statuses=("proposed", "applied"), within_sec=APPROVE_WINDOW_SEC)
         if target is None:
             return  # 대상 없음: 화면이 작은 안내만 띄운다
