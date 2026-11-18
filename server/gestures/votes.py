@@ -194,28 +194,30 @@ class Votes:
         except Exception:
             log.exception("auto_resolve FAILED conflict=%s", conflict_id)
             return
-        # hs: 찬성(Good=3)이면 원래 발화를 agent에 다시 보내서 셀 편집 실행
+        # hs: 찬성(Good=3)이면 conflict topic에서 편집 명령을 뽑아 agent에 보내서 셀 편집 실행
         approved = (is_rating_card(positions) and top_val == 3) or (not is_rating_card(positions) and top_count > total / 2)
         if not approved:
             return
-        # 원래 발화 찾기: conflict를 연 change → utt_id → utterance event
+        # hs: topic에서 편집 명령 추출 — "XXX을 Y로 바꿀까요?" → "XXX을 Y로 바꿔줘"
+        topic = card.topic
+        edit_text = re.sub(r'[?？]$', '', topic).strip()  # 물음표 제거
+        edit_text = re.sub(r'(할까요|할까|바꿀까요|바꿀까|될까요|될까|좋을까요|좋을까)$', '해줘', edit_text)
+        # hs: 영어 질문도 처리 — "Should we ..." → "Please ..."
+        edit_text = re.sub(r'^[Ss]hould we ', 'Please ', edit_text)
+        edit_text = re.sub(r'^[Ss]hall we ', 'Please ', edit_text)
+        if not edit_text or edit_text == topic.rstrip('?？ '):
+            edit_text = topic.rstrip('?？ ') + ' 적용해줘'
+        # 원래 요청자 찾기
+        speaker = "server"
         for ch_obj in room.changes.changes.values():
             for op_item in ch_obj.ops:
                 if op_item.get("op") == "open_conflict":
                     for d in ch_obj.diff:
                         if d.get("kind") == "conflict" and conflict_id in d.get("anchor", ""):
-                            if ch_obj.utt_id:
-                                for ev in room.events:
-                                    if ev.type == "utterance.final" and ev.refs.utt_id == ch_obj.utt_id:
-                                        speaker = ev.payload.get("speaker", ch_obj.requested_by)
-                                        text = ev.payload.get("text", "")
-                                        # hs: 투표 관련 단어 제거 → 순수 편집 명령으로
-                                        text = re.sub(r'(에 대한|에 대해|하는|는)?\s*(투표|표결)\s*(을|를)?\s*(열어\s*줘?|시작\s*해?\s*줘?|해\s*줘?|하자|합시다|부탁)?', '', text).strip()
-                                        if not text:
-                                            return
-                                        log.info("auto_resolve: re-submitting edit speaker=%s text=%s", speaker, text)
-                                        await room.submit_utterance(speaker, text, final=True)
-                                        return
+                            speaker = ch_obj.requested_by
+                            break
+        log.info("auto_resolve: submitting edit from topic speaker=%s text=%s", speaker, edit_text)
+        await room.submit_utterance(speaker, edit_text, final=True)
 
 
 votes = Votes()
