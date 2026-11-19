@@ -17,6 +17,7 @@ import { lastCloseSeq, lastVoteSeq, liveWall } from "./live";
 import { FitStage } from "./FitStage";
 import { sayAs } from "./puppets";
 import { DocLinks } from "../../components/DocLinks";
+import { DocPicker } from "../../components/DocPicker"; // Mal-Mi-Jal: 기존 Sheet/Doc 불러오기·새로 만들기
 import { TestSeedPicker } from "../../components/TestSeedPicker";
 import { DemoPlayer } from "../../components/DemoPlayer";
 import { useSceneTransition } from "./sceneTransition";
@@ -166,7 +167,7 @@ export function LiveWallView({ me, onLeave }: { me?: string; onLeave?: () => voi
       {v.notice && <div id="notice">{v.notice}</div>}
       {camErr && (gesture || voteOpen) && <div id="notice">📷 {camErr}</div>}
       {/* ep: Google Sheet, Doc 바로가기 + 테스트 대본 선택(임시). 무대(1920x1080) 배치는 건드리지 않게 창 왼쪽 아래 층에 둔다. 문서가 바뀌면(제목) 다시 받는다 */}
-      <div id="wall-tools"><DocLinks refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} /><LangToggle onChange={onLang} /><TestSeedPicker /><DemoPlayer refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} />{onLeave && <button id="leave-meeting" onClick={() => { if (confirm("회의에서 나갈까요?")) onLeave(); }} title="참석자 목록에서 빠지고 입장 화면으로">🚪 회의 나가기</button>}</div>
+      <div id="wall-tools"><DocLinks refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} /><DocPicker /><LangToggle onChange={onLang} /><TestSeedPicker /><DemoPlayer refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} />{onLeave && <button id="leave-meeting" onClick={() => { if (confirm("회의에서 나갈까요?")) onLeave(); }} title="참석자 목록에서 빠지고 입장 화면으로">🚪 회의 나가기</button>}</div>
     </>}>
       <SceneWall w={w} band={band} animate onOpenMinutes={() => setMinutes(true)}
         live={{ mic, onMic: toggleMic, gesture, onGesture: () => setGesture(!gesture), connected: v.connected, status: <Moai v={v} mic={mic} size={56} word={false} />, typing, onType: () => setTyping(true), onTypeEnd: () => setTyping(false), // hs: gesture 토글 전달
