@@ -49,7 +49,11 @@ export interface DocModel {
   hide?: CellKey[];
   grid?: string;
   rows: DocRow[];
+  /** 실시간 화면: 회의 문서(Sheet, Doc)마다 탭 하나. badge = 그 탭을 안 보는 동안 들어온 편집 수. 장면 견본은 쓰지 않는다. Mal-Mi-Jal */
+  tabs?: DocTab[];
 }
+
+export interface DocTab { key: string; label: string; kind: "sheet" | "doc"; on: boolean; badge: number }
 
 export interface CardOption { n: number; name: string; src: Rich; side?: { cost: Rich; sub: Rich } }
 export interface CardA {

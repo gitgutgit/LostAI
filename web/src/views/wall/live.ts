@@ -4,7 +4,7 @@
 import type { RoomView } from "../../core/reducer";
 import type { Change, Conflict, Doc, MeetingEvent, Sheet } from "../../core/types";
 import { changeHeadline } from "../../lib/changeText";
-import type { CardA, CardB, CellKey, CellVal, Chip, DocRow, Person, Rich, SlotState, Utter, WallState } from "./types";
+import type { CardA, CardB, CellKey, CellVal, Chip, DocRow, DocTab, Person, Rich, SlotState, Utter, WallState } from "./types";
 
 /** 시트 열 이름 → 벽의 7칸. 한국어, 영어 이름을 모두 받는다. */
 const ROLE: Record<"w" | "t" | "o" | "s" | "e" | "d" | "st", RegExp> = {
@@ -83,8 +83,29 @@ export function lastVoteSeq(v: RoomView): number {
   return [...v.events].reverse().find((e) => e.type === "vote.opened" || e.type === "vote.closed")?.seq ?? -1;
 }
 
-/** hideTakeUpTo: 이 seq까지의 표결 이벤트로 생긴 전체화면 표결 화면은 닫힌 것으로 보고 평소 카드로 그린다 (평상시 화면 버튼, 5초 카운트다운). */
-export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseUpTo = -1, voteLeftSec?: number | null): WallState {
+/** 문서 탭(Mal-Mi-Jal): 기본 탭 = 첫 시트(없으면 첫 노트 문서). 고른 탭이 지금 문서에 없으면(리셋, 문서 바꾸기) 기본 탭으로. */
+export function defaultDocTab(v: RoomView): string | undefined {
+  const docs = Object.entries(v.state?.docs ?? {});
+  return (docs.find(([, d]) => d.kind === "sheet") ?? docs[0])?.[0];
+}
+
+/** 문서 탭 목록. badge = seen[key](그 탭을 마지막으로 본 seq) 뒤에 그 문서에 적용된 편집 수. 보고 있는 탭은 0. */
+export function docTabs(v: RoomView, current: string | undefined, seen: Record<string, number>): DocTab[] {
+  const docs = Object.entries(v.state?.docs ?? {});
+  const n = { sheet: 0, doc: 0 };
+  const total = { sheet: docs.filter(([, d]) => d.kind === "sheet").length, doc: docs.filter(([, d]) => d.kind === "doc").length };
+  return docs.map(([key, d]) => {
+    n[d.kind] += 1;
+    const base = d.kind === "sheet" ? "Sheet" : "Doc";
+    const badge = key === current ? 0 : v.events.filter((e) => e.type === "change.applied" && e.seq > (seen[key] ?? 0)
+      && (e.payload as Change).targets.some((a) => a.split("/")[0] === key)).length;
+    return { key, kind: d.kind, label: total[d.kind] > 1 ? `${base} ${n[d.kind]}` : base, on: key === current, badge };
+  });
+}
+
+/** hideTakeUpTo: 이 seq까지의 표결 이벤트로 생긴 전체화면 표결 화면은 닫힌 것으로 보고 평소 카드로 그린다 (평상시 화면 버튼, 5초 카운트다운).
+ *  docTab: 문서 칸에 보일 문서 키(Mal-Mi-Jal). 없거나 지금 문서에 없으면 예전처럼 첫 시트. 노트 문서를 고르면 그 문서 전체를 보인다. */
+export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseUpTo = -1, voteLeftSec?: number | null, docTab?: string): WallState {
   const s = v.state;
   const lines = lineIndex(v.events);
   const L = (ch?: Change | null) => (ch?.utt_id && lines.get(ch.utt_id) ? `L${lines.get(ch.utt_id)!.n}` : "");
@@ -100,10 +121,16 @@ export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseU
   const lastDocKey = s ? [...v.events].reverse()
     .map((e) => (e.type === "change.applied" ? (e.payload as Change).targets[0]?.split("/")[0] : undefined))
     .find((k) => !!k && s.docs[k]?.kind === "doc") : undefined;
+  // Mal-Mi-Jal: 탭으로 노트 문서를 고르면 시트 대신 그 문서 전체, 시트를 고르면 그 시트(+ 고친 노트 항목).
+  const picked = docTab && s?.docs[docTab] ? docTab : undefined;
+  const pickedDoc = picked && s!.docs[picked].kind === "doc" ? picked : undefined;
   const notesEntry: [string, Doc] | undefined = !s ? undefined
+    : pickedDoc ? [pickedDoc, s.docs[pickedDoc] as Doc]
     : lastDocKey ? [lastDocKey, s.docs[lastDocKey] as Doc]
     : (Object.entries(s.docs).find(([, d]) => d.kind === "doc") as [string, Doc] | undefined);
-  const sheetEntry = s ? Object.entries(s.docs).find(([, d]) => d.kind === "sheet") : undefined;
+  const sheetEntry = !s || pickedDoc ? undefined
+    : picked ? [picked, s.docs[picked]] as const
+    : Object.entries(s.docs).find(([, d]) => d.kind === "sheet");
   const sheetKey = sheetEntry?.[0] ?? "";
   const sheet = sheetEntry?.[1] as Sheet | undefined;
   const cols = sheet ? mapColumns(sheet) : null;
@@ -155,16 +182,23 @@ export function liveWall(v: RoomView, me?: string, hideTakeUpTo = -1, hideCloseU
     const KIND: Record<string, string> = { decisions: "Decision", risks: "Risk", actions: "Action" };
     const out: DocRow[] = [];
     if (!s) return out;
-    for (const sec of nd.sections) for (const it of sec.items) {
-      const anchor = `${nk}/${sec.section_id}/${it.item_id}`;
-      const cid = s.provenance[anchor];
-      if (onlyEdited && !cid) continue;
-      const blank = { v: "" };
-      const row: DocRow = { w: (sec.binding && KIND[sec.binding]) || sec.heading, t: it.text, o: { v: str(it.meta?.owner) }, s: blank, e: blank, d: blank, st: blank, src: [], fresh: {}, memo: null };
-      const ch = cid ? v.changes[cid] : undefined;
-      if (ch) row.src.push({ t: `${ch.requested_by}${L(ch) ? " " + L(ch) : ""}`, r: L(ch) || undefined });
-      for (const d of fresh?.diff ?? []) if (d.anchor === anchor) { if (d.before === null) row.newrow = true; row.rowfresh = true; }
-      out.push(row);
+    for (const sec of nd.sections) {
+      // Mal-Mi-Jal: 문서 전체를 보일 때(Doc 탭)는 빈 섹션도 한 줄 → 어떤 섹션에 말로 채울 수 있는지 보인다
+      if (!onlyEdited && sec.items.length === 0) {
+        const blank = { v: "" };
+        out.push({ w: (sec.binding && KIND[sec.binding]) || sec.heading, t: "none yet", o: blank, s: blank, e: blank, d: blank, st: blank, src: [], fresh: {}, memo: null });
+      }
+      for (const it of sec.items) {
+        const anchor = `${nk}/${sec.section_id}/${it.item_id}`;
+        const cid = s.provenance[anchor];
+        if (onlyEdited && !cid) continue;
+        const blank = { v: "" };
+        const row: DocRow = { w: (sec.binding && KIND[sec.binding]) || sec.heading, t: it.text, o: { v: str(it.meta?.owner) }, s: blank, e: blank, d: blank, st: blank, src: [], fresh: {}, memo: null };
+        const ch = cid ? v.changes[cid] : undefined;
+        if (ch) row.src.push({ t: `${ch.requested_by}${L(ch) ? " " + L(ch) : ""}`, r: L(ch) || undefined });
+        for (const d of fresh?.diff ?? []) if (d.anchor === anchor) { if (d.before === null) row.newrow = true; row.rowfresh = true; }
+        out.push(row);
+      }
     }
     return out;
   };
