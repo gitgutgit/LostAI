@@ -114,7 +114,7 @@ function useChanged<T>(value: T): boolean {
 const COLS = ["WBS", "Task", "Owner", "Start", "End", "Days", "State"];
 const HIDE_KEYS: CellKey[] = ["o", "s", "e", "d", "st"];
 
-function Doc({ w, band, animate }: { w: WallState; band: boolean; animate: boolean }) {
+function Doc({ w, band, animate, onTab }: { w: WallState; band: boolean; animate: boolean; onTab?: (key: string) => void }) {
   const d = w.doc;
   const ghost = !!d.ghost;
   const bump = useChanged(d.edits) && animate;
@@ -144,6 +144,17 @@ function Doc({ w, band, animate }: { w: WallState; band: boolean; animate: boole
       <div id="sheet">
         <div id="qband">{band && w.cardA && <QLine a={w.cardA} />}</div>
         <div className="dh">
+          {d.tabs && d.tabs.length > 1 && onTab && (
+            // Mal-Mi-Jal: 회의 문서 탭(Sheet, Doc). 보는 탭과 상관없이 편집은 모든 문서에 바로 들어가고, 안 보는 탭에는 새 편집 수가 뜬다.
+            <span id="doctabs" role="tablist">
+              {d.tabs.map((t) => (
+                <button key={t.key} role="tab" aria-selected={t.on} className={`${t.kind}${t.on ? " on" : ""}`}
+                        onClick={() => onTab(t.key)} title={t.on ? undefined : "이 문서 보기"}>
+                  {t.label}{t.badge > 0 && <span className="badge">{t.badge}</span>}
+                </button>
+              ))}
+            </span>
+          )}
           <b>{d.title}<span className="m">{d.subtitle}</span></b>
           <span id="count" className={bump ? "bump" : ""}><i />{`Live  ${d.edits} edits written, ${d.undone} undone`}</span>
         </div>
@@ -338,7 +349,8 @@ const GL: Record<string, ReactNode> = {
 // 실화면 조작: 마이크 표지, 임시 채팅(발화 줄 자리에 입력칸, 마이크 없이 시험용)
 export interface LiveCtl { mic: boolean; onMic: () => void; gesture: boolean; onGesture: () => void; /* hs: 제스처 토글 */ connected: boolean; typing: boolean; onType: () => void; onSay: (text: string) => void; onTypeEnd: () => void;
   /** 입력칸 안내 문구, 서버 모드(MOCK, LIVE: 비용 여부 표시) */ hint?: string; mode?: string;
-  /** MOAI 상태 표시등(마스코트). 글자판(플립) 9칸 바로 옆에 선다. 단어는 글자판이 이미 말한다. */ status?: ReactNode }
+  /** MOAI 상태 표시등(마스코트). 글자판(플립) 9칸 바로 옆에 선다. 단어는 글자판이 이미 말한다. */ status?: ReactNode;
+  /** 문서 탭 누름(Mal-Mi-Jal). 탭 목록은 w.doc.tabs. */ onDocTab?: (key: string) => void }
 
 export function Wall({ w, band, animate, onOpenMinutes, live }: { w: WallState; band: boolean; animate: boolean; onOpenMinutes?: () => void; live?: LiveCtl }) {
   const lit = new Set(w.lit);
@@ -370,7 +382,7 @@ export function Wall({ w, band, animate, onOpenMinutes, live }: { w: WallState; 
             </>
           : <div id="mark">{w.mark}</div>}
 
-        <Doc w={w} band={band} animate={animate} />
+        <Doc w={w} band={band} animate={animate} onTab={live?.onDocTab} />
 
         <div id="idle" style={{ display: w.idle ? "block" : "none" }}>
           {(w.idle ?? ["No open question.", "Listening and writing to the WBS."]).map((l, i) => <Fragment key={i}>{i > 0 && <br />}{l}</Fragment>)}

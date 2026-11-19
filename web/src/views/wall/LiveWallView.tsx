@@ -13,7 +13,7 @@ import { useGesture } from "../../capture/gestures/useGesture"; // hs: 제스처
 import { changeHeadline } from "../../lib/changeText";
 import { Wall } from "./Wall";
 import { Moai } from "../brand/Moai";
-import { lastCloseSeq, lastVoteSeq, liveWall } from "./live";
+import { defaultDocTab, docTabs, lastCloseSeq, lastVoteSeq, liveWall } from "./live";
 import { FitStage } from "./FitStage";
 import { sayAs } from "./puppets";
 import { DocLinks } from "../../components/DocLinks";
@@ -104,6 +104,17 @@ export function LiveWallView({ me, onLeave }: { me?: string; onLeave?: () => voi
   const [hiddenQ, setHiddenQ] = useState("");
   const evCount = useRef(0); // 리셋(이벤트 목록이 줄어듦)이면 접어 둔 질문 기억을 버린다
   useEffect(() => { if (v.events.length < evCount.current) setHiddenQ(""); evCount.current = v.events.length; }, [v.events.length]);
+  // Mal-Mi-Jal: 문서 칸 탭. 고른 탭이 사라지면(리셋, 문서 바꾸기) 기본 탭(첫 시트). seen = 탭별로 마지막으로 본 seq (새 편집 수 배지)
+  const [pickedTab, setPickedTab] = useState<string>();
+  const [tabSeen, setTabSeen] = useState<Record<string, number>>({});
+  const docTab = pickedTab && v.state?.docs[pickedTab] ? pickedTab : defaultDocTab(v);
+  const lastSeq = v.events.at(-1)?.seq ?? 0;
+  const tabEvCount = useRef(0); // 리셋하면 seq가 1부터 다시 → 본 기록도 비운다
+  useEffect(() => { if (v.events.length < tabEvCount.current) setTabSeen({}); tabEvCount.current = v.events.length; }, [v.events.length]);
+  const onDocTab = (key: string) => {
+    setTabSeen((s) => ({ ...s, ...(docTab ? { [docTab]: lastSeq } : {}), [key]: lastSeq })); // 떠나는 탭도 지금까지 본 것으로
+    setPickedTab(key);
+  };
   const toggleMic = () => {
     if (stopMic.current) { stopMic.current(); stopMic.current = null; setMic(false); }
     else { stopMic.current = startStt(); setMic(true); }
@@ -143,7 +154,8 @@ export function LiveWallView({ me, onLeave }: { me?: string; onLeave?: () => voi
   }, []);
 
   if (!v.state) return <FitStage><div id="stage"><div className="head" style={{ left: 24 }}>Connecting…</div></div></FitStage>;
-  const w0 = liveWall(v, me, hideTakeUpTo, closeSeq < hideCloseUpTo ? -1 : hideCloseUpTo, voteLeftSec);
+  const w1 = liveWall(v, me, hideTakeUpTo, closeSeq < hideCloseUpTo ? -1 : hideCloseUpTo, voteLeftSec, docTab);
+  const w0 = { ...w1, doc: { ...w1.doc, tabs: docTabs(v, docTab, tabSeen) } };
   const isClosed = w0.cardB.take === "navy end";
   const qKey = w0.cardA ? `${w0.cardA.q} ${w0.cardA.title}` : "";
   const qHidden = !!qKey && qKey === hiddenQ && !w0.cardB.take;
@@ -169,7 +181,7 @@ export function LiveWallView({ me, onLeave }: { me?: string; onLeave?: () => voi
       <div id="wall-tools"><DocLinks refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} /><LangToggle onChange={onLang} /><TestSeedPicker /><DemoPlayer refreshKey={Object.values(v.state.docs).map((d) => d.title).join("|")} />{onLeave && <button id="leave-meeting" onClick={() => { if (confirm("회의에서 나갈까요?")) onLeave(); }} title="참석자 목록에서 빠지고 입장 화면으로">🚪 회의 나가기</button>}</div>
     </>}>
       <SceneWall w={w} band={band} animate onOpenMinutes={() => setMinutes(true)}
-        live={{ mic, onMic: toggleMic, gesture, onGesture: () => setGesture(!gesture), connected: v.connected, status: <Moai v={v} mic={mic} size={56} word={false} />, typing, onType: () => setTyping(true), onTypeEnd: () => setTyping(false), // hs: gesture 토글 전달
+        live={{ mic, onMic: toggleMic, gesture, onGesture: () => setGesture(!gesture), connected: v.connected, status: <Moai v={v} mic={mic} size={56} word={false} />, onDocTab, typing, onType: () => setTyping(true), onTypeEnd: () => setTyping(false), // hs: gesture 토글 전달
           mode, hint: import.meta.env.DEV ? "Ines: line speaks as Ines.  /up /down /1 /2 /t for hands" : undefined,
           // 개발 서버: 'Ines: 줄'은 Ines로, '/2'는 손 신호로(1인 시험, puppets.ts). 운영 빌드는 내 발화만.
           onSay: (text) => { if (import.meta.env.DEV) sayAs(text, me ?? "").catch(() => {}); else send({ kind: "utterance.final", payload: { text } }); } }} />
