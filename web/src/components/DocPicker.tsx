@@ -2,6 +2,7 @@
 // 서버: server/sync/source_api.py. 바꾸면 지금 회의 내용은 비워지고 지금 문서는 회의 전 상태로 돌아간다.
 // 어느 화면에든 <DocPicker /> 한 줄로 붙일 수 있다 (버튼 + 창).
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { getToken } from "../core/ws";
 import "./DocPicker.css";
 
@@ -119,7 +120,7 @@ export function DocPicker({ onSwitched }: { onSwitched?: () => void }) {
   return (
     <>
       <button className="btn" onClick={() => setOpen(true)} title="회의 문서 고르기 / 새로 만들기">📂 문서 바꾸기</button>
-      {open && (
+      {open && createPortal( // 창은 body에 바로: 붙인 곳(결정 벽 도구 띠)의 opacity·transform을 물려받지 않게
         <div className="dp-overlay" onClick={() => !busy && setOpen(false)}>
           <div className="dp-modal" role="dialog" aria-modal="true" aria-label="회의 문서 고르기" onClick={(e) => e.stopPropagation()}>
             <header><h2>회의 문서 고르기</h2><button className="dp-x" onClick={() => setOpen(false)} disabled={busy} aria-label="닫기">✕</button></header>
@@ -143,7 +144,8 @@ export function DocPicker({ onSwitched }: { onSwitched?: () => void }) {
               </div>
             </footer>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
