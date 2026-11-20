@@ -1,15 +1,20 @@
 # Note — 태우 (Mal-Mi-Jal) · 서버·UI 메인
 
-> 마지막 업데이트: 2026-11-09 11:55
-> 한 줄 상태: 🟢 진행 중 — 원본 문서 모드(`SEED=google`) 동작: 팀 원본 Sheet/Doc 직접 수정 + 리셋 복원 확인, PR 올림
+> 마지막 업데이트: 2026-11-21 02:40
+> 한 줄 상태: ⚪ 대기 — 문서 고르기를 각자 Google 로그인으로 바꾼 PR #57 올림 (팀장 확인 대기, 머지 안 함). 다음은 PR2 주인 승인
 > 실행: `uv run python -m server.sync.google_auth` · `uv run uvicorn server.app:app --reload --port 8000`  ·  모드: MOCK
 
 ## 현재 목표
-- PR 리뷰 대기. 예전 별도 탭('스프린트 24 보드', '회의 노트') 정리 여부 확인 → 다음 P0 (STT 실기기 확인 / 입장 화면)
+- PR #57 팀장(gitgutgit) 확인 대기 — 머지 전에 #41(내 TEAM 공지 PR)을 먼저 머지하면 #57에 `git merge origin/main` 후 이 노트 충돌만 풀면 됨
+- 머지 뒤 바로: Railway 변수 4개 + GCP에 Railway 도메인 추가 (아래 `할 일`), 배포 화면에서 로그인 → Picker → 바꾸기 확인
+- 다음 작업: PR2 = 문서 바꾸기 요청 → 주인 승인 (버튼 먼저). 시작 전에 `before-you-build`로 의도와 검증 쓰기
 
 ## 최근 결과
 | 지표 | 값 | 목표 | 언제 · 모드 | 결과 파일 |
 |---|---|---|---|---|
+| 테스트 (문서 고르기 각자 로그인 뒤) | 110 통과, 19 오류 (`test_server_robustness.py` = Windows에 SIGALRM 없음, 작업 전 기준선 103 통과 + 같은 19 오류) | 전부 통과 | 11-21 02:30 · MOCK, `.venv` | — |
+| 문서 고르기 실제 (태우 계정) | 로그인 → Picker로 내 Sheet 불러오기 OK. 바꾸기 시간은 안 잼 | 바꾸기 6초 안팎 | 11-21 · MOCK, localhost:8000 | — |
+| 문서 고르기 막힘 확인 (실서버) | 열쇠 없음·가짜 열쇠 → access 401, 바꾸기 401 / `/api/google/files` 404 | 전부 막힘 | 11-21 02:35 · MOCK | — |
 | 원본 문서 모드 실측 | 리스크 추가 Doc 859ms · 결정(섹션 생성) 830ms · 행 추가 Sheet 589ms · 취소 507ms, 리셋 후 원본과 **완전히 같음** | — | 11-09 11:55 · MOCK, 팀 원본 Sheet/Doc | `results/Mal-Mi-Jal_original_backup_1109_1154.json`(원본 백업) |
 | 말 → 화면 (대기 포함) | p50 8.0초 / 최대 12.8초 (n=10) | 2.5초 미만 ❌ | 11-09 11:35 · LIVE haiku-5-5 → sonnet-5-5, 대본 1~2초 간격 2회 | `results/Mal-Mi-Jal_replay_live_1109_1140.json`, `_1145.json` |
 | 순수 처리 (라우터+에디터+적용) | p50 3.7초 (워밍 후 n=9), 첫 호출 4.9~9.5초 | 2.5초 미만 ❌ (PoC 3.1초) | 같음 | 같음 |
@@ -23,7 +28,7 @@
 | 말 → Google Sheet | p50 440ms / p95 518ms (n=2) | — | 11-09 11:31 · MOCK, 팀 공용 Sheet | 같은 파일 |
 
 ## 진행 중
-- [ ] (새 기능, 태우 요청) 문서 고르기를 각자 Google 로그인으로 분리 — PR1 (시작: 11-21, 브랜치 Mal-Mi-Jal/user-google-login)
+- [ ] (새 기능, 태우 요청) 문서 고르기를 각자 Google 로그인으로 분리 — PR1 = **#57 올림, 팀장 확인 대기** (시작: 11-21 01:30경, 브랜치 Mal-Mi-Jal/user-google-login, 커밋 `0b5e243`)
   - 의도와 검증: 입장한 사람이 태우 Drive 목록을 보거나 아무 문서나 원본으로 고르지 못하게. 각자 로그인(drive.file) + Google Picker(본인 파일만, 서버 안 거침), 쓰기는 문서 주인 토큰, 한쪽만 고르면 그 사람 Drive에 새 문서. 기준선: 서버 계정 목록 20개가 누구에게나 보임
   - 문턱: 가짜 Google 시험(옛 원본은 옛 주인 토큰으로 복원 / 새 문서는 새 주인 토큰 / 로그인 없으면 거절 / 목록 API 없음) + 기존 시험 통과(기준선 103 통과, Windows SIGALRM 19 오류 제외). 실제: 다른 Gmail로 Picker에 그 계정 파일만, 바꾸기 6초 안팎(MOCK)
   - 결정(태우): PR1 = 로그인+Picker+한쪽 자동 생성 / PR2 = 바꾸기 요청 → 주인 승인 / PR3 = 엄지 승인 + 저장·저장 안 함. `.env.example`은 팀장 확인 전이라 `server/sync/GOOGLE_SETUP.md`에만 적음
@@ -34,7 +39,10 @@
   - [x] `server/sync/GOOGLE_SETUP.md` 6절 다시 씀 (6-1 GCP 설정)
   - [x] 실제 확인 1 (태우 계정, MOCK, localhost:8000): 로그인 → Picker로 내 Sheet 불러오기 OK. 처음 `invalid_client` = SECRET 칸에 JSON 파일 이름 → `GOOGLE_OAUTH_CLIENT_FILE`(콘솔 JSON 경로) 지원 추가
   - [x] 구멍 막기: 입장 토큰이 이름만으로 만들어져(`challenge.make_token`) 같은 이름이면 내 Google 로그인을 같이 씀 → 로그인마다 무작위 열쇠 gsid(탭 sessionStorage), 요청마다 이름+gsid 확인. 시험: 같은 이름 다른 사람 401, 동시 바꾸기 둘 → 하나만·하나 409. 일부러 '이름만 보는' 버그 → 시험이 잡음. 전체 110 통과
-  - [ ] 다른 Gmail 실제 확인 (태우가 지금 못 함) — 시크릿 창 + 테스트 사용자
+  - [x] PR #57 올림 (11-21 02:37). main과 충돌 없음. #41과는 이 노트 파일만 겹침 (나중에 머지되는 쪽이 풀기)
+  - [ ] 다른 Gmail 실제 확인 (태우가 지금 못 함) — 시크릿 창 + 테스트 사용자에 등록된 계정, Picker에 그 계정 파일만 보이는지
+  - [ ] 머지 뒤 배포 확인 (Railway 변수·GCP 도메인 넣은 다음)
+  - 사후 검토: 계획 = 로그인 + Picker + 한쪽 자동 생성 + 주인 토큰 쓰기 / 실제 = 그대로 + 같은 이름 구멍 막기(gsid) + 콘솔 JSON 파일 읽기 / 차이 = 계획 때 입장 토큰이 이름만으로 만들어진다는 걸 안 봄 / 이유 = 남의 파트 코드(`challenge.make_token`)를 '고유한 토큰'으로 가정함 → 새 권한을 기존 토큰에 묶을 땐 그 토큰이 어떻게 만들어지는지 먼저 읽기
   - `.env.example` 변경은 태우가 써 둔 안내 문구(실제 값 아님, 내 착각) → 루트 파일이라 이번 PR에서 뺌
   - PR1엔 승인·저장 없음: 로그인한 누구나 바로 바꿀 수 있고 옛 주인 문서는 회의 전으로 되돌아감 → PR2·PR3
 - [ ] (P0 시연) Railway 배포 — 2시까지 (시작: 13:05, 브랜치 Mal-Mi-Jal/railway)
@@ -94,9 +102,16 @@
   - [ ] 팀원 Gmail 테스트 사용자 등록 여부 확인 (GCP 관리자)
 
 ## 할 일
+- [ ] (PR #57 머지 뒤) Railway 변수 4개: `GOOGLE_OAUTH_CLIENT_JSON`(콘솔 JSON 내용) 또는 `GOOGLE_OAUTH_CLIENT_ID`+`GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_PICKER_API_KEY`, `GOOGLE_PROJECT_NUMBER`
+- [ ] (PR #57 머지 뒤) GCP: 웹 OAuth 클라이언트 'JavaScript 원본' + API 키 'HTTP 리퍼러'에 Railway 도메인 추가 (cloudflared 터널로 시연하면 그 주소도. quick tunnel은 주소가 매번 바뀜 → 시연 전 추가)
+- [ ] GCP OAuth 동의 화면 '테스트 사용자'에 팀원 Gmail 3명 추가 (안 하면 그 사람은 `access_denied`)
+- [ ] 웹 클라이언트 JSON을 다운로드 폴더 → 레포 밖 고정 위치로 옮기고 `.env` `GOOGLE_OAUTH_CLIENT_FILE` 경로 수정 (지금은 `~/Downloads`)
+- [ ] (P1) PR2 바꾸기 요청 → 주인 승인 (버튼). PR3 엄지 승인 + 저장/저장 안 함 (`server/gestures/fastpath.py` = 한서 승인, `server/events.py` 새 이벤트 = 팀장 승인)
 - [ ] (P0) 회의방+WS / Op 엔진 / 리플레이 — 실제 흐름에서 점검
 
 ## 다른 영역 관련
+- [ ] `.env.example` — 새 변수 4개 안내 (빈 값) → gitgutgit (상태: 요청 전. PR #57에서는 빼고 `server/sync/GOOGLE_SETUP.md` 6-1절에만 적음. 내 로컬 `.env.example`에 안내 문구 써 둔 변경 있음 — 커밋 안 함)
+- [ ] 입장 토큰이 이름만으로 만들어짐 (`server/auth/challenge.py` `make_token`, `/api/join/manual`은 손동작 없이 아무 이름 가능) → 같은 이름이면 같은 토큰 = 같은 사람으로 보임. 문서 고르기는 gsid로 피했지만 다른 기능(표결·승인 등 이름 기준)도 같은 문제 → 팀에 공유할 것 (내 파트라 직접 고칠 수 있지만 영향 범위가 커서 따로)
 - [ ] LIVE 에디터 op 선택 — '불안정한 결제 테스트 티켓 하나 추가해 줘'가 add_row(보드) 대신 create_ticket(Linear)로 감 → 보드에 안 보임. 제목 뽑기는 잘 됨('불안정한 결제 테스트') → 77SONNY77 (상태: PR 설명에 적음)
 - [ ] LIVE 지연 목표 미달 공유: 라우터 1.2초·에디터 2.2초, 첫 호출 콜드 스타트 3.5~8초 → 77SONNY77, gitgutgit (상태: PR 설명에 적음)
 - [x] `server/agent/editor.py` `_mock_edit` — (LIVE에선 제목 잘 뽑힘, MOCK만 해당) MOCK에서 '캐시 티켓 추가해줘'가 add_row 제목에 발화 원문 그대로 들어감 → 77SONNY77 (상태: 요청 전. LIVE 에디터면 제목을 뽑아 줄 것으로 예상, 확인 필요)
@@ -118,6 +133,11 @@
 - [x] `notes/Mal-Mi-Jal.md` 생성
 
 ## 메모
+- 11-21 이 PC: `uv`가 PATH에 없음 (`python -m uv`도 이번엔 안 씀) → `.venv/Scripts/python.exe -m pytest`. pytest·httpx는 `.venv`에 `pip install`로 넣음 (pyproject의 dev 의존성 그대로, 버전 파일 안 바꿈)
+- 11-21 Google 웹 클라이언트 secret은 `GOCSPX-`로 시작. SECRET 칸에 JSON 파일 이름을 넣으면 `invalid_client` → `GOOGLE_OAUTH_CLIENT_FILE`에 경로를 넣는다
+- 11-21 각자 로그인 토큰·gsid는 서버 메모리에만 → 서버 재시작하면 모두 다시 로그인, 원본은 `.env` 기본 원본으로 (개인 문서를 고른 기록은 `clear_choice`로 지움)
+- 11-21 실수: 시험 검증 중 `git checkout -- server/sync/source_api.py`로 되돌리다 커밋 안 한 수정까지 날림 → 직전 백업으로 복구. 일부러 버그 넣어 볼 땐 파일 복사본으로 되돌리기 (`git checkout` 금지)
+- 11-21 Git Bash에서 긴 heredoc(파이썬 안 `'''`)이 깨짐 → 스크립트를 파일로 쓰고 실행
 - 12:21 PR #11을 main(#8 room.reset 구조)으로 rebase. reset 흐름: room.reset()이 멈춘 뒤의 옛 변경 반환 → enqueue_restore(같은 방) → full_sync → warmup. 복원 sync 이벤트는 utt_id 지움(새 회의 u1과 안 섞이게). 실제 팀 문서: 변경 4개 → 리셋 → 백업과 동일 (Doc·Sheet)
 - 주의: 원본 모드에서 서버를 리셋 없이 끄면 회의 중 변경이 원본에 남고, 다음 시작 때 그게 원본으로 읽힌다 (12:05~12:15 STT 테스트 한 줄이 남아 손으로 지움)
 - tests/test_server_robustness.py는 Windows에서 SIGALRM 없음 → shim으로 돌림, join_secret 0600 권한 테스트 2개는 Windows라 실패 (main과 같음)
