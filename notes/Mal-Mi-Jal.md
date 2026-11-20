@@ -6,7 +6,16 @@
 
 ## 현재 목표
 - PR #57 팀장(gitgutgit) 확인 대기 — 머지 전에 #41(내 TEAM 공지 PR)을 먼저 머지하면 #57에 `git merge origin/main` 후 이 노트 충돌만 풀면 됨
-- 머지 뒤 바로: Railway 변수 4개 + GCP에 Railway 도메인 추가 (아래 `할 일`), 배포 화면에서 로그인 → Picker → 바꾸기 확인
+- **▶ #57 머지되면 바로 할 일 (Claude가 태우와 같이, 순서대로)**
+  1. Railway가 새 main으로 배포됐는지: 배포 로그 + `GET <Railway 도메인>/api/google/config?token=…` → 아직 `enabled: false`면 정상 (변수 전)
+  2. Railway 변수용 값 준비 (값은 화면·채팅·note에 출력 금지):
+     - `GOOGLE_OAUTH_CLIENT_JSON` = `.env`의 `GOOGLE_OAUTH_CLIENT_FILE` 파일 내용을 **한 줄 JSON**으로 → `results/railway_oauth_client_json.txt`(gitignore)에 써 두고 태우가 열어서 복사. 만든 뒤 `{"web": …}` 형태·client id가 `.env`와 같은지·`GOCSPX-`만 확인해서 '예/아니오'로 보고
+     - `GOOGLE_PICKER_API_KEY`, `GOOGLE_PROJECT_NUMBER` = `.env` 값 그대로 (태우가 `.env`에서 직접 복사)
+  3. 태우: Railway 대시보드 → 서비스 → Variables에 3개 추가 → 재배포. 다 넣은 뒤 `results/railway_oauth_client_json.txt` 삭제
+  4. 태우: GCP 콘솔 → 웹 OAuth 클라이언트 'JavaScript 원본'에 `https://<Railway 도메인>` 추가, API 키 'HTTP 리퍼러'에 `https://<Railway 도메인>/*` 추가 (반영까지 몇 분)
+  5. 태우: OAuth 동의 화면 → 테스트 사용자에 팀원 Gmail 3명 추가
+  6. 확인: `/api/google/config` → `enabled: true`, 배포 화면에서 로그인 → Picker → 바꾸기 (시간 재서 `최근 결과`에, LIVE/MOCK 붙이기) → 원래 문서로 돌아와 백업과 같은지
+  7. `notes/TEAM.md` `공지 · 요청` 맨 아래 한 줄: "문서 바꾸기 = 각자 Google 로그인, 테스트 사용자 등록 필요, 바꾼 사람 Drive 문서로 회의"
 - 다음 작업: PR2 = 문서 바꾸기 요청 → 주인 승인 (버튼 먼저). 시작 전에 `before-you-build`로 의도와 검증 쓰기
 
 ## 최근 결과
