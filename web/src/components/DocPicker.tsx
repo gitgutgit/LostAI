@@ -1,17 +1,27 @@
-// 회의 문서 고르기·새로 만들기: 서버 Google 계정의 Sheet(보드) / Doc(노트)을 골라 회의 원본으로. author: Mal-Mi-Jal
-// 서버: server/sync/source_api.py. 바꾸면 지금 회의 내용은 비워지고 지금 문서는 회의 전 상태로 돌아간다.
+// 회의 문서 고르기·새로 만들기: 각자 Google 로그인 → 자기 Sheet(보드) / Doc(노트)을 골라 회의 원본으로. author: Mal-Mi-Jal
+// 서버: server/sync/source_api.py. 파일 목록은 Google Picker가 내 브라우저에서 Google과 직접 주고받는다
+// (다른 사람 Drive는 안 보이고, 우리 서버는 고른 파일 id만 받는다). 권한은 drive.file = 고른 파일·만든 파일만.
+// 바꾸면 지금 회의 내용은 비워지고 지금 문서는 회의 전 상태로 돌아간다.
+// Google 로그인은 서버가 준 열쇠(gsid)를 이 탭의 sessionStorage에만 둔다. 입장 토큰은 이름만으로 만들어져
+// 같은 이름이면 같으므로, 열쇠 없이는 남의 Google 로그인(→ Drive)을 쓸 수 없게 하려는 것.
 // 어느 화면에든 <DocPicker /> 한 줄로 붙일 수 있다 (버튼 + 창).
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { getToken } from "../core/ws";
 import "./DocPicker.css";
 
 type Kind = "sheet" | "doc";
-type GFile = { id: string; name: string; modified?: string; mine?: boolean };
-type Current = { active: boolean; sheet?: { id: string; title: string }; doc?: { id: string; title: string } };
-type Pick = null | "new" | string; // null = 지금 그대로
+type Config = { enabled: boolean; client_id: string; api_key: string; app_id: string; scope: string; me: { email: string } | null };
+type Current = {
+  active: boolean; owner?: string | null; mine?: boolean;
+  sheet?: { id: string; title: string }; doc?: { id: string; title: string };
+};
+type Pick = null | "new" | { id: string; name: string }; // null = 안 고름 (내 문서면 그대로, 아니면 새로)
 
 const LABEL: Record<Kind, string> = { sheet: "📊 보드 (Google Sheet)", doc: "📝 노트 (Google Doc)" };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const w = window as any;
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch(path, init);
@@ -20,55 +30,84 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-function when(iso?: string) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+const GSID_KEY = "lostai.google.gsid";
+function getGsid(): string {
+  try { return sessionStorage.getItem(GSID_KEY) ?? ""; } catch { return ""; }
+}
+function setGsid(v: string) {
+  try { if (v) sessionStorage.setItem(GSID_KEY, v); else sessionStorage.removeItem(GSID_KEY); } catch { /* 저장 못 하면 다음에 다시 로그인 */ }
+}
+const qs = (token: string) => `?token=${encodeURIComponent(token)}&gsid=${encodeURIComponent(getGsid())}`;
+
+const scripts: Record<string, Promise<void>> = {};
+function loadScript(src: string): Promise<void> {
+  scripts[src] ??= new Promise((ok, fail) => {
+    const s = document.createElement("script");
+    s.src = src; s.async = true;
+    s.onload = () => ok();
+    s.onerror = () => { delete scripts[src]; fail(new Error("Google 스크립트를 못 불러왔어요 (인터넷 연결 확인)")); };
+    document.head.appendChild(s);
+  });
+  return scripts[src];
 }
 
-function Column({ kind, current, pick, setPick, mustPick }: {
-  kind: Kind; current?: { id: string; title: string }; pick: Pick; setPick: (p: Pick) => void; mustPick: boolean;
+/** Google 로그인 팝업 → code. 서버가 토큰으로 바꾼다 (client secret은 서버에만). */
+async function googleCode(cfg: Config): Promise<string> {
+  await loadScript("https://accounts.google.com/gsi/client");
+  return new Promise((ok, fail) => {
+    const client = w.google.accounts.oauth2.initCodeClient({
+      client_id: cfg.client_id, scope: cfg.scope, ux_mode: "popup",
+      callback: (r: { code?: string; error?: string }) => (r.code ? ok(r.code) : fail(new Error(`Google 로그인 실패 (${r.error ?? "알 수 없음"})`))),
+      error_callback: (e: { type?: string }) => fail(new Error(e.type === "popup_closed" ? "로그인 창이 닫혔어요" : "로그인 창을 못 열었어요 (팝업 차단 확인)")),
+    });
+    client.requestCode();
+  });
+}
+
+/** Google Picker: 내 Drive(나와 공유된 문서 포함)에서 하나 고르기. 취소하면 null. */
+async function pickFromDrive(cfg: Config, token: string, kind: Kind): Promise<{ id: string; name: string } | null> {
+  await loadScript("https://apis.google.com/js/api.js");
+  await new Promise<void>((ok) => w.gapi.load("picker", () => ok()));
+  const { access_token } = await api<{ access_token: string }>(`/api/google/access${qs(token)}`);
+  const P = w.google.picker;
+  const view = new P.DocsView(kind === "sheet" ? P.ViewId.SPREADSHEETS : P.ViewId.DOCUMENTS).setMode(P.DocsViewMode.LIST);
+  return new Promise((ok) => {
+    new P.PickerBuilder()
+      .addView(view)
+      .setOAuthToken(access_token)
+      .setDeveloperKey(cfg.api_key)
+      .setAppId(cfg.app_id) // drive.file: 고른 파일을 이 앱이 열 수 있게
+      .setOrigin(window.location.origin)
+      .setTitle(kind === "sheet" ? "회의 보드로 쓸 Google Sheet" : "회의 노트로 쓸 Google Doc")
+      .setCallback((d: { action: string; docs?: { id: string; name: string }[] }) => {
+        if (d.action === P.Action.PICKED && d.docs?.[0]) ok({ id: d.docs[0].id, name: d.docs[0].name });
+        else if (d.action === P.Action.CANCEL) ok(null);
+      })
+      .build()
+      .setVisible(true);
+  });
+}
+
+function Column({ kind, current, mine, pick, setPick, onPickDrive }: {
+  kind: Kind; current?: { id: string; title: string }; mine: boolean; pick: Pick; setPick: (p: Pick) => void; onPickDrive: () => void;
 }) {
-  const [q, setQ] = useState("");
-  const [files, setFiles] = useState<GFile[] | null>(null);
-  const [err, setErr] = useState("");
-
-  useEffect(() => {
-    const token = getToken();
-    if (!token) return;
-    const t = window.setTimeout(() => {
-      setErr("");
-      api<{ files: GFile[] }>(`/api/google/files?token=${encodeURIComponent(token)}&kind=${kind}&q=${encodeURIComponent(q)}`)
-        .then((r) => setFiles(r.files)).catch((e) => { setFiles([]); setErr(e.message); });
-    }, q ? 300 : 0); // 검색은 입력이 멈춘 뒤
-    return () => window.clearTimeout(t);
-  }, [kind, q]);
-
+  const picked = pick !== null && pick !== "new" ? pick : null;
   return (
     <section className="dp-col">
       <h3>{LABEL[kind]}</h3>
-      <input className="dp-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="이름으로 찾기" aria-label={`${LABEL[kind]} 찾기`} />
       <ul className="dp-list" role="listbox">
-        {!mustPick && (
-          <li className={pick === null ? "on" : ""} onClick={() => setPick(null)} role="option" aria-selected={pick === null}>
-            <b>지금 그대로</b> <span className="dp-sub">{current?.title}</span>
-          </li>
-        )}
+        <li className={pick === null ? "on" : ""} onClick={() => setPick(null)} role="option" aria-selected={pick === null}>
+          {mine
+            ? <><b>지금 그대로</b> <span className="dp-sub">{current?.title}</span></>
+            : <><b>안 고름</b> <span className="dp-sub">내 Drive에 새로 만들어요</span></>}
+        </li>
         <li className={pick === "new" ? "on" : ""} onClick={() => setPick("new")} role="option" aria-selected={pick === "new"}>
           <b>＋ 새로 만들기</b> <span className="dp-sub">{kind === "sheet" ? "작업·담당·기간·상태 열" : "목표·메모·리스크 섹션"}</span>
         </li>
-        {files === null && <li className="dp-muted">불러오는 중…</li>}
-        {err && <li className="dp-err">{err}</li>}
-        {files?.map((f) => (
-          <li key={f.id} className={pick === f.id ? "on" : ""} onClick={() => setPick(f.id === current?.id ? null : f.id)}
-              role="option" aria-selected={pick === f.id}>
-            {f.name}
-            {f.id === current?.id && <span className="dp-tag">지금</span>}
-            {!f.mine && <span className="dp-tag soft">공유받음</span>}
-            <span className="dp-sub">{when(f.modified)}</span>
-          </li>
-        ))}
-        {files?.length === 0 && !err && <li className="dp-muted">문서가 없어요</li>}
+        <li className={picked ? "on" : ""} onClick={onPickDrive} role="option" aria-selected={!!picked}>
+          <b>📂 내 Drive에서 고르기</b>
+          <span className="dp-sub">{picked ? picked.name : "Google 창이 열려요"}</span>
+        </li>
       </ul>
     </section>
   );
@@ -76,37 +115,88 @@ function Column({ kind, current, pick, setPick, mustPick }: {
 
 export function DocPicker({ onSwitched }: { onSwitched?: () => void }) {
   const [open, setOpen] = useState(false);
+  const [cfg, setCfg] = useState<Config | null>(null);
   const [cur, setCur] = useState<Current | null>(null);
   const [sheet, setSheet] = useState<Pick>(null);
   const [doc, setDoc] = useState<Pick>(null);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
+  const [picking, setPicking] = useState(false); // Google Picker가 떠 있는 동안 내 창은 숨긴다 (겹침 방지)
   const [err, setErr] = useState("");
   const token = getToken();
 
-  useEffect(() => {
-    if (!open || !token) return;
-    setSheet(null); setDoc(null); setErr("");
-    api<Current>(`/api/google/source?token=${encodeURIComponent(token)}`).then(setCur).catch((e) => setErr(e.message));
-  }, [open, token]);
+  const reload = useCallback(() => {
+    if (!token) return;
+    const q = qs(token);
+    Promise.all([api<Config>(`/api/google/config${q}`), api<Current>(`/api/google/source${q}`)])
+      .then(([c, s]) => { if (!c.me) setGsid(""); setCfg(c); setCur(s); }) // 서버 재시작 등으로 열쇠가 무효면 지운다
+      .catch((e) => setErr(e.message));
+  }, [token]);
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !busy) setOpen(false); };
+    setSheet(null); setDoc(null); setErr("");
+    reload();
+  }, [open, reload]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !busy && !picking) setOpen(false); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, busy]);
+  }, [open, busy, picking]);
 
   if (!token) return null; // fixture 재생 모드
-  const mustPick = cur ? !cur.active : false; // 원본이 아직 없으면 둘 다 골라야 한다
-  const ready = mustPick ? sheet !== null && doc !== null : sheet !== null || doc !== null;
+  const me = cfg?.me ?? null;
+  const mine = !!cur?.mine;
+  const ready = !!me && (sheet !== null || doc !== null);
+  const makesNew = sheet === "new" || doc === "new" || (!mine && (sheet === null || doc === null));
+
+  const login = async () => {
+    if (!cfg) return;
+    setErr(""); setBusy(true);
+    try {
+      const code = await googleCode(cfg);
+      const r = await api<{ gsid: string }>("/api/google/login", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, code, prev_gsid: getGsid() }),
+      });
+      setGsid(r.gsid);
+      reload();
+    } catch (e: any) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const logout = async () => {
+    await api("/api/google/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, gsid: getGsid() }) }).catch(() => {});
+    setGsid("");
+    setSheet(null); setDoc(null);
+    reload();
+  };
+
+  const pickDrive = (kind: Kind) => async () => {
+    if (!cfg || !me) return;
+    setErr(""); setPicking(true);
+    try {
+      const f = await pickFromDrive(cfg, token, kind);
+      if (f) (kind === "sheet" ? setSheet : setDoc)(f);
+    } catch (e: any) {
+      setErr(e.message);
+      if (/로그인/.test(e.message)) reload();
+    } finally {
+      setPicking(false);
+    }
+  };
 
   const submit = async () => {
     setBusy(true); setErr("");
+    const id = (p: Pick) => (p === null || p === "new" ? p : p.id);
     try {
       await api("/api/google/source", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, sheet, doc, title }),
+        body: JSON.stringify({ token, gsid: getGsid(), sheet: id(sheet), doc: id(doc), title }),
       });
       setOpen(false);
       onSwitched?.();
@@ -120,27 +210,44 @@ export function DocPicker({ onSwitched }: { onSwitched?: () => void }) {
   return (
     <>
       <button className="btn" onClick={() => setOpen(true)} title="회의 문서 고르기 / 새로 만들기">📂 문서 바꾸기</button>
-      {open && createPortal( // 창은 body에 바로: 붙인 곳(결정 벽 도구 띠)의 opacity·transform을 물려받지 않게
+      {open && !picking && createPortal( // 창은 body에 바로: 붙인 곳(결정 벽 도구 띠)의 opacity·transform을 물려받지 않게
         <div className="dp-overlay" onClick={() => !busy && setOpen(false)}>
           <div className="dp-modal" role="dialog" aria-modal="true" aria-label="회의 문서 고르기" onClick={(e) => e.stopPropagation()}>
             <header><h2>회의 문서 고르기</h2><button className="dp-x" onClick={() => setOpen(false)} disabled={busy} aria-label="닫기">✕</button></header>
-            {cur === null && !err ? <p className="dp-muted">불러오는 중…</p> : (
-              <div className="dp-cols">
-                <Column kind="sheet" current={cur?.sheet} pick={sheet} setPick={setSheet} mustPick={mustPick} />
-                <Column kind="doc" current={cur?.doc} pick={doc} setPick={setDoc} mustPick={mustPick} />
-              </div>
-            )}
-            {(sheet === "new" || doc === "new") && (
-              <label className="dp-title">새 문서 이름
-                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="예: 스프린트 25 계획" />
-              </label>
+            {cfg === null && !err ? <p className="dp-muted">불러오는 중…</p> : cfg && !cfg.enabled ? (
+              <p className="dp-muted">각자 Google 로그인이 아직 설정되지 않았어요. 서버 관리자: <code>server/sync/GOOGLE_SETUP.md</code> 6절</p>
+            ) : (
+              <>
+                <div className="dp-account">
+                  {me ? (
+                    <><span>🔐 <b>{me.email}</b> 계정으로 골라요</span><button className="btn" onClick={logout} disabled={busy}>로그아웃</button></>
+                  ) : (
+                    <><span>내 Google 계정으로 로그인하면 <b>내 Drive 파일만</b> 보여요. 이 앱은 내가 고른 파일과 새로 만든 파일만 열 수 있어요.</span>
+                      <button className="btn primary" onClick={login} disabled={busy || !cfg}>Google로 로그인</button></>
+                  )}
+                </div>
+                {cur?.active && (
+                  <p className="dp-muted">지금 회의 문서: {cur.sheet?.title} · {cur.doc?.title} ({mine ? "내 계정" : cur.owner ?? "서버 계정"})</p>
+                )}
+                {me && (
+                  <div className="dp-cols">
+                    <Column kind="sheet" current={cur?.sheet} mine={mine} pick={sheet} setPick={setSheet} onPickDrive={pickDrive("sheet")} />
+                    <Column kind="doc" current={cur?.doc} mine={mine} pick={doc} setPick={setDoc} onPickDrive={pickDrive("doc")} />
+                  </div>
+                )}
+                {me && makesNew && (
+                  <label className="dp-title">새 문서 이름
+                    <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="예: 스프린트 25 계획" />
+                  </label>
+                )}
+              </>
             )}
             <footer>
-              <p className="dp-warn">⚠ 바꾸면 지금 회의 내용(타임라인·변경)이 비워지고, 지금 문서는 회의 전 상태로 돌아가요. 모든 참석자 화면이 같이 바뀌어요.</p>
+              <p className="dp-warn">⚠ 바꾸면 지금 회의 내용(타임라인·변경)이 비워지고, 지금 문서는 회의 전 상태로 돌아가요. 모든 참석자 화면이 같이 바뀌어요. 회의 중 문서 수정은 고른 사람의 Google 계정으로 돼요.</p>
               {err && <p className="dp-err">{err}</p>}
               <div className="dp-actions">
                 <button className="btn" onClick={() => setOpen(false)} disabled={busy}>취소</button>
-                <button className="btn primary" onClick={submit} disabled={!ready || busy}>{busy ? "문서 바꾸는 중…" : "이 문서로 회의 시작"}</button>
+                <button className="btn primary" onClick={submit} disabled={!ready || busy}>{busy && me ? "문서 바꾸는 중…" : "이 문서로 회의 시작"}</button>
               </div>
             </footer>
           </div>

@@ -4,6 +4,9 @@ PoC(`shared/google_api.py`) 방식 그대로: 데스크톱 앱 OAuth 클라이�
 브라우저 로그인 → `token.json` 저장. 문서는 **로그인한 계정** 권한으로 열린다.
 다른 사람 문서는 그 사람이 내 Gmail을 편집자로 공유해 주면 ID/URL로 열 수 있다.
 
+화면에서 각자 Google 로그인으로 자기 문서를 고르면(`user_auth`, `source_api`) 그 사람이 **문서 주인**이 되고,
+`service()`는 서버 토큰 대신 주인 토큰을 쓴다 (`set_owner` / 잠깐만 쓰는 `as_owner`). 주인 토큰은 메모리에만 있다.
+
     uv run python -m server.sync.google_auth                    # 로그인 + .env의 문서 접근 확인
     uv run python -m server.sync.google_auth --sheet <URL> --doc <URL> [--save]
     uv run python -m server.sync.google_auth --relogin          # 토큰 지우고 다시 로그인
@@ -16,18 +19,20 @@ import argparse
 import os
 import re
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
-DRIVE_LIST_SCOPE = "https://www.googleapis.com/auth/drive.metadata.readonly"  # 문서 고르기 목록 (파일 이름·종류만)
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/documents",
-    DRIVE_LIST_SCOPE,
 ]
 
 _services: dict[tuple[str, str], Any] = {}
+# 지금 회의 원본의 주인 (각자 로그인한 사람). None이면 서버 토큰(token.json)
+_owner: Any = None
+_owner_label: str | None = None
 
 
 def credentials_path() -> Path:
@@ -91,25 +96,38 @@ def get_creds(interactive: bool = True):
     return creds
 
 
-def has_scope(scope: str) -> bool:
-    """지금 토큰이 그 권한을 받았는지 (Google 호출 없음). 예전 토큰은 Drive 목록 권한이 없다 → --relogin."""
-    import json
-    materialize_from_env()
-    tok = token_path()
-    if not tok.exists():
-        return False
+def owner() -> str | None:
+    """지금 원본 주인 표시 이름 (로그인한 Google 계정 이메일 등). None = 서버 계정."""
+    return _owner_label
+
+
+def set_owner(creds: Any, label: str | None) -> tuple[Any, str | None]:
+    """회의 원본 주인을 바꾼다 (None이면 서버 계정). 이전 주인을 돌려준다. Outbox 워커 안에서만 부른다."""
+    global _owner, _owner_label
+    prev = (_owner, _owner_label)
+    _owner, _owner_label = creds, label if creds is not None else None
+    _services.clear()  # 서비스 객체는 토큰에 묶여 있다
+    return prev
+
+
+@contextmanager
+def as_owner(creds: Any, label: str | None):
+    """잠깐 그 사람 토큰으로 Google을 부른다 (바꾸기 전 새 문서 만들기·구조 확인). 끝나면 원래 주인으로."""
+    prev = set_owner(creds, label)
     try:
-        return scope in (json.loads(tok.read_text(encoding="utf-8")).get("scopes") or [])
-    except ValueError:
-        return False
+        yield
+    finally:
+        set_owner(*prev)
 
 
 def service(name: str, version: str):
-    """sheets/v4, docs/v1. Outbox 워커 하나에서만 쓰므로 캐시해도 동시 호출이 생기지 않는다."""
+    """sheets/v4, docs/v1. Outbox 워커 하나에서만 쓰므로 캐시해도 동시 호출이 생기지 않는다.
+    주인이 있으면 주인 토큰, 없으면 서버 토큰. 주인이 바뀌면 캐시를 비운다 (`set_owner`)."""
     key = (name, version)
     if key not in _services:
         from googleapiclient.discovery import build
-        _services[key] = build(name, version, credentials=get_creds(interactive=False), cache_discovery=False)
+        creds = _owner if _owner is not None else get_creds(interactive=False)
+        _services[key] = build(name, version, credentials=creds, cache_discovery=False)
     return _services[key]
 
 
@@ -185,8 +203,6 @@ def main() -> int:
           f"token.json: {'있음' if token_path().exists() else '없음 (브라우저 로그인 진행)'}")
     creds = get_creds(interactive=True)
     print("✅ Google 로그인 OK (scopes: " + ", ".join(s.rsplit("/", 1)[-1] for s in (creds.scopes or [])) + ")")
-    if not has_scope(DRIVE_LIST_SCOPE):
-        print("  ⚠ 문서 고르기 목록 권한 없음 → --relogin 으로 다시 로그인")
 
     sheet = parse_id(a.sheet) if a.sheet else os.getenv("GOOGLE_SHEET_ID") or None
     doc = parse_id(a.doc) if a.doc else os.getenv("GOOGLE_DOC_ID") or None

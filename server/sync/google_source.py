@@ -133,6 +133,11 @@ def save_choice(sheet_id: str, doc_id: str) -> None:
     choice_file().write_text(json.dumps({"sheet_id": sheet_id, "doc_id": doc_id}), encoding="utf-8")
 
 
+def clear_choice() -> None:
+    """개인 계정 문서를 고르면 지운다: 그 토큰은 메모리에만 있어 다시 켜면 못 연다 → .env 기본 원본으로 시작."""
+    choice_file().unlink(missing_ok=True)
+
+
 def pull_baseline() -> DocState:
     """원본 두 문서를 읽어 회의 시작 상태를 만든다 (서버 시작 때)."""
     global S

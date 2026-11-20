@@ -23,6 +23,20 @@
 | 말 → Google Sheet | p50 440ms / p95 518ms (n=2) | — | 11-09 11:31 · MOCK, 팀 공용 Sheet | 같은 파일 |
 
 ## 진행 중
+- [ ] (새 기능, 태우 요청) 문서 고르기를 각자 Google 로그인으로 분리 — PR1 (시작: 11-21, 브랜치 Mal-Mi-Jal/user-google-login)
+  - 의도와 검증: 입장한 사람이 태우 Drive 목록을 보거나 아무 문서나 원본으로 고르지 못하게. 각자 로그인(drive.file) + Google Picker(본인 파일만, 서버 안 거침), 쓰기는 문서 주인 토큰, 한쪽만 고르면 그 사람 Drive에 새 문서. 기준선: 서버 계정 목록 20개가 누구에게나 보임
+  - 문턱: 가짜 Google 시험(옛 원본은 옛 주인 토큰으로 복원 / 새 문서는 새 주인 토큰 / 로그인 없으면 거절 / 목록 API 없음) + 기존 시험 통과(기준선 103 통과, Windows SIGALRM 19 오류 제외). 실제: 다른 Gmail로 Picker에 그 계정 파일만, 바꾸기 6초 안팎(MOCK)
+  - 결정(태우): PR1 = 로그인+Picker+한쪽 자동 생성 / PR2 = 바꾸기 요청 → 주인 승인 / PR3 = 엄지 승인 + 저장·저장 안 함. `.env.example`은 팀장 확인 전이라 `server/sync/GOOGLE_SETUP.md`에만 적음
+  - [x] GCP: 웹 OAuth 클라이언트, Picker API, API 키, 프로젝트 번호, 테스트 사용자 (태우)
+  - [x] 서버: `server/sync/user_auth.py`(code → 토큰, 메모리에만), `google_auth.set_owner/as_owner`(쓰기는 주인 토큰), `source_api` config·login·logout·access·바꾸기, 목록 API·`list_files` 삭제, `google_source.clear_choice`
+  - [x] 화면: `DocPicker.tsx` Google 로그인(GIS 코드 팝업) + Google Picker(`drive.file`, setAppId), 안 고른 쪽 = 주인이면 그대로 / 아니면 새로
+  - [x] 시험: `tests/test_source_switch.py` 사람마다 가짜 Drive(권한 밖 파일 404) 9개 — 전체 107 통과 (SIGALRM 19 오류는 기준선과 같음). 일부러 '주인 토큰 일찍 켜기' 버그 → 5개 실패로 잡음
+  - [x] `server/sync/GOOGLE_SETUP.md` 6절 다시 씀 (6-1 GCP 설정)
+  - [x] 실제 확인 1 (태우 계정, MOCK, localhost:8000): 로그인 → Picker로 내 Sheet 불러오기 OK. 처음 `invalid_client` = SECRET 칸에 JSON 파일 이름 → `GOOGLE_OAUTH_CLIENT_FILE`(콘솔 JSON 경로) 지원 추가
+  - [x] 구멍 막기: 입장 토큰이 이름만으로 만들어져(`challenge.make_token`) 같은 이름이면 내 Google 로그인을 같이 씀 → 로그인마다 무작위 열쇠 gsid(탭 sessionStorage), 요청마다 이름+gsid 확인. 시험: 같은 이름 다른 사람 401, 동시 바꾸기 둘 → 하나만·하나 409. 일부러 '이름만 보는' 버그 → 시험이 잡음. 전체 110 통과
+  - [ ] 다른 Gmail 실제 확인 (태우가 지금 못 함) — 시크릿 창 + 테스트 사용자
+  - `.env.example` 변경은 태우가 써 둔 안내 문구(실제 값 아님, 내 착각) → 루트 파일이라 이번 PR에서 뺌
+  - PR1엔 승인·저장 없음: 로그인한 누구나 바로 바꿀 수 있고 옛 주인 문서는 회의 전으로 되돌아감 → PR2·PR3
 - [ ] (P0 시연) Railway 배포 — 2시까지 (시작: 13:05, 브랜치 Mal-Mi-Jal/railway)
   - 의도와 검증: 회의 서버 하나를 https로 → 팀원·다른 노트북이 같은 회의·원본 문서·마이크. 문턱: /health OK, 원본 로그, 다른 노트북에서 말 → 원본 반영
   - 결정(태우): Railway만 원본(SEED=google), 내 PC 서버는 sprint로 / LIVE
