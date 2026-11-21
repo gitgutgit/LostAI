@@ -66,7 +66,8 @@ async def load_google_source() -> None:
         return
     import asyncio
     import logging
-    from server.sync import google_source
+    from server.sync import google_source, source_api
+    source_api.default_is_google = True  # 회의 끝 '새 회의'는 이 기본 원본으로 (못 읽어 sprint로 떨어져도 다음에 다시 시도)
     log = logging.getLogger("uvicorn.error")
     try:
         await asyncio.to_thread(google_source.pull_baseline)
@@ -284,6 +285,30 @@ async def reset(body: ResetBody | None = None):
     outbox.enqueue_full_sync(room)
     schedule_warmup(room.state)  # 시연 직전 리셋 → 프롬프트 캐시(약 5분)를 다시 데움
     return {"ok": True}
+
+
+class NewMeetingBody(BaseModel):
+    token: str
+
+
+@app.post("/api/meeting/new")
+async def new_meeting(body: NewMeetingBody):
+    """회의 끝 화면의 '새 회의'. 입장한 사람만.
+
+    SEED=google로 켠 서버면 .env 기본 원본(서버 계정)으로 바꿔서 새 회의 — 누가 다른 문서로 바꿨어도 기본으로 돌아온다.
+    이미 기본 원본이거나 기본 원본이 없으면(SEED=sprint) 보통 리셋. 기본 원본을 못 열면(토큰 만료 등) 지금 문서로 리셋.
+    """
+    from server.sync import source_api
+    if challenge.verify_token(body.token) is None:
+        raise HTTPException(401, "invalid token")
+    if source_api.switching():
+        raise HTTPException(409, "다른 사람이 문서를 바꾸는 중이에요.")
+    await demo.stop()
+    how = await source_api.back_to_default()
+    if how != "switched":
+        await reset()
+    return {"ok": True, "source": "default" if how in ("switched", "already") else "current",
+            **({"notice": "기본 문서를 열지 못해 지금 문서로 새 회의를 시작했어요."} if how == "failed" else {})}
 
 
 @app.get("/api/demo")

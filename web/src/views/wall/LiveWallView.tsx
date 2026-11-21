@@ -6,7 +6,7 @@
 // author: ProfessionalSeaweedDevourer
 import { useEffect, useRef, useState } from "react";
 import { useRoom } from "../../core/store";
-import { send } from "../../core/ws";
+import { getToken, send } from "../../core/ws";
 import { startStt } from "../../capture/stt";
 import { LangToggle } from "../../components/LangToggle";
 import { useGesture } from "../../capture/gestures/useGesture"; // hs: 제스처 커스텀 훅
@@ -102,6 +102,27 @@ export function LiveWallView({ me, onLeave }: { me?: string; onLeave?: () => voi
   // gitgutgit: 회의 끝(CLOSED) 화면은 자동으로 닫지 않는다. 버튼으로 접으면 그 '회의 끝' 발화까지 숨긴다.
   const [hideCloseUpTo, setHideCloseUpTo] = useState(-1);
   const closeSeq = lastCloseSeq(v);
+  // Mal-Mi-Jal: 끝 화면의 '새 회의' = 서버 리셋(/api/meeting/new). 모두의 화면이 새 회의로, 원본 모드면 기본 문서(.env)로 돌아간다.
+  const [newBusy, setNewBusy] = useState(false);
+  const [newMsg, setNewMsg] = useState("");
+  const newMeeting = async () => {
+    const token = getToken();
+    if (!token || newBusy) return;
+    if (!confirm("지금 회의 내용을 지우고 기본 문서로 새 회의를 시작할까요?\n참석자 모두의 화면이 새 회의로 바뀌어요.")) return;
+    setNewBusy(true);
+    setNewMsg("");
+    try {
+      const r = await fetch("/api/meeting/new", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(typeof body.detail === "string" ? body.detail : `${r.status}`);
+      if (body.notice) setNewMsg(body.notice);
+    } catch (e) {
+      setNewMsg(`새 회의를 못 열었어요 (${(e as Error).message})`);
+    } finally {
+      setNewBusy(false);
+    }
+  };
+  useEffect(() => { if (!newMsg) return; const t = setTimeout(() => setNewMsg(""), 6000); return () => clearTimeout(t); }, [newMsg]);
   const [hiddenQ, setHiddenQ] = useState("");
   const evCount = useRef(0); // 리셋(이벤트 목록이 줄어듦)이면 접어 둔 질문 기억을 버린다
   useEffect(() => { if (v.events.length < evCount.current) setHiddenQ(""); evCount.current = v.events.length; }, [v.events.length]);
@@ -175,6 +196,8 @@ export function LiveWallView({ me, onLeave }: { me?: string; onLeave?: () => voi
       {back && !isVoteCountdown && <BackCountdown key={back.key} onBack={back.go} />}
       {back && isVoteCountdown && <button id="back-normal" onClick={back.go} title="투표 화면 접기">✕ 메인으로</button>}
       {isClosed && <button id="back-normal" onClick={() => setHideCloseUpTo(closeSeq)} title="끝 화면을 접고 회의 화면으로">✕ 회의 화면으로</button>}
+      {isClosed && <button id="new-meeting" onClick={newMeeting} disabled={newBusy} title="회의 내용을 지우고 기본 문서로 새 회의 (모든 참석자)">{newBusy ? "새 회의 여는 중…" : "🆕 새 회의 시작"}</button>}
+      {newMsg && <div id="notice">{newMsg}</div>}
       {minutes && <Minutes onClose={() => setMinutes(false)} />}
       {v.notice && <div id="notice">{v.notice}</div>}
       {camErr && (gesture || voteOpen) && <div id="notice">📷 {camErr}</div>}

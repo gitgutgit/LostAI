@@ -339,3 +339,80 @@ def test_new_doc_template_is_parsed_as_meeting_doc():
                            ("NORMAL_TEXT", "")]
     title, sections = gsrc.parse_doc(gsrc._doc_paragraphs(d.get(documentId="N").execute()["tabs"][0]))
     assert title == "주간 회의 — 회의 노트" and [s["heading"] for s in sections] == ["목표", "메모", "리스크"]
+
+
+# ================================================================ 새 회의 = 기본 원본으로 (back_to_default)
+
+@pytest.fixture
+def default_google(monkeypatch):
+    monkeypatch.setattr(source_api, "default_is_google", True)
+
+
+def test_new_meeting_goes_back_to_default_doc_with_server_account(g, default_google):
+    """Ines가 자기 문서로 바꿔 회의 → 새 회의 → Ines 문서는 Ines 토큰으로 회의 전으로, 회의는 기본 원본(서버 계정)으로."""
+    ines = join("Ines", "ines")
+
+    async def steps(room):
+        await sw(ines, sheet="SB", doc="DB")
+        await outbox.queue.join()
+        await room.changes.propose([{"op": "insert_item", "doc": "notes", "section": "s_risk", "text": "폰트 라이선스"}], "Ines", "u1")
+        await outbox.queue.join()
+        assert doc_view(g["ines"]["doc"]["DB"]) != DOC_B
+        assert await source_api.back_to_default() == "switched"
+        await outbox.queue.join()
+        assert (gsrc.S.sheet_id, gsrc.S.doc_id) == ("SA", "DA") and google_auth.owner() is None
+        assert source_api._owner_gsid is None and not (await cur(ines))["mine"]
+        assert len(room.changes.changes) == 0
+        # 새 회의 쓰기는 서버 계정 기본 원본으로
+        await room.changes.propose([{"op": "add_decision", "text": "다음 주 배포"}], "Owen", "u1")
+        await outbox.queue.join()
+        assert ("NORMAL_TEXT", "- 다음 주 배포  · Owen") in doc_view(g["server"]["doc"]["DA"])
+        assert room.state.docs["notes"].title == gsrc.S.baseline.docs["notes"].title
+        return room
+
+    room = run_meeting(steps)
+    assert doc_view(g["ines"]["doc"]["DB"]) == DOC_B  # Ines 문서는 Ines 토큰으로 회의 전으로
+    assert not no_sync_failed(room)
+
+
+def test_new_meeting_on_default_already_is_plain_reset(g, default_google):
+    async def steps(room):
+        assert await source_api.back_to_default() == "already"
+        assert google_auth.owner() is None and gsrc.S.doc_id == "DA"
+
+    run_meeting(steps)
+
+
+def test_new_meeting_without_google_default_is_plain_reset(g):
+    """SEED=sprint로 켠 서버(default_is_google False)는 기본 원본이 없다 → 고른 문서 그대로 보통 리셋."""
+    ines = join("Ines", "ines")
+
+    async def steps(room):
+        await sw(ines, sheet="SB", doc="DB")
+        await outbox.queue.join()
+        assert await source_api.back_to_default() == "none"
+        assert gsrc.S.doc_id == "DB" and google_auth.owner() == "ines@example.com"
+
+    run_meeting(steps)
+
+
+def test_new_meeting_when_default_cannot_open_keeps_current(g, default_google):
+    """기본 원본을 서버 계정으로 못 열면(토큰 만료·권한 없음) "failed" → 회의·주인 그대로 (부르는 쪽이 보통 리셋)."""
+    ines = join("Ines", "ines")
+
+    async def steps(room):
+        await sw(ines, sheet="SB", doc="DB")
+        await outbox.queue.join()
+        del g["server"]["doc"]["DA"]
+        assert await source_api.back_to_default() == "failed"
+        assert gsrc.S.doc_id == "DB" and google_auth.owner() == "ines@example.com"
+
+    run_meeting(steps)
+
+
+def test_new_meeting_endpoint_needs_join_token():
+    from fastapi.testclient import TestClient
+    from server.app import app
+    c = TestClient(app)  # with 없이: 서버 시작 안 돎
+    assert c.post("/api/meeting/new", json={"token": "fake"}).status_code == 401
+    assert c.post("/api/meeting/new", json={}).status_code == 422
