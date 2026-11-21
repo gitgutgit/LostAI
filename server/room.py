@@ -28,6 +28,8 @@ class Room:
         self.seed_name = seed or os.getenv("SEED", "sprint")
         self.sockets: dict[Socket, str] = {}  # socket → 참석자 이름
         self.participants: dict[str, dict[str, Any]] = {}
+        # 마지막 탭이 닫힌 이름 → (monotonic 시각, 🚪 회의 나가기였나). 다시 붙으면 지운다. 문서 바꾸기 승인이 '주인이 회의에 있나'를 본다
+        self.gone: dict[str, tuple[float, bool]] = {}
         self._worker: asyncio.Task | None = None
         self._init_meeting()
 
@@ -124,19 +126,31 @@ class Room:
     async def connect(self, ws: Socket, name: str) -> bool:
         """접속. 토큰은 유효한데 참석자 목록에 없으면(서버 재배포·리셋 뒤 다시 붙음) 다시 넣고 True."""
         self.sockets[ws] = name
+        self.gone.pop(name, None)
         rejoined = name not in self.participants
         if rejoined:  # gitgutgit 11-09: 재배포하면 방이 비므로, 다시 붙은 사람을 참석자로 되살린다
             self.participants[name] = {"verified": True, "via": "rejoin"}
         await ws.send_text(json.dumps(self.snapshot(), ensure_ascii=False, default=str))
         return rejoined
 
-    def disconnect(self, ws: Socket) -> bool:
-        """접속 하나를 뺀다. 그 이름의 탭이 하나도 안 남으면 참석자에서 빼고 True (회의 나가기, 탭 닫기)."""
+    def disconnect(self, ws: Socket, left_by_button: bool = False) -> bool:
+        """접속 하나를 뺀다. 그 이름의 탭이 하나도 안 남으면 참석자에서 빼고 True (회의 나가기, 탭 닫기).
+        left_by_button: 🚪 회의 나가기 (화면이 닫기 코드 1000으로 닫음). 탭 닫기는 1001, 끊김은 1006."""
         name = self.sockets.pop(ws, None)
         if name is None or name in self.sockets.values():
             return False
         self.participants.pop(name, None)
+        self.gone[name] = (time.monotonic(), left_by_button)
         return True
+
+    def absent_for(self, name: str) -> tuple[bool, float]:
+        """(🚪로 나갔나, 접속 없이 지난 초). 지금 붙어 있으면 (False, 0)."""
+        if name in self.sockets.values():
+            return False, 0.0
+        if name not in self.gone:  # 이 방에 붙은 적 없음 (서버 재시작 등)
+            return False, float("inf")
+        t, button = self.gone[name]
+        return button, time.monotonic() - t
 
     # ---- 발화 큐: 순서대로 하나씩 ----
     def start(self) -> None:
