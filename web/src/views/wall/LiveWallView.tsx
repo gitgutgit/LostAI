@@ -18,6 +18,7 @@ import { FitStage } from "./FitStage";
 import { sayAs } from "./puppets";
 import { DocLinks } from "../../components/DocLinks";
 import { DocPicker } from "../../components/DocPicker"; // Mal-Mi-Jal: 기존 Sheet/Doc 불러오기·새로 만들기
+import { NewMeetingDialog } from "../../components/NewMeetingDialog"; // Mal-Mi-Jal: 새 회의 확인창 (남기기/되돌리기)
 import { TestSeedPicker } from "../../components/TestSeedPicker";
 import { DemoPlayer } from "../../components/DemoPlayer";
 import { useSceneTransition } from "./sceneTransition";
@@ -103,25 +104,9 @@ export function LiveWallView({ me, onLeave }: { me?: string; onLeave?: () => voi
   const [hideCloseUpTo, setHideCloseUpTo] = useState(-1);
   const closeSeq = lastCloseSeq(v);
   // Mal-Mi-Jal: 끝 화면의 '새 회의' = 서버 리셋(/api/meeting/new). 모두의 화면이 새 회의로, 원본 모드면 기본 문서(.env)로 돌아간다.
-  const [newBusy, setNewBusy] = useState(false);
+  // 확인창(NewMeetingDialog)에서 지금 문서에 회의 결과를 남길지 / 되돌릴지 고른다.
+  const [newOpen, setNewOpen] = useState(false);
   const [newMsg, setNewMsg] = useState("");
-  const newMeeting = async () => {
-    const token = getToken();
-    if (!token || newBusy) return;
-    if (!confirm("지금 회의 내용을 지우고 기본 문서로 새 회의를 시작할까요?\n참석자 모두의 화면이 새 회의로 바뀌어요.")) return;
-    setNewBusy(true);
-    setNewMsg("");
-    try {
-      const r = await fetch("/api/meeting/new", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) });
-      const body = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(typeof body.detail === "string" ? body.detail : `${r.status}`);
-      if (body.notice) setNewMsg(body.notice);
-    } catch (e) {
-      setNewMsg(`새 회의를 못 열었어요 (${(e as Error).message})`);
-    } finally {
-      setNewBusy(false);
-    }
-  };
   useEffect(() => { if (!newMsg) return; const t = setTimeout(() => setNewMsg(""), 6000); return () => clearTimeout(t); }, [newMsg]);
   const [hiddenQ, setHiddenQ] = useState("");
   const evCount = useRef(0); // 리셋(이벤트 목록이 줄어듦)이면 접어 둔 질문 기억을 버린다
@@ -196,7 +181,8 @@ export function LiveWallView({ me, onLeave }: { me?: string; onLeave?: () => voi
       {back && !isVoteCountdown && <BackCountdown key={back.key} onBack={back.go} />}
       {back && isVoteCountdown && <button id="back-normal" onClick={back.go} title="투표 화면 접기">✕ 메인으로</button>}
       {isClosed && <button id="back-normal" onClick={() => setHideCloseUpTo(closeSeq)} title="끝 화면을 접고 회의 화면으로">✕ 회의 화면으로</button>}
-      {isClosed && <button id="new-meeting" onClick={newMeeting} disabled={newBusy} title="회의 내용을 지우고 기본 문서로 새 회의 (모든 참석자)">{newBusy ? "새 회의 여는 중…" : "🆕 새 회의 시작"}</button>}
+      {isClosed && getToken() && <button id="new-meeting" onClick={() => setNewOpen(true)} disabled={newOpen} title="회의 내용을 지우고 기본 문서로 새 회의 (모든 참석자)">🆕 새 회의 시작</button>}
+      {newOpen && <NewMeetingDialog onClose={() => setNewOpen(false)} onDone={setNewMsg} />}
       {newMsg && <div id="notice">{newMsg}</div>}
       {minutes && <Minutes onClose={() => setMinutes(false)} />}
       {v.notice && <div id="notice">{v.notice}</div>}
