@@ -18,6 +18,12 @@
   A real-time meeting agent that listens, edits your Google Sheets and Docs as people talk, and records who said what behind every change.
 </p>
 
+<h3 align="center"><a href="https://lostai-production.up.railway.app/"><ins>Try the demo</ins></a></h3>
+
+<p align="center">
+  <sub>This server is a public demo and comes with sample documents. Please do not connect private or sensitive documents to it.</sub>
+</p>
+
 <!-- TODO: demo video or screenshot -->
 
 ## Features
