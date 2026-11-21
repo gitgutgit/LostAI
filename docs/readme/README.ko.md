@@ -18,6 +18,12 @@
   회의를 들으면서 말한 대로 Google Sheets·Docs를 고치고, 모든 변경에 누가 언제 말했는지 남기는 실시간 회의 에이전트입니다.
 </p>
 
+<h3 align="center"><a href="https://lostai-production.up.railway.app/"><ins>데모 사이트 열기</ins></a></h3>
+
+<p align="center">
+  <sub>시연용 데모 서버이며 데모 문서가 기본으로 제공됩니다. 개인적이거나 민감한 문서는 연결하지 않는 것을 권장합니다.</sub>
+</p>
+
 <!-- TODO: 시연 영상 또는 스크린샷 -->
 
 ## 기능
