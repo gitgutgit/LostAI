@@ -141,8 +141,8 @@ def cur(p: Person):
     return source_api.current(p.token, p.gsid)
 
 
-def ans(p: Person, request_id: str, approve: bool):
-    return source_api.answer(source_api.AnswerReq(token=p.token, gsid=p.gsid, request_id=request_id, approve=approve))
+def ans(p: Person, request_id: str, approve: bool, keep=None):
+    return source_api.answer(source_api.AnswerReq(token=p.token, gsid=p.gsid, request_id=request_id, approve=approve, keep=keep))
 
 
 class Tab:
@@ -192,7 +192,7 @@ def test_switch_to_my_doc_restores_old_with_old_owner_and_writes_with_mine(g):
 
 
 def test_owner_keeps_unpicked_side_and_next_person_restores_with_owner_token(g):
-    """주인(Ines)이 Sheet만 바꾸면 Doc은 그대로. 그다음 Owen이 요청 → Ines 승인 → Ines 문서는 Ines 토큰으로 회의 전으로."""
+    """주인(Ines)이 Sheet만 바꾸면 Doc은 그대로. 그다음 Owen이 요청 → Ines가 '되돌리기'로 승인 → Ines 문서는 Ines 토큰으로 회의 전으로."""
     ines, owen = join("Ines", "ines"), join("Owen", "owen")
 
     async def steps(room):
@@ -207,7 +207,7 @@ def test_owner_keeps_unpicked_side_and_next_person_restores_with_owner_token(g):
         assert doc_view(g["ines"]["doc"]["DB"]) != DOC_B
         req = await sw(owen, doc="new", title="주간")
         assert req["pending"] and gsrc.S.doc_id == "DB"  # Ines 문서 → 승인 전엔 그대로
-        r = await ans(ines, req["request_id"], True)  # Sheet도 Owen Drive에 새로
+        r = await ans(ines, req["request_id"], True, keep=False)  # Sheet도 Owen Drive에 새로
         await outbox.queue.join()
         assert r["status"] == "approved"
         assert r["doc"]["title"] == "주간 — 회의 노트" and r["sheet"]["title"] == "주간 — 보드"
@@ -370,7 +370,7 @@ def default_google(monkeypatch):
 
 
 def test_new_meeting_goes_back_to_default_doc_with_server_account(g, default_google):
-    """Ines가 자기 문서로 바꿔 회의 → 새 회의 → Ines 문서는 Ines 토큰으로 회의 전으로, 회의는 기본 원본(서버 계정)으로."""
+    """Ines가 자기 문서로 바꿔 회의 → 새 회의(되돌리기) → Ines 문서는 Ines 토큰으로 회의 전으로, 회의는 기본 원본(서버 계정)으로."""
     ines = join("Ines", "ines")
 
     async def steps(room):
@@ -379,7 +379,7 @@ def test_new_meeting_goes_back_to_default_doc_with_server_account(g, default_goo
         await room.changes.propose([{"op": "insert_item", "doc": "notes", "section": "s_risk", "text": "폰트 라이선스"}], "Ines", "u1")
         await outbox.queue.join()
         assert doc_view(g["ines"]["doc"]["DB"]) != DOC_B
-        assert await source_api.back_to_default() == "switched"
+        assert await source_api.back_to_default(False) == "switched"
         await outbox.queue.join()
         assert (gsrc.S.sheet_id, gsrc.S.doc_id) == ("SA", "DA") and google_auth.owner() is None
         assert source_api._owner_gsid is None and not (await cur(ines))["mine"]
@@ -411,7 +411,7 @@ def test_new_meeting_without_google_default_is_plain_reset(g):
     async def steps(room):
         await sw(ines, sheet="SB", doc="DB")
         await outbox.queue.join()
-        assert await source_api.back_to_default() == "none"
+        assert await source_api.back_to_default(False) == "none"
         assert gsrc.S.doc_id == "DB" and google_auth.owner() == "ines@example.com"
 
     run_meeting(steps)
@@ -425,7 +425,7 @@ def test_new_meeting_when_default_cannot_open_keeps_current(g, default_google):
         await sw(ines, sheet="SB", doc="DB")
         await outbox.queue.join()
         del g["server"]["doc"]["DA"]
-        assert await source_api.back_to_default() == "failed"
+        assert await source_api.back_to_default(False) == "failed"
         assert gsrc.S.doc_id == "DB" and google_auth.owner() == "ines@example.com"
 
     run_meeting(steps)
@@ -537,14 +537,14 @@ def test_only_the_owner_tab_can_answer(g):
 
 
 def test_owner_left_by_button_then_requester_confirms(g):
-    """주인이 🚪 회의 나가기 → 요청 대신 '주인 없음' → 요청한 사람이 확인(force)하면 승인 없이. Ines 문서는 Ines 토큰으로 회의 전으로."""
+    """주인이 🚪 회의 나가기 → 요청 대신 '주인 없음' → 요청한 사람이 확인(force, 되돌리기)하면 승인 없이. Ines 문서는 Ines 토큰으로 회의 전으로."""
     async def steps(room):
         ines, tab = await ines_owns(room, g)
         room.disconnect(tab, left_by_button=True)
         owen = join("Owen", "owen")
         r = await sw(owen, doc="new", title="주간")
         assert r == {"ok": False, "owner_absent": True, "owner": "ines@example.com"} and gsrc.S.doc_id == "DB"
-        r = await sw(owen, doc="new", title="주간", force=True)
+        r = await sw(owen, doc="new", title="주간", force=True, keep=False)
         await outbox.queue.join()
         assert r["ok"] and google_auth.owner() == "owen@example.com"
         return room
@@ -638,3 +638,134 @@ def test_answer_endpoint_needs_join_token():
     c = TestClient(app)
     assert c.post("/api/google/source/answer", json={"token": "fake", "request_id": "x", "approve": True}).status_code == 401
     assert c.post("/api/google/source/answer", json={"token": join("Owen").token, "request_id": "x", "approve": True}).status_code == 403
+
+
+# ================================================================ 옛 문서에 남기기 / 되돌리기 (PR3)
+
+def kept_in_ines_doc(g) -> bool:
+    """ines_owns가 Ines 문서 리스크에 넣은 항목이 Google 문서에 남아 있나."""
+    return any("폰트 라이선스" in t for _, t in doc_view(g["ines"]["doc"]["DB"]))
+
+
+def test_keep_default_is_restore_for_server_doc_and_keep_for_personal_doc(g):
+    async def steps(room):
+        pat = join("Pat", "pat")
+        assert (await cur(pat))["keep_default"] is False  # 기본 WBS (서버 계정) = 되돌리기
+        await ines_owns(room, g)
+        assert (await cur(pat))["keep_default"] is True   # 각자 문서 = 남기기
+
+    run_meeting(steps)
+
+
+def test_owner_approves_with_keep_and_old_doc_keeps_meeting_result(g):
+    """Owen이 '되돌리기'를 골라 요청해도 남길지는 주인이 정한다 → Ines가 남기기로 승인 → Ines 문서에 회의 결과가 그대로."""
+    async def steps(room):
+        ines, _ = await ines_owns(room, g)
+        req = await sw(join("Owen", "owen"), doc="new", title="주간", keep=False)
+        r = await ans(ines, req["request_id"], True, keep=True)
+        await outbox.queue.join()
+        assert r["status"] == "approved" and google_auth.owner() == "owen@example.com"
+        return room
+
+    room = run_meeting(steps)
+    assert kept_in_ines_doc(g)
+    assert not no_sync_failed(room)
+
+
+def test_owner_approves_without_choice_keeps_by_default(g):
+    async def steps(room):
+        ines, _ = await ines_owns(room, g)
+        req = await sw(join("Owen", "owen"), doc="new", title="주간")
+        await ans(ines, req["request_id"], True)
+        await outbox.queue.join()
+        return room
+
+    room = run_meeting(steps)
+    assert kept_in_ines_doc(g)
+    assert not no_sync_failed(room)
+
+
+def test_owner_absent_force_keeps_by_default(g):
+    """주인이 없을 때 요청한 사람이 안 고르면 남기기 (남의 문서를 마음대로 되돌리지 않게)."""
+    async def steps(room):
+        _, tab = await ines_owns(room, g)
+        room.disconnect(tab, left_by_button=True)
+        r = await sw(join("Owen", "owen"), doc="new", title="주간", force=True)
+        await outbox.queue.join()
+        assert r["ok"]
+        return room
+
+    room = run_meeting(steps)
+    assert kept_in_ines_doc(g)
+    assert not no_sync_failed(room)
+
+
+def test_switch_from_server_doc_with_keep_leaves_value_and_clears_highlight(g):
+    """기본 WBS에서 남기기를 고르면 바뀐 칸 값은 남고 하이라이트만 지워진다."""
+    async def steps(room):
+        await room.changes.propose([{"op": "set_cell", "doc": "board", "row": "r_g3", "column": "기간(일)", "value": "4"}], "Pat", "u1")
+        await outbox.queue.join()
+        assert any(c.get("bg") for row in g["server"]["sheet"]["SA"].grid for c in row)
+        await sw(join("Ines", "ines"), doc="DB", keep=True)
+        await outbox.queue.join()
+        return room
+
+    room = run_meeting(steps)
+    sheet = g["server"]["sheet"]["SA"]
+    assert sheet.view() != ORIGINAL_SHEET  # 4가 남음
+    assert not any(c.get("bg") for row in sheet.grid for c in row)
+    assert not no_sync_failed(room)
+
+
+def test_new_meeting_keep_on_same_doc_rereads_it_so_screen_matches_doc(g, default_google):
+    """기본 WBS에서 남기기로 새 회의 → 같은 문서를 다시 읽어 화면 시작점 = 남은 내용.
+    그다음 회의를 되돌리기로 끝내면 두 번째 회의 것만 빠지고 첫 회의 결과는 남는다."""
+    from server import app as app_mod
+
+    async def steps(room):
+        await room.changes.propose([{"op": "insert_item", "doc": "notes", "section": "s_risk", "text": "환불 지연"}], "Pat", "u1")
+        await outbox.queue.join()
+        assert await source_api.back_to_default(True) == "kept"
+        await outbox.queue.join()
+        assert len(room.changes.changes) == 0
+        assert "환불 지연" in room.state.docs["notes"].model_dump_json()  # 옛 시작점 사본이면 여기 없다
+        await room.changes.propose([{"op": "insert_item", "doc": "notes", "section": "s_risk", "text": "QA 인력 부족"}], "Pat", "u2")
+        await outbox.queue.join()
+        assert await source_api.back_to_default() == "already"  # 기본 WBS + 안 고름 = 되돌리기 → 보통 리셋
+        await app_mod.reset()
+        await outbox.queue.join()
+        return room
+
+    room = run_meeting(steps)
+    texts = [t for _, t in doc_view(g["server"]["doc"]["DA"])]
+    assert any("환불 지연" in t for t in texts) and not any("QA 인력 부족" in t for t in texts)
+    assert not no_sync_failed(room)
+
+
+def test_new_meeting_keep_on_personal_doc_then_default(g, default_google):
+    """Ines 문서로 회의 → 새 회의(안 고름 = 남기기) → Ines 문서에 결과가 남고 회의는 기본 WBS로."""
+    async def steps(room):
+        await ines_owns(room, g)
+        assert await source_api.back_to_default() == "switched"
+        await outbox.queue.join()
+        assert (gsrc.S.sheet_id, gsrc.S.doc_id) == ("SA", "DA") and google_auth.owner() is None
+        return room
+
+    room = run_meeting(steps)
+    assert kept_in_ines_doc(g)
+    assert not no_sync_failed(room)
+
+
+def test_new_meeting_keep_when_default_cannot_open_rereads_current(g, default_google):
+    async def steps(room):
+        await ines_owns(room, g)
+        del g["server"]["doc"]["DA"]
+        assert await source_api.back_to_default() == "failed_kept"
+        await outbox.queue.join()
+        assert gsrc.S.doc_id == "DB" and google_auth.owner() == "ines@example.com"
+        assert "폰트 라이선스" in room.state.docs["notes"].model_dump_json()
+        return room
+
+    room = run_meeting(steps)
+    assert kept_in_ines_doc(g)
+    assert not no_sync_failed(room)

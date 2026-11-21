@@ -1,16 +1,23 @@
 # Note — 태우 (Mal-Mi-Jal) · 서버·UI 메인
 
-> 마지막 업데이트: 2026-11-21 15:30
-> 한 줄 상태: ⚪ 대기 — PR #59(바꾸기 요청 → 주인 승인) gitgutgit 확인 대기. 머지되면 배포 확인 → 다음은 옛 문서 남기기/되돌리기 선택
+> 마지막 업데이트: 2026-11-22
+> 한 줄 상태: 🟡 진행 — PR #59 머지됨 (11-21 12:42 UTC, `70e7bc8`). 배포 확인 OK → Google 앱 게시에 개인정보처리방침 페이지 필요 → privacy #60·MIT #62 머지 · PR3 남기기/되돌리기 브라우저 확인 OK → PR 올림
 > 실행: `uv run python -m server.sync.google_auth` · `uv run uvicorn server.app:app --reload --port 8000` · 모드: MOCK
 
 ## 현재 목표
 
-- PR #59 (바꾸기 요청 → 주인 승인) gitgutgit 확인 대기. #41(TEAM 공지)과 이 note 파일만 겹침 → 나중에 머지되는 쪽이 `git merge origin/main` 후 note 충돌만 풀기
+- PR #59 머지됨 (11-21 12:42 UTC, merge `70e7bc8`). 로컬 main 받음. #41(TEAM 공지)이 머지될 땐 note 충돌만 풀기
+- 배포 확인 (Mal-Mi-Jal, 11-21 밤): '잘 되는 것 같다'. ①②③ 하나하나 봤는지는 따로 안 적음
+- 나중 후보 (Mal-Mi-Jal 질문 11-21): 같은 입장 이름 두 사람 막기 — 입장 토큰 = HMAC(이름)뿐(`server/auth/challenge.py:104`)이라 같은 이름이면 서버가 못 가름. 안: /join 때 이미 접속한 이름이면 거절, 또는 토큰에 무작위 값 넣기. 같은 Google 계정 두 탭은 지금도 gsid가 따로라 주인은 고른 탭 하나 → 막지 않음(노트북+폰 같은 사람)
 - **▶ #59 머지되면 (배포에서):** ① 탭 2개로 요청 → 주인 카드 → 승인·거절·30초 자동 거절 ② 주인 탭에서 🚪 회의 나가기 → 요청한 탭에 '주인이 회의에 없어요' 확인창 → 예 → 바뀜, 주인 문서는 회의 전으로 (브라우저에서 아직 안 본 것) ③ #58 때 안 본 것: 다른 문서로 바꾼 뒤 새 회의 → 그 문서가 회의 전으로 돌아갔는지
+- **▶ #59 배포 확인 뒤: Google 앱 '테스트 → 프로덕션' 게시 (gitgutgit 동의 11-21).** 지금은 테스트 사용자로 등록한 Gmail만 로그인 가능 → 게시하면 누구나 Google 로그인 후 자기 Docs/Sheets를 Picker로 고를 수 있음. 코드 수정 없음 (콘솔 설정만)
+  - 왜 #59 뒤: 지금 배포본은 로그인만 하면 주인 허락 없이 문서를 바로 바꿈 → 승인 규칙을 먼저 넣고 문을 연다. **단 11-24~25까지 #59가 안 머지되면 먼저 게시** (서버 토큰 ~11-26 만료가 더 급함)
+  - 순서: ① `git switch main` → `git pull` ② 배포 확인 (위 ①②③) ③ GCP 콘솔 → Google 인증 플랫폼 → 대상 → '앱 게시' ④ 등록 안 된 Gmail로 로그인 → Picker로 그 계정 문서 고르기 → 원본으로 열리는지 (#57 때 보류한 '다른 Gmail 확인'도 이걸로) ⑤ 서버 계정 `uv run python -m server.sync.google_auth --relogin` → Railway `GOOGLE_TOKEN_B64` 갱신 (테스트 모드 때 받은 토큰은 7일 만료가 남아 있을 수 있음)
+  - 각자 로그인 권한 = `drive.file` + `openid` + email (`server/sync/user_auth.py:26-27`, 민감하지 않은 범위) → Google 심사 없이 게시될 가능성이 높음. '확인되지 않은 앱' 경고가 뜨는지 ④에서 직접 볼 것. 게시할 때 홈페이지·개인정보처리방침 링크를 물어볼 수 있음
+  - 서버 계정(`token.json`)은 `spreadsheets`·`documents`(민감 범위)지만 서버 계정 하나만 로그인하므로 심사 없이도 씀
 - **▶ 그다음 작업 (PR3 후보): 바꿀 때 옛 문서 '남기기 / 되돌리기' 선택.** 지금은 바꾸면 옛 문서가 무조건 회의 전으로 되돌아감 (`_reset_onto` 2단계 `outbox.enqueue_restore`). Mal-Mi-Jal 질문(11-21) '기존 회의는 저장이 무조건 안 되는 거야?'에서 나옴
   - 안: 남기기 = 되돌리기를 건너뜀 (`enqueue_restore`를 부를지 말지) / 되돌리기 = 지금 동작
-  - 누가 고르나 (안): 주인 승인 카드에 [승인 · 내 문서에 남기기] [승인 · 되돌리기] [거절]. 주인이 없을 때(🚪)는 요청한 사람이 확인창에서 고르되 기본값 = 남기기 (남의 문서를 마음대로 되돌리지 않게). 내 문서를 내가 바꿀 때도 고르게. 새 회의(끝 화면)는?  → 정할 것
+  - 누가 고르나 (안): 주인 승인 카드에 [승인 · 내 문서에 남기기] [승인 · 되돌리기] [거절]. 주인이 없을 때(🚪)는 요청한 사람이 확인창에서 고르되 기본값 = 남기기 (남의 문서를 마음대로 되돌리지 않게). 내 문서를 내가 바꿀 때도 고르게. **새 회의(끝 화면)도 고르게, 기본값 = 남기기 (Mal-Mi-Jal 결정 11-21)**. 단 기본 WBS 문서(서버 계정, 팀 시연 문서)는 기본값 = 되돌리기 (Mal-Mi-Jal 결정 11-21, 시연 문서가 회의마다 쌓이지 않게)
   - 엄지 승인은 `server/gestures/` = 77SONNY77 파트라 따로. 버튼만으로 먼저 할 수 있음
   - 시작 전에 `before-you-build`. 지켜볼 점: 남기기면 회의 중 추가한 섹션(결정·액션)도 그대로 남음, 다음 회의에서 그 문서를 다시 고르면 남은 내용이 새 회의 기준(baseline)이 됨
 - PR #58 머지됨 (11-21 04:56 UTC, `c321017`). 배포 확인 (Mal-Mi-Jal, 11-21): 회의 끝 → 🆕 새 회의 → 다른 사람 화면도 같이 넘어감, 새 회의에 WBS 기본 문서 뜸. **안 본 것:** 다른 문서로 바꾼 뒤 새 회의 → 그 문서가 회의 전으로 돌아갔는지
@@ -36,6 +43,25 @@
 | 말 → Google Sheet                   | p50 440ms / p95 518ms (n=2)                                                                                      | —                         | 11-09 11:31 · MOCK, 팀 공용 Sheet                              | 같은 파일                                                      |
 
 ## 진행 중
+
+- [ ] (Google 앱 게시에 필요) 개인정보처리방침 페이지 `web/public/privacy.html` (시작: 11-21 밤, 브랜치 Mal-Mi-Jal/privacy-page, 작업 폴더 `D:\Claude\LostAI-privacy` = git worktree, 커밋 `ebc1d47`, PR gitgutgit/LostAI#60 OPEN 11-21)
+  - 왜: GCP 앱 게시에 앱 이름·지원 이메일·홈페이지 URL·개인정보처리방침 URL이 필요. 같은 Railway 도메인에 두면 승인된 도메인 하나로 끝
+  - 초안 작성 끝 (코드로 확인한 사실만: 카메라·음성 서버로 안 감, 토큰 메모리에만, 회의 기록 `results/events_*.jsonl` 보관 기간 없음 + 요청 시 삭제, `drive.file`+이메일+OpenID, LIVE면 Anthropic에 발화·이름·문서 일부, Linear는 연결된 경우만, 문의 = GitHub 이슈, Limited Use 문장, 영어 요약)
+  - [x] gitgutgit 문구 확인: 그대로 OK ('보관 기간 없음 + 요청 시 삭제' 포함) → 커밋 → push → PR #60 (리뷰어 gitgutgit)
+  - [ ] **지금: PR #60 머지 대기**
+  - [ ] 머지·배포 뒤 GCP: 홈페이지 `https://lostai-production.up.railway.app/`, 개인정보처리방침 `…/privacy.html`, 승인된 도메인 `lostai-production.up.railway.app` → '대상' → 앱 게시 → 등록 안 된 Gmail로 로그인 확인 → 서버 계정 `--relogin` + Railway `GOOGLE_TOKEN_B64` 갱신 (11-26 전)
+  - 순서: 이 PR이 PR3(keep-or-restore)보다 급함 (서버 토큰 만료) → 먼저 머지되게
+
+- [ ] (P1, Mal-Mi-Jal 요청) PR3 옛 문서 '남기기 / 되돌리기' 선택 (시작: 11-21 밤, 브랜치 Mal-Mi-Jal/keep-or-restore)
+  - 의도와 검증: 문서를 바꾸거나 새 회의를 열어도 주인이 원하면 회의 결과가 Google 문서에 남게. 기준선 = 무조건 회의 전으로 되돌림, 시험 127 통과 + SIGALRM 19. 문턱 = 남기기·되돌리기·같은 문서 다시 읽기·주인 선택·주인 없음 기본값 시험 전부 + 기존 시험 통과, 일부러 넣은 버그를 잡음, 실제 내 문서로 남기기 → Google에서 확인 → 같은 문서 다시 골라 화면 확인
+  - 결정(Mal-Mi-Jal 11-21): 주인 승인 = 주인 카드 [승인·되돌리기][승인·남기기][거절] / 그 밖(내 문서·기본 WBS·주인 없음·새 회의) = 바꾸는 사람이 고름 / 기본값: 기본 WBS = 되돌리기, 각자 문서 = 남기기 / 서버 꺼짐·/api/reset = 되돌리기 그대로
+  - [x] 서버: `source_api` `keep_default()`, `SwitchReq.keep`, `AnswerReq.keep`(주인 값이 요청한 사람 값을 덮음), `_reset_onto(keep)` = 되돌리기 건너뛰고 정리(하이라이트·빈 섹션)만, `back_to_default(keep)` 새 결과 `kept`(같은 문서 다시 읽어 새 회의)·`failed_kept`, `GET source`에 `keep_default`. `app.py` `/api/meeting/new {keep}`
+  - 찾은 함정: 화면 시작점은 처음 읽을 때 찍어 둔 사본(`baseline_copy`) → 같은 문서에 남기고 새 회의를 열면 화면과 문서가 어긋남 → 남기기면 그 문서를 다시 읽음 (`_reset_onto`를 같은 문서로)
+  - [x] 화면: `DocPicker.tsx` 바꾸기 창에 남기기/되돌리기(`KeepChoice`, 기본값 = 서버), 주인 카드 버튼 3개, 주인 없음 확인창 문구. 새 파일 `NewMeetingDialog.tsx` (끝 화면 확인창, confirm 대신), `LiveWallView.tsx`는 몇 줄만
+  - [x] 시험: 기존 5개는 바뀐 기본값에 걸림 → 목적(되돌리기 경로)대로 keep=False 명시. 새 시험 8개 → 전체 135 통과 + SIGALRM 19(기준선 같음). 일부러 넣은 버그 3개(같은 문서 남기기인데 다시 안 읽음 → 1개 실패 / 주인 선택 무시 → 2개 / 남기기 무시 → 7개) 다 잡음. tsc·`npm run build` 통과
+  - [x] 실제 확인 11-22 (Mal-Mi-Jal 브라우저, MOCK, localhost, SEED=sprint): A 내 문서 남기기 + B 주인 카드 버튼 3개 → '둘 다 되는 것 같다'. 못 본 것: 기본 WBS = 되돌리기 기본값(로컬엔 WBS 없음, 시험으로만) → 머지 뒤 Railway에서. 원래 항목: 내 문서에서 남기기로 바꾸기 → Google에서 결과 남았나 → 같은 문서 다시 골라 화면에 그 내용 / 주인 카드 버튼 3개 / 끝 화면 새 회의 확인창 기본값(WBS = 되돌리기)
+  - [x] 커밋·PR (`.env.example` 안내 문구는 루트 파일이라 뺌)
+  - 지켜볼 점: 남기면 다음 회의 시작점 = 남은 내용. 되돌리기는 그 회의 변경만 역순으로 빼므로 이전 회의 결과는 남음 (시험으로 확인)
 
 - [ ] (P1, Mal-Mi-Jal 요청) PR2 문서 바꾸기 요청 → 주인 승인 — **PR #59 올림 (11-21 15:20), gitgutgit 확인 대기** (시작: 11-21 오후, 브랜치 Mal-Mi-Jal/switch-approval, 커밋 `e64b663`)
   - 의도와 검증: 문서 주인이 모르는 사이에 회의 문서가 바뀌지 않게. 기준선 = 로그인한 누구나 즉시 바꿈, 주인 확인 0번. 문턱 = 가짜 Google 시험(승인·거절·30초 자동 거절·🚪 나감 → 확인 뒤 바꿈·요청 하나만·주인 아닌 사람/같은 이름 403) 전부 + 기존 시험 통과, 일부러 넣은 버그를 시험이 잡음, 실제 화면 탭 2개 확인
@@ -139,11 +165,15 @@
 
 ## 할 일
 
-- [ ] 서버 Google 토큰(테스트 모드) 약 7일마다 만료 → 당분간 Mal-Mi-Jal이 매주 `--relogin` 후 Railway `GOOGLE_TOKEN_B64` 갱신 (다음: 11-26 전). 프로덕션 전환은 gitgutgit에게 물어보고 결정
+- [ ] (PR3 머지 뒤, Mal-Mi-Jal 요청 11-22) 모두 나가면 기본 문서로 자동 새 회의. 결정: 짧은 유예(약 5초, 새로고침에 초기화 안 되게 — 11-22 바꿈), 남기기/되돌리기는 PR3 기본값(기본 WBS = 되돌리기, 각자 문서 = 남기기). 길목 = `room.disconnect`가 True이고 남은 접속 0 → `new_meeting`과 같은 `back_to_default(None)`. 확인할 것: 혼자 새로고침해도 초기화되는지(접속이 잠깐 0이 됨), 주인 Google 토큰이 나간 뒤에도 메모리에 남아 '남기기'가 되는지, 데모 재생 중이면 멈추는지
+- 11-22: Railway `ANTHROPIC_API_KEY` 새 키로 바꿈 (Mal-Mi-Jal). 한도는 워크스페이스 단위 Spend limit
+- [x] 11-21~22: 개인정보처리방침 PR #60, MIT 라이선스 PR #62 머지. Picker 'API developer key is invalid'(시크릿 창·다른 사람) → API 키 웹사이트 제한에 `https://docs.google.com/*` 추가 중 (Picker iframe이 docs.google.com에서 뜸) — 시크릿 창 재확인 대기
+
+- [ ] 서버 Google 토큰(테스트 모드) 약 7일마다 만료 → 당분간 Mal-Mi-Jal이 매주 `--relogin` 후 Railway `GOOGLE_TOKEN_B64` 갱신 (다음: 11-26 전). 프로덕션 전환 = gitgutgit 동의 (11-21) → '현재 목표'의 #59 뒤 게시 순서대로. 게시하면 7일 만료 없어짐
 - 보류 (11-21, Mal-Mi-Jal 결정): 다른 Gmail 실제 확인, TEAM.md 공지 한 줄
 - [ ] (PR #57 머지 뒤) Railway 변수 4개: `GOOGLE_OAUTH_CLIENT_JSON`(콘솔 JSON 내용) 또는 `GOOGLE_OAUTH_CLIENT_ID`+`GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_PICKER_API_KEY`, `GOOGLE_PROJECT_NUMBER`
 - [ ] (PR #57 머지 뒤) GCP: 웹 OAuth 클라이언트 'JavaScript 원본' + API 키 'HTTP 리퍼러'에 Railway 도메인 추가 (cloudflared 터널로 시연하면 그 주소도. quick tunnel은 주소가 매번 바뀜 → 시연 전 추가)
-- [ ] GCP OAuth 동의 화면 '테스트 사용자'에 팀원 Gmail 3명 추가 (안 하면 그 사람은 `access_denied`)
+- [ ] GCP OAuth 동의 화면 '테스트 사용자'에 팀원 Gmail 3명 추가 (안 하면 그 사람은 `access_denied`) → 프로덕션 게시하면 필요 없음
 - [ ] 웹 클라이언트 JSON을 다운로드 폴더 → 레포 밖 고정 위치로 옮기고 `.env` `GOOGLE_OAUTH_CLIENT_FILE` 경로 수정 (지금은 `~/Downloads`)
 - [ ] (P1) PR2 바꾸기 요청 → 주인 승인 (버튼). PR3 엄지 승인 + 저장/저장 안 함 (`server/gestures/fastpath.py` = 한서 승인, `server/events.py` 새 이벤트 = 팀장 승인)
 - [ ] (P0) 회의방+WS / Op 엔진 / 리플레이 — 실제 흐름에서 점검

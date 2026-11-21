@@ -291,6 +291,7 @@ async def reset(body: ResetBody | None = None):
 
 class NewMeetingBody(BaseModel):
     token: str
+    keep: bool | None = None  # 지금 문서에 회의 결과를 남기나 (None = 기본값: 기본 WBS면 되돌리기, 각자 문서면 남기기)
 
 
 @app.post("/api/meeting/new")
@@ -306,11 +307,11 @@ async def new_meeting(body: NewMeetingBody):
     if source_api.switching():
         raise HTTPException(409, "다른 사람이 문서를 바꾸는 중이에요.")
     await demo.stop()
-    how = await source_api.back_to_default()
-    if how != "switched":
-        await reset()
+    how = await source_api.back_to_default(body.keep)
+    if how in ("already", "none", "failed"):
+        await reset()  # 되돌리기 리셋 (남기기 경로는 back_to_default가 새 회의까지 끝냈다)
     return {"ok": True, "source": "default" if how in ("switched", "already") else "current",
-            **({"notice": "기본 문서를 열지 못해 지금 문서로 새 회의를 시작했어요."} if how == "failed" else {})}
+            **({"notice": "기본 문서를 열지 못해 지금 문서로 새 회의를 시작했어요."} if how.startswith("failed") else {})}
 
 
 @app.get("/api/demo")

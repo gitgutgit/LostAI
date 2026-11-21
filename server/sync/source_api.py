@@ -5,8 +5,8 @@
     POST /api/google/logout  {token, gsid}
     GET  /api/google/access?token=&gsid=              Picker용 내 access token (그 탭에만)
     GET  /api/google/source?token=&gsid=              지금 회의 원본 (id·제목·주인)
-    POST /api/google/source  {token, gsid, sheet, doc, title, force} sheet·doc: 파일 id | "new" | null
-    POST /api/google/source/answer {token, gsid, request_id, approve}  문서 주인이 바꾸기 요청에 답함
+    POST /api/google/source  {token, gsid, sheet, doc, title, force, keep} sheet·doc: 파일 id | "new" | null
+    POST /api/google/source/answer {token, gsid, request_id, approve, keep}  문서 주인이 바꾸기 요청에 답함
     (새 회의 = back_to_default, 엔드포인트는 app.py POST /api/meeting/new)
 
 gsid = Google 로그인 때 서버가 만든 무작위 열쇠 (user_auth). 입장 토큰은 이름만으로 만들어져 같은 이름이면 같으므로,
@@ -32,6 +32,12 @@ null(안 고른 쪽): 내가 지금 주인이면 그대로, 아니면 내 Drive�
   - 파일 확인·새 문서 만들기는 승인된 뒤에 한다 (거절되면 요청한 사람 Drive에 빈 문서가 안 남게).
   - 새 회의(back_to_default)는 승인 없이 (회의가 이미 끝난 뒤라서). 원본이 바뀌면 걸려 있던 요청은 취소된다.
   - 요청·승인은 이벤트 로그에 안 남긴다 (계약 안 바꿈, 기록 = 서버 로그 한 줄).
+옛 문서에 회의 결과를 남기나 (keep, PR3, Mal-Mi-Jal 11-21):
+  - 남기기 = 2단계의 역순 되돌리기를 건너뛰고 하이라이트·빈 섹션 정리만 한다. 되돌리기 = 위 2단계 그대로.
+  - 고르는 사람: 주인 승인이면 주인(승인 카드), 그 밖(내 문서·기본 WBS·주인 없음·새 회의)은 바꾸는 사람.
+  - 안 고르면(None) 기본값: 서버 계정 문서(기본 WBS, 팀 시연 문서) = 되돌리기, 각자 문서 = 남기기 (남의 문서를 마음대로 안 되돌린다).
+  - 같은 문서로 새 회의를 열 때 남기면 문서를 다시 읽어 그 내용을 새 회의 시작점으로 (옛 시작점 사본을 쓰면 화면과 문서가 어긋난다).
+  - 서버 꺼짐·/api/reset(테스트 대본)은 지금처럼 되돌리기.
 개인 토큰은 메모리에만 있어서 서버를 다시 켜면 .env의 기본 원본(서버 계정)으로 시작한다 → 고른 기록은 지운다.
 """
 from __future__ import annotations
@@ -150,7 +156,7 @@ async def current(token: str, gsid: str = ""):
     if not S.active:
         return {"active": False}
     b = S.baseline
-    out = {"active": True, "busy": _switch_lock.locked(),
+    out = {"active": True, "busy": _switch_lock.locked(), "keep_default": keep_default(),
            "owner": google_auth.owner(), "mine": bool(gsid) and gsid == _owner_gsid,
            "sheet": {"id": S.sheet_id, "title": b.docs["board"].title if b else None},
            "doc": {"id": S.doc_id, "title": b.docs["notes"].title if b else None}}
@@ -172,6 +178,7 @@ class SwitchReq(BaseModel):
     sheet_name: str = ""       # 주인 승인 카드에 보일 이름 (Picker가 준 파일 이름)
     doc_name: str = ""
     force: bool = False        # '주인이 회의에 없어요' 안내를 보고 승인 없이 바꾸기
+    keep: bool | None = None   # 지금 문서에 회의 결과를 남기나 (None = 기본값, keep_default). 주인 승인이면 주인 답이 정한다
 
 
 @router.post("/api/google/source")
@@ -226,21 +233,27 @@ async def _switch(req: SwitchReq, who: str) -> dict:
         raise _google_error(e)
 
     room = get_room()
-    st = await _reset_onto(room, sid, did, sess.creds, sess.email, req.gsid, who)
+    st = await _reset_onto(room, sid, did, sess.creds, sess.email, req.gsid, who, keep=_keep(req.keep))
     log.info("회의 원본을 바꿈 (%s, 자기 Google 계정): 시트 %d행, 문서 섹션 %d개", who, len(st["board"].rows), len(st["notes"].sections))
     return {"ok": True, "sheet": {"id": sid, "title": st["board"].title}, "doc": {"id": did, "title": st["notes"].title}}
 
 
-async def _reset_onto(room, sid: str, did: str, creds, label: str | None, gsid: str | None, name: str | None):
+async def _reset_onto(room, sid: str, did: str, creds, label: str | None, gsid: str | None, name: str | None,
+                     keep: bool = False):
     """바꾸는 순서 2~4: 리셋 + 지금 원본을 지금 주인 토큰으로 복원 → 주인을 creds로 바꾸고 (sid, did) commit → 새 회의.
-    creds=None이면 서버 계정(.env 기본 원본). 구조 확인(1)은 부르는 쪽이 끝낸 다음. _switch_lock 안에서만 부른다."""
+    creds=None이면 서버 계정(.env 기본 원본). 구조 확인(1)은 부르는 쪽이 끝낸 다음. _switch_lock 안에서만 부른다.
+    keep=True면 지금 원본은 되돌리지 않고 정리(하이라이트·빈 섹션)만. (sid, did)가 지금 원본과 같아도 다시 읽으므로
+    남긴 내용이 새 회의 시작점이 된다."""
     from server.common.warmup import schedule_warmup
 
     global _owner_gsid, _owner_name
     # 2. 리셋 + 지금 원본 복원 (줄 맨 뒤에 서므로 앞서 들어온 변경이 다 쓰인 다음)
     old_changes = await room.reset()
     if google_source.active():
-        outbox.enqueue_restore(room, [c.model_dump() for c in old_changes if c.status in ("applied", "approved")])
+        done = [c.model_dump() for c in old_changes if c.status in ("applied", "approved")]
+        outbox.enqueue_restore(room, [] if keep else done)  # 남기기 = 되돌리기 없이 정리만 (같은 줄, 같은 주인 토큰)
+        if keep and done:
+            log.info("옛 원본에 회의 중 변경 %d개를 남김", len(done))
     outbox.hold = True
     try:
         # 3. 복원이 끝난 원본을 다시 읽어 commit
@@ -313,6 +326,15 @@ def _needs_approval(gsid: str) -> bool:
     return google_source.active() and _owner_gsid is not None and gsid != _owner_gsid
 
 
+def keep_default() -> bool:
+    """안 고를 때 지금 문서에 회의 결과를 남기나: 서버 계정 문서(기본 WBS) = 되돌리기, 각자 문서 = 남기기."""
+    return google_source.active() and _owner_gsid is not None
+
+
+def _keep(keep: bool | None) -> bool:
+    return keep_default() if keep is None else keep
+
+
 def _owner_absent() -> bool:
     """주인이 회의에 없나: 🚪 회의 나가기, 또는 그 이름의 탭이 ABSENT_SEC 넘게 하나도 안 붙어 있음.
     한계: 같은 이름의 다른 사람이 붙어 있으면 '있음'으로 본다 (입장 토큰이 이름만으로 만들어짐)."""
@@ -356,6 +378,7 @@ class AnswerReq(BaseModel):
     gsid: str = ""
     request_id: str
     approve: bool
+    keep: bool | None = None  # 승인할 때 내 문서에 회의 결과를 남기나 (None = 남기기, 각자 문서 기본값)
 
 
 @router.post("/api/google/source/answer")
@@ -374,6 +397,7 @@ async def answer(req: AnswerReq):
     if _switch_lock.locked():
         raise HTTPException(409, "다른 사람이 문서를 바꾸는 중이에요.")
     r.status = "running"
+    r.req = r.req.model_copy(update={"keep": req.keep})  # 주인 문서에 남길지는 주인이 정한다 (요청한 사람 값은 안 씀)
     try:
         async with _switch_lock:
             res = await _switch(r.req, r.by)
@@ -404,23 +428,40 @@ def _default_ids() -> tuple[str, str] | None:
     return google_auth.parse_id(sid), google_auth.parse_id(did)
 
 
-async def back_to_default() -> str:
+async def back_to_default(keep: bool | None = None) -> str:
     """회의 끝 화면의 '새 회의': .env 기본 원본(서버 계정)으로 바꾸며 새 회의를 연다.
 
-    돌려주는 값: "switched" 기본 원본으로 바꿔서 새 회의 / "already" 이미 기본 원본 → 부르는 쪽이 보통 리셋 /
-    "none" 기본 원본이 없음(SEED=sprint) → 보통 리셋 / "failed" 기본 원본을 못 엶(토큰 만료 등) → 보통 리셋, 회의는 지금 문서로.
+    keep: 지금 문서에 회의 결과를 남기나 (None = keep_default: 기본 WBS면 되돌리기, 각자 문서면 남기기).
+    돌려주는 값: "switched" 기본 원본으로 바꿔서 새 회의 / "kept" 지금 문서에 남기고 그 문서를 다시 읽어 새 회의 /
+    "already" 이미 기본 원본 → 부르는 쪽이 보통 리셋 / "none" 원본 모드가 아님 → 보통 리셋 /
+    "failed" 기본 원본을 못 엶(토큰 만료 등) → 부르는 쪽이 보통 리셋, 회의는 지금 문서로 /
+    "failed_kept" 기본 원본을 못 열어 지금 문서에 남기고 그 문서로 새 회의까지 끝냄.
+    "switched"·"kept"·"failed_kept"는 새 회의까지 끝난 것 (부르는 쪽은 리셋하지 않는다).
     """
     from server.room import get_room
 
+    keep = _keep(keep)
     ids = _default_ids()
-    if ids is None:
+    if ids is None and not (keep and google_source.active()):
         return "none"
     if _switch_lock.locked():
         raise HTTPException(409, "다른 사람이 문서를 바꾸는 중이에요.")
     async with _switch_lock:
         S = google_source.S
+
+        async def keep_here() -> None:
+            """지금 문서에 남기고, 그 문서를 지금 주인 토큰으로 다시 읽어 새 회의 (주인은 그대로)."""
+            await _reset_onto(get_room(), S.sheet_id, S.doc_id, google_auth._owner, google_auth._owner_label,
+                              _owner_gsid, _owner_name, keep=True)
+
+        if ids is None:
+            await keep_here()
+            return "kept"
         sid, did = ids
         if S.active and _owner_gsid is None and google_auth.owner() is None and (S.sheet_id, S.doc_id) == ids:
+            if keep:
+                await keep_here()
+                return "kept"
             return "already"
 
         def prepare() -> None:  # 1. 서버 계정으로 기본 원본 구조 확인 (회의와 지금 주인은 그대로)
@@ -430,11 +471,18 @@ async def back_to_default() -> str:
             await outbox.run_exclusive(prepare)
         except Exception as e:
             log.warning("새 회의: 기본 원본을 못 열어 지금 문서로 시작: %s", str(e)[:200])
+            if keep and google_source.active():
+                await keep_here()
+                return "failed_kept"
             return "failed"
         try:
-            st = await _reset_onto(get_room(), sid, did, None, None, None, None)
-        except HTTPException as e:  # 드묾: 확인 뒤 기본 원본이 바뀜. 지금 원본은 이미 복원 + 새 회의
+            st = await _reset_onto(get_room(), sid, did, None, None, None, None, keep=keep)
+        except HTTPException as e:  # 드묾: 확인 뒤 기본 원본이 바뀜. 지금 원본은 이미 복원(또는 남김) + 새 회의
             log.warning("새 회의: 기본 원본 commit 실패, 지금 문서로 시작: %s", e.detail)
+            if keep:  # 남긴 문서의 옛 시작점 사본으로 리셋하면 화면과 문서가 어긋난다 → 다시 읽는다
+                await keep_here()
+                return "failed_kept"
             return "failed"
-        log.info("새 회의: 기본 원본으로 (시트 %d행, 문서 섹션 %d개)", len(st["board"].rows), len(st["notes"].sections))
+        log.info("새 회의: 기본 원본으로 (시트 %d행, 문서 섹션 %d개, 옛 문서 %s)",
+                 len(st["board"].rows), len(st["notes"].sections), "남김" if keep else "되돌림")
         return "switched"

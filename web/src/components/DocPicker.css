@@ -41,3 +41,6 @@
 .dp-toast .btn { border: 1px solid var(--line, #e7e5e4); border-radius: 6px; padding: 5px 12px; background: transparent; color: inherit; cursor: pointer; font-size: 13px; }
 .dp-toast .primary { background: var(--accent, #2563eb); color: #fff; border-color: var(--accent, #2563eb); }
 .dp-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.dp-keep { margin: 0; border: 1px solid var(--line, #e7e5e4); border-radius: 8px; padding: 6px 10px; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
+.dp-keep legend { padding: 0 4px; font-size: 12px; color: var(--muted, #78716c); }
+.dp-keep label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
