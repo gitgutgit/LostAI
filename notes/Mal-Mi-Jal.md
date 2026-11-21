@@ -1,23 +1,22 @@
 # Note — 태우 (Mal-Mi-Jal) · 서버·UI 메인
 
-> 마지막 업데이트: 2026-11-21 02:40
-> 한 줄 상태: ⚪ 대기 — 문서 고르기를 각자 Google 로그인으로 바꾼 PR #57 올림 (팀장 확인 대기, 머지 안 함). 다음은 PR2 주인 승인
+> 마지막 업데이트: 2026-11-21 12:30
+> 한 줄 상태: ⚪ 대기 — PR #58(회의 끝 '새 회의 시작' + 새 회의는 WBS 기본 원본으로) gitgutgit 확인 대기. 다음은 PR2 바꾸기 요청 → 주인 승인
 > 실행: `uv run python -m server.sync.google_auth` · `uv run uvicorn server.app:app --reload --port 8000` · 모드: MOCK
 
 ## 현재 목표
 
-- PR #57 팀장(gitgutgit) 확인 대기 — 머지 전에 #41(내 TEAM 공지 PR)을 먼저 머지하면 #57에 `git merge origin/main` 후 이 노트 충돌만 풀면 됨
-- **▶ #57 머지되면 바로 할 일 (Claude가 태우와 같이, 순서대로)**
-  1. Railway가 새 main으로 배포됐는지: 배포 로그 + `GET <Railway 도메인>/api/google/config?token=…` → 아직 `enabled: false`면 정상 (변수 전)
-  2. Railway 변수용 값 준비 (값은 화면·채팅·note에 출력 금지):
-     - `GOOGLE_OAUTH_CLIENT_JSON` = `.env`의 `GOOGLE_OAUTH_CLIENT_FILE` 파일 내용을 **한 줄 JSON**으로 → `results/railway_oauth_client_json.txt`(gitignore)에 써 두고 태우가 열어서 복사. 만든 뒤 `{"web": …}` 형태·client id가 `.env`와 같은지·`GOCSPX-`만 확인해서 '예/아니오'로 보고
-     - `GOOGLE_PICKER_API_KEY`, `GOOGLE_PROJECT_NUMBER` = `.env` 값 그대로 (태우가 `.env`에서 직접 복사)
-  3. 태우: Railway 대시보드 → 서비스 → Variables에 3개 추가 → 재배포. 다 넣은 뒤 `results/railway_oauth_client_json.txt` 삭제
-  4. 태우: GCP 콘솔 → 웹 OAuth 클라이언트 'JavaScript 원본'에 `https://<Railway 도메인>` 추가, API 키 'HTTP 리퍼러'에 `https://<Railway 도메인>/*` 추가 (반영까지 몇 분)
-  5. 태우: OAuth 동의 화면 → 테스트 사용자에 팀원 Gmail 3명 추가
-  6. 확인: `/api/google/config` → `enabled: true`, 배포 화면에서 로그인 → Picker → 바꾸기 (시간 재서 `최근 결과`에, LIVE/MOCK 붙이기) → 원래 문서로 돌아와 백업과 같은지
-  7. `notes/TEAM.md` `공지 · 요청` 맨 아래 한 줄: "문서 바꾸기 = 각자 Google 로그인, 테스트 사용자 등록 필요, 바꾼 사람 Drive 문서로 회의"
-- 다음 작업: PR2 = 문서 바꾸기 요청 → 주인 승인 (버튼 먼저). 시작 전에 `before-you-build`로 의도와 검증 쓰기
+- PR #58 gitgutgit 확인 대기. #41(TEAM 공지)과 이 note 파일만 겹침 → 나중에 머지되는 쪽이 `git merge origin/main` 후 note 충돌만 풀기
+- PR #57 머지 뒤 설정은 끝남 (11-21): Railway 변수 3개 + GCP 도메인 → 배포에서 Mal-Mi-Jal 계정 로그인 OK. Railway `SEED=google` + WBS PoC → `/health` `source: true`
+- **▶ #58 머지되면:** 배포에서 Picker로 다른 문서로 바꾸기 → '회의 종료' 발화 → CLOSED에서 🆕 새 회의 시작 → WBS로 돌아오는지, 바꿨던 문서는 회의 전으로 되돌아갔는지
+- **▶ 다음 작업: PR2 = 문서 바꾸기 요청 → 주인 승인 (버튼).** 시작 전에 `before-you-build`로 의도와 검증 쓰기. Mal-Mi-Jal이 정한 것 (11-21):
+  1. 기본 문서(WBS, 서버 계정 소유)일 때는 주인이 없음 → **처음 바꾸기를 누른 사람이 승인 없이 바로 바꿈** (지금 동작 그대로)
+  2. 그다음부터는 바꾸기 = 요청 → **지금 문서 주인 화면에만** 승인/거절 버튼. **30초 안에 답이 없으면 자동 거절**
+  3. 주인이 회의를 나간 상태면 요청한 사람에게 확인창 한 번 더: "문서 주인이 회의에 없어요. 승인 없이 바꿀까요?" → 예면 승인 없이 바꿈
+  4. 요청은 한 번에 하나만 (걸려 있으면 다른 요청은 막고 안내)
+  5. 승인·거절·자동 거절 결과를 요청한 사람 화면에 알림
+  - 정할 것: 요청·승인을 이벤트 로그에 남길지 (`server/events.py` 새 type = 계약 → gitgutgit 승인) vs HTTP + 그 사람 화면에만 알림 (계약 안 건드림, 리플레이에 안 남음). '주인이 나갔다'의 기준 (참석자 목록에서 빠짐 / WS 연결 끊김 몇 초)
+  - PR3 (나중): 엄지 승인 + 바꿀 때 옛 문서 저장/저장 안 함 (`server/gestures/` = 77SONNY77 파트)
 
 ## 최근 결과
 
@@ -47,7 +46,7 @@
   - [x] 시험 5개 추가 (기본으로 복귀·이미 기본·기본 없음·못 엶·토큰 401) → 전체 115 통과 + SIGALRM 19 오류(기준선 같음). 일부러 '옛 주인 토큰 그대로' 버그 → 1개 실패로 잡음. `npm run build` 통과. 로컬 MOCK sprint: 가짜 토큰 401, 진짜 토큰 200 + 이벤트 2 → 1
   - [x] WBS PoC 확인 (읽기만, 11-21): 로컬 `.env`의 GOOGLE_SHEET_ID/DOC_ID와 같은 문서, 주인 = Mal-Mi-Jal(서버 토큰 계정), 편집 권한 둘 다 True, 원본 형식 OK (시트 22행 × 14열, 문서 섹션 목표·범위·마일스톤·리스크 + 빈 결정 사항·액션)
   - PR 규칙(gitgutgit): 커밋·PR에 본명 대신 GitHub 아이디, 영어 직역 투(무엇 등) 쓰지 않기
-  - [ ] Railway `SEED=google` + `GOOGLE_SHEET_ID`/`GOOGLE_DOC_ID` = WBS PoC → 배포에서 바꾸기 → 새 회의 → 기본으로 돌아오는지
+  - [x] Railway `SEED=google` + WBS PoC ID 넣음 → 배포 `/health` `source: true`, `seed: google` (11-21). 남은 확인: PR #58 머지 뒤 배포에서 바꾸기 → 새 회의 → 기본으로 돌아오는지
   - 주의: 서버 토큰(테스트 모드) ~11-26 만료 → 그 뒤엔 기본 원본 못 열어 sprint/지금 문서로 떨어짐
 
 - [ ] (새 기능, 태우 요청) 문서 고르기를 각자 Google 로그인으로 분리 — PR1 = **#57 올림, 팀장 확인 대기** (시작: 11-21 01:30경, 브랜치 Mal-Mi-Jal/user-google-login, 커밋 `0b5e243`)
@@ -126,6 +125,8 @@
 
 ## 할 일
 
+- [ ] 서버 Google 토큰(테스트 모드) 약 7일마다 만료 → 당분간 Mal-Mi-Jal이 매주 `--relogin` 후 Railway `GOOGLE_TOKEN_B64` 갱신 (다음: 11-26 전). 프로덕션 전환은 gitgutgit에게 물어보고 결정
+- 보류 (11-21, Mal-Mi-Jal 결정): 다른 Gmail 실제 확인, TEAM.md 공지 한 줄
 - [ ] (PR #57 머지 뒤) Railway 변수 4개: `GOOGLE_OAUTH_CLIENT_JSON`(콘솔 JSON 내용) 또는 `GOOGLE_OAUTH_CLIENT_ID`+`GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_PICKER_API_KEY`, `GOOGLE_PROJECT_NUMBER`
 - [ ] (PR #57 머지 뒤) GCP: 웹 OAuth 클라이언트 'JavaScript 원본' + API 키 'HTTP 리퍼러'에 Railway 도메인 추가 (cloudflared 터널로 시연하면 그 주소도. quick tunnel은 주소가 매번 바뀜 → 시연 전 추가)
 - [ ] GCP OAuth 동의 화면 '테스트 사용자'에 팀원 Gmail 3명 추가 (안 하면 그 사람은 `access_denied`)
@@ -137,6 +138,7 @@
 
 - [ ] `.env.example` — 새 변수 4개 안내 (빈 값) → gitgutgit (상태: 요청 전. PR #57에서는 빼고 `server/sync/GOOGLE_SETUP.md` 6-1절에만 적음. 내 로컬 `.env.example`에 안내 문구 써 둔 변경 있음 — 커밋 안 함)
 - [ ] 입장 토큰이 이름만으로 만들어짐 (`server/auth/challenge.py` `make_token`, `/api/join/manual`은 손동작 없이 아무 이름 가능) → 같은 이름이면 같은 토큰 = 같은 사람으로 보임. 문서 고르기는 gsid로 피했지만 다른 기능(표결·승인 등 이름 기준)도 같은 문제 → 팀에 공유할 것 (내 파트라 직접 고칠 수 있지만 영향 범위가 커서 따로)
+- [ ] `/api/reset` 토큰 검사 없음 → 주소만 알면 누구나 회의를 지움 (테스트 대본 드롭다운이 씀). 위 입장 토큰 문제와 같이 팀에 공유할 것 (상태: 보류, Mal-Mi-Jal 기억해 둠)
 - [ ] LIVE 에디터 op 선택 — '불안정한 결제 테스트 티켓 하나 추가해 줘'가 add_row(보드) 대신 create_ticket(Linear)로 감 → 보드에 안 보임. 제목 뽑기는 잘 됨('불안정한 결제 테스트') → 77SONNY77 (상태: PR 설명에 적음)
 - [ ] LIVE 지연 목표 미달 공유: 라우터 1.2초·에디터 2.2초, 첫 호출 콜드 스타트 3.5~8초 → 77SONNY77, gitgutgit (상태: PR 설명에 적음)
 - [x] `server/agent/editor.py` `_mock_edit` — (LIVE에선 제목 잘 뽑힘, MOCK만 해당) MOCK에서 '캐시 티켓 추가해줘'가 add_row 제목에 발화 원문 그대로 들어감 → 77SONNY77 (상태: 요청 전. LIVE 에디터면 제목을 뽑아 줄 것으로 예상, 확인 필요)
