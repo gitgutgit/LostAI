@@ -45,8 +45,9 @@
 | `403: access_denied` (앱이 테스트 중) | 내 Gmail이 테스트 사용자가 아님 | 관리자에게 등록 요청 |
 | `❌ 권한 없음` | 문서가 나에게 공유 안 됨 | 문서 주인에게 편집자 공유 요청 |
 | `❌ 문서를 찾을 수 없음` | ID/URL 오타, 또는 삭제된 문서 | URL 다시 복사 |
-| `API가 꺼져 있음` | GCP 프로젝트에서 Sheets/Docs/Drive API 미사용 | 관리자가 API 사용 설정 (Drive는 문서 고르기 목록용) |
-| 문서 고르기 "목록 권한이 없어요" | 문서 고르기 전에 받은 토큰 (Drive 목록 권한 없음) | `uv run python -m server.sync.google_auth --relogin` |
+| `API가 꺼져 있음` | GCP 프로젝트에서 Sheets/Docs/Picker API 미사용 | 관리자가 API 사용 설정 (Picker는 문서 고르기용, 6-1절) |
+| 문서 고르기 로그인 창이 바로 닫힘 / `idpiframe`·`origin` 오류 | 웹 클라이언트의 JavaScript 원본에 지금 주소가 없음 | 6-1절 1번에 주소 추가 (반영까지 몇 분) |
+| 문서 고르기 `access_denied` | 테스트 사용자에 없는 Gmail | 6-1절 5번 |
 | `invalid_grant` / 토큰 만료 | 테스트 모드 토큰은 약 7일 뒤 만료 | 자동으로 다시 로그인함. 안 되면 `--relogin` |
 | `redirect_uri_mismatch` | 클라이언트 유형이 데스크톱 앱이 아님 | 데스크톱 앱 클라이언트로 다시 발급 |
 
@@ -73,12 +74,38 @@
 - 원본을 못 읽으면 경고 후 `SEED=sprint`(시드 문서)로 연다. 리플레이·테스트는 항상 시드 문서를 쓴다.
 - 만일을 위해 원본은 Google 문서 **버전 기록**으로도 되돌릴 수 있다.
 
-## 6. 문서 고르기 · 새로 만들기 (화면 📂 문서 바꾸기)
+## 6. 문서 고르기 · 새로 만들기 (화면 📂 문서 바꾸기) — 각자 Google 로그인
 
-- 서버 계정의 Drive에서 Sheet(보드)·Doc(노트)을 각각 고르거나 새로 만들어 **회의 원본을 바꾼다**. `.env` 수정·재시작이 필요 없다.
-- 필요한 것: GCP 프로젝트에서 **Google Drive API 사용**, 토큰에 Drive 메타데이터 읽기 권한(`--relogin` 한 번). 이름·종류·수정 시각만 읽는다.
-- 바꾸면 지금 회의 내용은 비워지고 지금 원본은 회의 전 상태로 복원된다 (리셋과 같은 길). 모든 참석자 화면이 같이 바뀐다.
+- 참석자가 **자기 Google 계정으로 로그인**하고 자기 Sheet(보드)·Doc(노트)을 골라 회의 원본을 바꾼다. `.env` 수정·재시작이 필요 없다.
+- 파일 목록은 **Google Picker**가 그 사람 브라우저에서 Google과 직접 주고받는다 → 다른 사람 Drive는 보이지 않고, 우리 서버는 고른 파일 id만 받는다.
+  예전의 서버 계정 Drive 목록(`/api/google/files`)은 서버 계정 문서가 모두에게 보여서 없앴다.
+- 권한은 `drive.file` 하나 (+ 계정 이메일 표시). 이 앱은 **그 사람이 Picker에서 고른 파일과 이 앱이 만든 파일만** 열 수 있다. 문서 id를 직접 넣어도 그 사람 권한 밖이면 400.
+- 원본 Sheet와 Doc은 항상 **한 사람(문서 주인) 것**이다. 회의 중 Google 쓰기는 주인 토큰으로 한다.
+  - 안 고른 쪽: 내가 지금 주인이면 그대로, 아니면 **내 Drive에 새로** 만든다.
+  - 바꾸면 지금 원본은 **지금 주인 토큰으로** 회의 전 상태로 복원된 뒤 새 주인으로 넘어간다 (리셋과 같은 길). 모든 참석자 화면이 같이 바뀐다.
+- Google 로그인은 입장 토큰이 아니라 로그인 때 서버가 만든 **무작위 열쇠(gsid)** 에 묶인다. 그 탭의 sessionStorage에만 있어서,
+  같은 이름으로 들어온 다른 사람(입장 토큰은 이름만으로 만들어져 같다)도 내 Drive를 열 수 없다. 새 탭에서는 다시 로그인한다.
+- 개인 토큰은 **서버 메모리에만** 있다 (디스크·로그에 안 남김). 서버를 다시 켜면 각자 다시 로그인하고, 회의는 `.env`의 기본 원본(서버 계정 `token.json`)으로 시작한다.
 - 표가 있는 Doc, 첫 줄(열 이름)이 비었거나 겹치는 Sheet는 거절한다 (회의는 그대로).
-- 새로 만들기: Sheet `작업·담당·기간(일)·상태·메모`, Doc `제목 + 목표·메모·리스크`. 만든 문서는 서버 계정 Drive에 남는다 (지우기는 Drive에서 직접).
-- 고른 문서는 `results/google_source_choice.json`에 남아 서버를 다시 켜도 그 문서로 시작한다. 지우면 다시 `.env` 문서로.
-- API: `GET /api/google/files`, `GET·POST /api/google/source` (`server/sync/source_api.py`)
+- 새로 만들기: Sheet `작업·담당·기간(일)·상태·메모`, Doc `제목 + 목표·메모·리스크`. 만든 사람 Drive에 남는다 (지우기는 Drive에서 직접).
+- API: `GET /api/google/config`, `POST /api/google/login|logout`, `GET /api/google/access`(Picker용, 내 브라우저에만), `GET·POST /api/google/source` (`server/sync/source_api.py`, `server/sync/user_auth.py`)
+
+### 6-1. 처음 한 번 (GCP 관리자)
+
+1. **API 및 서비스 → 사용자 인증 정보 → OAuth 클라이언트 ID 만들기 → "웹 애플리케이션"** (기존 데스크톱 클라이언트와 별개).
+   승인된 JavaScript 원본: `http://localhost:5173`, `http://localhost:8000`, 배포 주소(예: Railway 도메인). 리디렉션 URI는 필요 없다 (팝업 코드 방식).
+2. **라이브러리 → Google Picker API 사용**. Sheets·Docs API도 켜져 있어야 한다.
+3. **API 키** 만들기 → 애플리케이션 제한 "HTTP 리퍼러"(위 원본 주소들), API 제한 "Google Picker API".
+4. **프로젝트 번호** 확인 (대시보드 → 프로젝트 정보). Picker `setAppId`에 쓴다.
+5. OAuth 동의 화면이 **테스트** 상태면 로그인할 사람 Gmail을 **테스트 사용자**에 추가한다 (테스트 상태 토큰은 약 7일 뒤 만료).
+6. `.env`(배포는 서비스 변수)에 넣는다. **`.env.example`에는 값을 넣지 않는다** (git에 올라간다).
+   ```
+   GOOGLE_OAUTH_CLIENT_FILE=~/Downloads/client_secret_....json   # 콘솔에서 받은 JSON 파일 경로 (레포 밖 권장)
+   # 또는 GOOGLE_OAUTH_CLIENT_JSON={...그 파일 내용...}           # 배포(Railway): 파일을 못 올리니 내용을 변수로
+   # 또는 GOOGLE_OAUTH_CLIENT_ID=...apps.googleusercontent.com + GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-...
+   GOOGLE_OAUTH_CLIENT_ID=...apps.googleusercontent.com           # 파일을 쓰면 없어도 된다
+   GOOGLE_PICKER_API_KEY=AIza...
+   GOOGLE_PROJECT_NUMBER=123456789012
+   ```
+   secret은 `GOCSPX-`로 시작한다. 파일 이름을 SECRET 칸에 넣으면 로그인 때 `invalid_client`가 난다 (파일 경로는 FILE 칸에).
+   넷 중 하나라도 비면 문서 고르기 창에 "아직 설정되지 않았어요"가 뜨고 바꾸기는 막힌다 (409). 서버 계정 원본으로 하는 회의는 그대로 된다.
