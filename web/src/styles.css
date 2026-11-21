@@ -59,6 +59,10 @@ a.btn:hover { border-color: var(--accent); } .btn.off { opacity: .45; cursor: de
   background: rgba(0, 0, 0, .55); color: #fff; border: 1px solid rgba(255, 255, 255, .5); border-radius: 8px; }
 #back-normal:hover { background: rgba(0, 0, 0, .75); }
 #back-normal b { display: inline-block; min-width: 1ch; margin-left: 6px; }
+/* 결정 벽: 끝(CLOSED) 화면의 '새 회의' 버튼 (회의 화면으로 버튼 왼쪽) */
+#new-meeting { position: fixed; top: 12px; right: 190px; z-index: 80; padding: 8px 14px; font: 600 15px/1 system-ui, sans-serif;
+  background: #2f6fed; color: #fff; border: 1px solid rgba(255, 255, 255, .6); border-radius: 8px; cursor: pointer; }
+#new-meeting:hover { background: #1f5ad1; } #new-meeting:disabled { opacity: .6; cursor: default; }
 /* 결정 벽: 창 왼쪽 아래 도구 띠 (Google 바로가기 등, 무대 밖 층) */
 #wall-tools { position: fixed; left: 12px; bottom: 12px; z-index: 70; display: flex; gap: 8px; align-items: center;
   padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg);

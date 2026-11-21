@@ -6,6 +6,7 @@
     GET  /api/google/access?token=&gsid=              Picker용 내 access token (그 탭에만)
     GET  /api/google/source?token=&gsid=              지금 회의 원본 (id·제목·주인)
     POST /api/google/source  {token, gsid, sheet, doc, title} sheet·doc: 파일 id | "new" | null
+    (새 회의 = back_to_default, 엔드포인트는 app.py POST /api/meeting/new)
 
 gsid = Google 로그인 때 서버가 만든 무작위 열쇠 (user_auth). 입장 토큰은 이름만으로 만들어져 같은 이름이면 같으므로,
 내 Google 로그인·주인 여부는 입장 토큰이 아니라 gsid로 판단한다.
@@ -160,10 +161,8 @@ async def switch(req: SwitchReq):
 
 
 async def _switch(req: SwitchReq, who: str) -> dict:
-    from server.common.warmup import schedule_warmup
     from server.room import get_room
 
-    global _owner_gsid
     S = google_source.S
     sess = _session(who, req.gsid)
     mine = google_source.active() and req.gsid == _owner_gsid
@@ -190,6 +189,17 @@ async def _switch(req: SwitchReq, who: str) -> dict:
         raise _google_error(e)
 
     room = get_room()
+    st = await _reset_onto(room, sid, did, sess.creds, sess.email, req.gsid)
+    log.info("회의 원본을 바꿈 (%s, 자기 Google 계정): 시트 %d행, 문서 섹션 %d개", who, len(st["board"].rows), len(st["notes"].sections))
+    return {"ok": True, "sheet": {"id": sid, "title": st["board"].title}, "doc": {"id": did, "title": st["notes"].title}}
+
+
+async def _reset_onto(room, sid: str, did: str, creds, label: str | None, gsid: str | None):
+    """바꾸는 순서 2~4: 리셋 + 지금 원본을 지금 주인 토큰으로 복원 → 주인을 creds로 바꾸고 (sid, did) commit → 새 회의.
+    creds=None이면 서버 계정(.env 기본 원본). 구조 확인(1)은 부르는 쪽이 끝낸 다음. _switch_lock 안에서만 부른다."""
+    from server.common.warmup import schedule_warmup
+
+    global _owner_gsid
     # 2. 리셋 + 지금 원본 복원 (줄 맨 뒤에 서므로 앞서 들어온 변경이 다 쓰인 다음)
     old_changes = await room.reset()
     if google_source.active():
@@ -198,7 +208,7 @@ async def _switch(req: SwitchReq, who: str) -> dict:
     try:
         # 3. 복원이 끝난 원본을 다시 읽어 commit
         def load_and_commit() -> None:
-            prev = google_auth.set_owner(sess.creds, sess.email)  # 옛 원본 복원(앞선 줄)은 옛 주인 토큰으로 끝났다
+            prev = google_auth.set_owner(creds, label)  # 옛 원본 복원(앞선 줄)은 옛 주인 토큰으로 끝났다
             try:
                 google_source.commit(google_source.load(sid, did))
             except Exception:
@@ -211,7 +221,7 @@ async def _switch(req: SwitchReq, who: str) -> dict:
             await room.emit("room.reset", "server", {}, {})
             await room.broadcast(room.snapshot())
             raise _google_error(e) if not isinstance(e, google_source.SourceError) else HTTPException(400, str(e))
-        _owner_gsid = req.gsid
+        _owner_gsid = gsid
         room.seed_name = "google"
         os.environ["SEED"] = "google"
         # 4. 새 원본으로 회의 시작
@@ -222,6 +232,56 @@ async def _switch(req: SwitchReq, who: str) -> dict:
     await room.broadcast(room.snapshot())
     outbox.enqueue_full_sync(room)
     schedule_warmup(room.state)
-    st = room.state.docs
-    log.info("회의 원본을 바꿈 (%s, 자기 Google 계정): 시트 %d행, 문서 섹션 %d개", who, len(st["board"].rows), len(st["notes"].sections))
-    return {"ok": True, "sheet": {"id": sid, "title": st["board"].title}, "doc": {"id": did, "title": st["notes"].title}}
+    return room.state.docs
+
+
+# ================================================================ 새 회의 = 기본 원본으로
+
+default_is_google = False  # 서버를 SEED=google로 켰는가 (app.load_google_source가 정함. 시작 때 못 읽어 sprint로 떨어져도 True)
+
+
+def switching() -> bool:
+    return _switch_lock.locked()
+
+
+def _default_ids() -> tuple[str, str] | None:
+    sid, did = os.getenv("GOOGLE_SHEET_ID", "").strip(), os.getenv("GOOGLE_DOC_ID", "").strip()
+    if not (default_is_google and sid and did):
+        return None
+    return google_auth.parse_id(sid), google_auth.parse_id(did)
+
+
+async def back_to_default() -> str:
+    """회의 끝 화면의 '새 회의': .env 기본 원본(서버 계정)으로 바꾸며 새 회의를 연다.
+
+    돌려주는 값: "switched" 기본 원본으로 바꿔서 새 회의 / "already" 이미 기본 원본 → 부르는 쪽이 보통 리셋 /
+    "none" 기본 원본이 없음(SEED=sprint) → 보통 리셋 / "failed" 기본 원본을 못 엶(토큰 만료 등) → 보통 리셋, 회의는 지금 문서로.
+    """
+    from server.room import get_room
+
+    ids = _default_ids()
+    if ids is None:
+        return "none"
+    if _switch_lock.locked():
+        raise HTTPException(409, "다른 사람이 문서를 바꾸는 중이에요.")
+    async with _switch_lock:
+        S = google_source.S
+        sid, did = ids
+        if S.active and _owner_gsid is None and google_auth.owner() is None and (S.sheet_id, S.doc_id) == ids:
+            return "already"
+
+        def prepare() -> None:  # 1. 서버 계정으로 기본 원본 구조 확인 (회의와 지금 주인은 그대로)
+            with google_auth.as_owner(None, None):
+                google_source.load(sid, did)
+        try:
+            await outbox.run_exclusive(prepare)
+        except Exception as e:
+            log.warning("새 회의: 기본 원본을 못 열어 지금 문서로 시작: %s", str(e)[:200])
+            return "failed"
+        try:
+            st = await _reset_onto(get_room(), sid, did, None, None, None)
+        except HTTPException as e:  # 드묾: 확인 뒤 기본 원본이 바뀜. 지금 원본은 이미 복원 + 새 회의
+            log.warning("새 회의: 기본 원본 commit 실패, 지금 문서로 시작: %s", e.detail)
+            return "failed"
+        log.info("새 회의: 기본 원본으로 (시트 %d행, 문서 섹션 %d개)", len(st["board"].rows), len(st["notes"].sections))
+        return "switched"
