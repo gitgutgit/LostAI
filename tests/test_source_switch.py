@@ -769,3 +769,96 @@ def test_new_meeting_keep_when_default_cannot_open_rereads_current(g, default_go
     room = run_meeting(steps)
     assert kept_in_ines_doc(g)
     assert not no_sync_failed(room)
+
+
+# ---- 모두 나가면 새 회의 (server/app.py after_disconnect) ----
+
+@pytest.fixture
+def fast_empty(monkeypatch):
+    from server import app as app_mod
+    monkeypatch.setattr(app_mod, "EMPTY_ROOM_GRACE_SEC", 0.05)
+    app_mod._empty_task = None
+    return app_mod
+
+
+def leave(app_mod, room, tab):
+    """탭 하나가 끊김 (ws_endpoint의 finally와 같은 순서)."""
+    room.disconnect(tab)
+    app_mod.after_disconnect(room)
+
+
+async def settle(app_mod):
+    t = app_mod._empty_task
+    if t is not None:
+        try:
+            await t
+        except asyncio.CancelledError:
+            pass
+    await outbox.queue.join()
+
+
+def has_text(doc, text):
+    return any(text in t for _, t in doc_view(doc))
+
+
+def test_everyone_leaves_goes_back_to_default_and_keeps_my_doc(g, default_google, fast_empty):
+    """Ines가 자기 문서로 회의 → 모두 나감 → 기본 원본으로 새 회의. Ines 문서는 기본값(남기기)대로 결과가 남는다."""
+    ines = join("Ines", "ines")
+
+    async def steps(room):
+        tab = await enter(room, "Ines")
+        await sw(ines, sheet="SB", doc="DB")
+        await outbox.queue.join()
+        await room.changes.propose([{"op": "insert_item", "doc": "notes", "section": "s_risk", "text": "폰트 라이선스"}], "Ines", "u1")
+        await outbox.queue.join()
+        leave(fast_empty, room, tab)
+        await settle(fast_empty)
+        assert (gsrc.S.sheet_id, gsrc.S.doc_id) == ("SA", "DA") and google_auth.owner() is None
+        assert len(room.changes.changes) == 0
+        return room
+
+    room = run_meeting(steps)
+    assert has_text(g["ines"]["doc"]["DB"], "폰트 라이선스")  # 각자 문서 = 남기기
+    assert not no_sync_failed(room)
+
+
+def test_rejoin_within_grace_keeps_meeting(g, default_google, fast_empty):
+    """혼자 새로고침: 옛 탭이 끊기고 유예 시간 안에 새 탭이 붙으면 회의 그대로."""
+    ines = join("Ines", "ines")
+
+    async def steps(room):
+        tab = await enter(room, "Ines")
+        await sw(ines, sheet="SB", doc="DB")
+        await outbox.queue.join()
+        await room.changes.propose([{"op": "insert_item", "doc": "notes", "section": "s_risk", "text": "폰트 라이선스"}], "Ines", "u1")
+        await outbox.queue.join()
+        leave(fast_empty, room, tab)
+        await enter(room, "Ines")  # 새 탭 (connect 전 취소는 ws_endpoint가 함 → 여기선 유예 뒤 확인으로 막히는지 봄)
+        await settle(fast_empty)
+        assert gsrc.S.doc_id == "DB" and len(room.changes.changes) == 1
+
+    run_meeting(steps)
+
+
+def test_one_of_two_leaves_keeps_meeting(g, default_google, fast_empty):
+    async def steps(room):
+        a = await enter(room, "Ines")
+        await enter(room, "Owen")
+        await room.changes.propose([{"op": "add_decision", "text": "다음 주 배포"}], "Owen", "u1")
+        await outbox.queue.join()
+        leave(fast_empty, room, a)
+        assert fast_empty._empty_task is None  # 남은 사람이 있으면 타이머도 안 건다
+        assert len(room.changes.changes) == 1
+
+    run_meeting(steps)
+
+
+def test_empty_default_meeting_is_left_alone(g, default_google, fast_empty):
+    """이미 기본 원본의 빈 회의면 아무것도 안 한다 (들어왔다 나가기만 해도 Google에 다시 쓰지 않게)."""
+    async def steps(room):
+        tab = await enter(room, "Ines")
+        leave(fast_empty, room, tab)
+        await settle(fast_empty)
+        assert not [e for e in room.events if e.type == "room.reset"]
+
+    run_meeting(steps)
