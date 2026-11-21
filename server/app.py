@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -38,6 +39,7 @@ async def lifespan(_: FastAPI):
     outbox.enqueue_full_sync(room)  # 외부 문서를 시드 상태로 맞추고 Google 연결도 미리 데움
     schedule_warmup(room.state)     # LIVE면 라우터·에디터 미리 호출 (첫 발화 콜드 스타트 제거)
     yield
+    _cancel_empty_reset()  # 꺼지면서 접속이 다 끊겨도 새 회의를 열지 않는다 (복원은 아래가 한다)
     await restore_on_shutdown()
 
 
@@ -165,6 +167,7 @@ async def ws_endpoint(ws: WebSocket, token: str = ""):  # 토큰이 빠져도 �
         await ws.close(code=4401)
         return
     room = get_room()  # 리셋은 같은 방 객체를 그 자리에서 비우므로 이 참조는 계속 유효하다
+    _cancel_empty_reset()  # 새로고침·잠깐 끊김: 유예 시간 안에 다시 붙으면 회의 그대로
     if await room.connect(ws, name):
         await room.emit("participant.verified", name, {}, {"name": name, "result": "pass", "via": "rejoin"})
     close_code = None
@@ -182,6 +185,52 @@ async def ws_endpoint(ws: WebSocket, token: str = ""):  # 토큰이 빠져도 �
         # 1000 = 화면의 🚪 회의 나가기 (core/ws.ts leave). 탭 닫기 1001, 끊김 1006
         if room.disconnect(ws, left_by_button=close_code == 1000):  # 같은 이름의 다른 탭이 남아 있으면 나간 게 아니다
             await room.emit("participant.left", name, {}, {"name": name})
+        after_disconnect(room)
+
+
+# ---- 모두 나가면 새 회의 (Mal-Mi-Jal) ----
+# 마지막 접속이 끊기고 EMPTY_ROOM_GRACE_SEC 안에 아무도 다시 안 붙으면 '새 회의'와 같은 길로 기본 문서로 돌아간다.
+# 유예를 두는 이유: 혼자 새로고침해도 옛 탭이 끊기고 새 탭이 붙기 전까지 접속이 잠깐 0이 된다.
+EMPTY_ROOM_GRACE_SEC = float(os.getenv("EMPTY_ROOM_GRACE_SEC", "5"))
+_empty_task: asyncio.Task | None = None
+_empty_resetting = False  # 새 회의를 여는 중에는 취소하지 않는다 (Google 작업 도중에 끊으면 문서가 어중간해진다)
+
+
+def after_disconnect(room) -> None:
+    """접속 하나가 끊긴 뒤. 남은 접속이 없으면 유예 타이머를 건다."""
+    global _empty_task
+    if room.sockets:
+        return
+    _cancel_empty_reset()
+    _empty_task = asyncio.create_task(_reset_when_empty(room))
+
+
+def _cancel_empty_reset() -> None:
+    global _empty_task
+    if _empty_task is not None and not _empty_task.done() and not _empty_resetting:
+        _empty_task.cancel()
+
+
+async def _reset_when_empty(room) -> None:
+    global _empty_resetting
+    from server.sync import source_api
+    while True:
+        await asyncio.sleep(EMPTY_ROOM_GRACE_SEC)
+        if room.sockets:  # 그사이 누가 붙음 (보통은 connect가 이미 취소함)
+            return
+        if not source_api.switching():  # 누가 문서를 바꾸는 중이면 끝난 뒤 다시 본다
+            break
+    if not room.changes.changes and source_api.at_default():
+        return  # 이미 기본 문서의 빈 회의 → 할 일 없음 (Google에 쓸데없이 다시 쓰지 않는다)
+    _empty_resetting = True
+    try:
+        source_api.cancel_request("회의에 아무도 남지 않아 요청을 닫았어요.")
+        how = await start_new_meeting(None)  # 남기기/되돌리기 = 기본값 (기본 WBS 되돌리기, 각자 문서 남기기)
+        log.info("모두 나감 → 새 회의 (%s)", how)
+    except Exception:
+        log.exception("모두 나감: 새 회의를 열지 못함")
+    finally:
+        _empty_resetting = False
 
 
 @app.get("/api/state")
@@ -306,12 +355,19 @@ async def new_meeting(body: NewMeetingBody):
         raise HTTPException(401, "invalid token")
     if source_api.switching():
         raise HTTPException(409, "다른 사람이 문서를 바꾸는 중이에요.")
-    await demo.stop()
-    how = await source_api.back_to_default(body.keep)
-    if how in ("already", "none", "failed"):
-        await reset()  # 되돌리기 리셋 (남기기 경로는 back_to_default가 새 회의까지 끝냈다)
+    how = await start_new_meeting(body.keep)
     return {"ok": True, "source": "default" if how in ("switched", "already") else "current",
             **({"notice": "기본 문서를 열지 못해 지금 문서로 새 회의를 시작했어요."} if how.startswith("failed") else {})}
+
+
+async def start_new_meeting(keep: bool | None) -> str:
+    """'새 회의' 버튼과 '모두 나감'이 같이 쓰는 길. 돌려주는 값은 source_api.back_to_default와 같다."""
+    from server.sync import source_api
+    await demo.stop()
+    how = await source_api.back_to_default(keep)
+    if how in ("already", "none", "failed"):
+        await reset()  # 되돌리기 리셋 (남기기 경로는 back_to_default가 새 회의까지 끝냈다)
+    return how
 
 
 @app.get("/api/demo")

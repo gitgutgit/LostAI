@@ -360,6 +360,20 @@ def _live_request() -> SwitchRequest | None:
     return r
 
 
+def cancel_request(why: str) -> None:
+    """기다리는 바꾸기 요청이 있으면 닫는다 (모두 나감 등 바깥에서 부름)."""
+    _cancel_request(why)
+
+
+def at_default() -> bool:
+    """지금 회의 문서가 기본 원본인가. 기본 원본이 없는 서버(SEED=sprint)면 누가 고른 문서가 없을 때 True."""
+    S = google_source.S
+    ids = _default_ids()
+    if ids is None:
+        return not S.active
+    return S.active and _owner_gsid is None and google_auth.owner() is None and (S.sheet_id, S.doc_id) == ids
+
+
 def _cancel_request(why: str) -> None:
     r = _live_request()
     if r is not None and r.status == "waiting":

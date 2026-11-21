@@ -1,7 +1,7 @@
 # Note — 태우 (Mal-Mi-Jal) · 서버·UI 메인
 
 > 마지막 업데이트: 2026-11-22
-> 한 줄 상태: 🟡 진행 — PR #59 머지됨 (11-21 12:42 UTC, `70e7bc8`). 배포 확인 OK → Google 앱 게시에 개인정보처리방침 페이지 필요 → privacy #60·MIT #62 머지 · PR3 남기기/되돌리기 브라우저 확인 OK → PR 올림
+> 한 줄 상태: 🟡 진행 — PR3 남기기/되돌리기 #65 머지 (`8e6ffbd`), Picker 시크릿 창 OK (docs.google.com 추가) · 모두 나가면 새 회의 PR 올림 · 머지 뒤 Railway: 기본 WBS 되돌리기 기본값 + 모두 나감 확인
 > 실행: `uv run python -m server.sync.google_auth` · `uv run uvicorn server.app:app --reload --port 8000` · 모드: MOCK
 
 ## 현재 목표
@@ -165,9 +165,11 @@
 
 ## 할 일
 
-- [ ] (PR3 머지 뒤, Mal-Mi-Jal 요청 11-22) 모두 나가면 기본 문서로 자동 새 회의. 결정: 짧은 유예(약 5초, 새로고침에 초기화 안 되게 — 11-22 바꿈), 남기기/되돌리기는 PR3 기본값(기본 WBS = 되돌리기, 각자 문서 = 남기기). 길목 = `room.disconnect`가 True이고 남은 접속 0 → `new_meeting`과 같은 `back_to_default(None)`. 확인할 것: 혼자 새로고침해도 초기화되는지(접속이 잠깐 0이 됨), 주인 Google 토큰이 나간 뒤에도 메모리에 남아 '남기기'가 되는지, 데모 재생 중이면 멈추는지
+- [x] (브랜치 Mal-Mi-Jal/empty-room-reset, PR 올림 11-22, Mal-Mi-Jal 요청 11-22) 모두 나가면 기본 문서로 자동 새 회의. 결정: 짧은 유예(약 5초, 새로고침에 초기화 안 되게 — 11-22 바꿈), 남기기/되돌리기는 PR3 기본값(기본 WBS = 되돌리기, 각자 문서 = 남기기). 길목 = `room.disconnect`가 True이고 남은 접속 0 → `new_meeting`과 같은 `back_to_default(None)`. 확인할 것: 혼자 새로고침해도 초기화되는지(접속이 잠깐 0이 됨), 주인 Google 토큰이 나간 뒤에도 메모리에 남아 '남기기'가 되는지, 데모 재생 중이면 멈추는지
+  - 결과: `app.py` `after_disconnect` → 접속 0이면 `EMPTY_ROOM_GRACE_SEC`(기본 5초) 타이머, 다시 붙으면 취소, 새 회의 도중엔 취소 안 함, 문서 바꾸는 중이면 기다림, 이미 기본 문서의 빈 회의면 건너뜀(Google 다시 안 씀), 기다리던 바꾸기 요청 닫음. '새 회의' 버튼과 `start_new_meeting` 공유. 시험 4개 → 전체 139 통과 + SIGALRM 19. 일부러 넣은 버그 4개(유예 뒤 접속 확인 없음 / 빈 회의도 리셋 / 각자 문서도 되돌리기 / 남은 사람 있어도 타이머) 다 잡음. 실제 uvicorn(MOCK): 새로고침(0.5초 뒤 다시 붙음) → 7초 뒤 변경 5개 그대로 / 나가기 → 2초 뒤 5개, 7초 뒤 0개
+  - 한계: 혼자 있는데 폰 잠금·네트워크 끊김이 5초 넘으면 새 회의가 열림. 확인 스크립트가 서버 메시지를 안 읽어 닫기가 10초 걸리자 실제로 초기화됨 → 브라우저는 바로 닫힘. 못 본 것: 실제 브라우저·Railway(SEED=google)
 - 11-22: Railway `ANTHROPIC_API_KEY` 새 키로 바꿈 (Mal-Mi-Jal). 한도는 워크스페이스 단위 Spend limit
-- [x] 11-21~22: 개인정보처리방침 PR #60, MIT 라이선스 PR #62 머지. Picker 'API developer key is invalid'(시크릿 창·다른 사람) → API 키 웹사이트 제한에 `https://docs.google.com/*` 추가 중 (Picker iframe이 docs.google.com에서 뜸) — 시크릿 창 재확인 대기
+- [x] 11-21~22: 개인정보처리방침 PR #60, MIT 라이선스 PR #62 머지. Picker 'API developer key is invalid'(시크릿 창·다른 사람) → API 키 웹사이트 제한에 `https://docs.google.com/*` 추가 (Picker iframe이 docs.google.com에서 뜸) → 시크릿 창 OK (11-22)
 
 - [ ] 서버 Google 토큰(테스트 모드) 약 7일마다 만료 → 당분간 Mal-Mi-Jal이 매주 `--relogin` 후 Railway `GOOGLE_TOKEN_B64` 갱신 (다음: 11-26 전). 프로덕션 전환 = gitgutgit 동의 (11-21) → '현재 목표'의 #59 뒤 게시 순서대로. 게시하면 7일 만료 없어짐
 - 보류 (11-21, Mal-Mi-Jal 결정): 다른 Gmail 실제 확인, TEAM.md 공지 한 줄
