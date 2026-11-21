@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>개인정보처리방침 · LostAI 회의 에이전트</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+  :root { --bg: #fafaf9; --fg: #1c1917; --muted: #78716c; --line: #e7e5e4; --link: #2563eb; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1c1917; --fg: #f5f5f4; --muted: #a8a29e; --line: #44403c; --link: #93c5fd; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.7 system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif; word-break: keep-all; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .muted { color: var(--muted); font-size: 13px; }
+  a { color: var(--link); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+  code { font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>개인정보처리방침</h1>
+  <p class="muted">LostAI 회의 에이전트 · 시행일 2026-11-21 · <a href="/">서비스로 돌아가기</a> · <a href="#en">English summary</a></p>
+
+  <p>LostAI 회의 에이전트(이하 "서비스")는 c0mpiled-17 Seoul 해커톤 팀 LostAI가 만든 시연용 서비스입니다. 회의에서 한 말을 듣고 Google Sheets·Docs 문서를 고치며, 모든 변경에 누가 말했는지 붙입니다. 이 문서는 서비스가 어떤 정보를 받고, 어디에 쓰고, 어디로 보내는지 설명합니다.</p>
+
+  <h2>1. 받는 정보와 쓰는 곳</h2>
+  <table>
+    <tr><th>정보</th><th>쓰는 곳</th><th>보관</th></tr>
+    <tr><td>입장할 때 적은 이름</td><td>참석자 표시, 각 변경에 "누가 말했는지" 붙이기</td><td>회의 기록(아래 2절)에 남음</td></tr>
+    <tr><td>입장 손동작 결과 (손동작 이름, 확신도, 유지 시간)</td><td>입장 확인</td><td>서버 메모리에만, 확인이 끝나면 버림</td></tr>
+    <tr><td>회의 발화 문장 (브라우저가 음성을 글자로 바꾼 것)</td><td>문서 수정안 만들기</td><td>회의 기록에 남음</td></tr>
+    <tr><td>Google 계정 이메일 주소</td><td>누가 로그인했는지 화면에 보여 주기, 문서 주인 표시</td><td>서버 메모리에만</td></tr>
+    <tr><td>Google 접근 토큰</td><td>내가 고른 문서를 읽고 쓰기</td><td>서버 메모리에만, 로그아웃하거나 서버를 다시 켜면 사라짐</td></tr>
+  </table>
+  <p><b>카메라 영상과 음성은 서버로 보내지 않습니다.</b> 손동작 인식은 브라우저 안에서 하고, 서버에는 결과(손동작 이름 등)만 보냅니다. 음성 인식은 브라우저의 음성 인식 기능(Web Speech API)을 쓰며, 이 기능은 브라우저 제공사(예: Chrome은 Google)의 서버에서 처리될 수 있습니다.</p>
+
+  <h2>2. 회의 기록</h2>
+  <p>회의 중 일어난 일(발화 문장, 말한 사람 이름, 문서 변경, 시각)은 서비스 서버의 기록 파일에 남습니다. 화면 표시, 되돌리기, 처리 시간 측정에 씁니다. 정해진 보관 기간은 없으며, 서버를 다시 배포하면 지워질 수 있습니다. 지워 달라고 요청하시면(7절) 지웁니다.</p>
+
+  <h2>3. Google 사용자 데이터</h2>
+  <ul>
+    <li>Google 로그인으로 요청하는 권한은 <code>drive.file</code>, 이메일 주소, OpenID뿐입니다. <code>drive.file</code>은 <b>내가 Google Picker에서 직접 고른 파일과 서비스가 새로 만든 파일만</b> 열 수 있는 권한입니다. 내 Drive의 다른 파일은 볼 수 없습니다.</li>
+    <li>고른 Sheet·Doc의 내용을 읽어 회의 화면에 보여 주고, 회의에서 정한 내용을 그 문서에 씁니다. 문서를 바꾸거나 새 회의를 열 때, 회의 중 바꾼 내용을 회의 전 상태로 되돌릴 수 있습니다.</li>
+    <li>Google 사용자 데이터를 팔지 않고, 광고에 쓰지 않으며, AI 모델 학습에 쓰지 않습니다.</li>
+    <li>서비스의 Google 사용자 데이터 사용은 제한적 사용(Limited Use) 요건을 포함한 <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API 서비스 사용자 데이터 정책</a>을 따릅니다.</li>
+  </ul>
+
+  <h2>4. 다른 곳으로 보내는 정보</h2>
+  <ul>
+    <li><b>Anthropic (Claude API):</b> AI 모드에서는 발화 문장, 말한 사람 이름, 회의 문서 내용 일부를 Anthropic API에 보내 수정안을 만듭니다. 이 기능을 제공하는 데만 쓰며, 모델 학습용으로 제공하지 않습니다. AI를 쓰지 않는 시연 모드에서는 보내지 않습니다.</li>
+    <li><b>Google:</b> 위 3절처럼 문서를 읽고 쓸 때.</li>
+    <li><b>Linear:</b> 서버에 Linear가 연결된 경우에만, 회의에서 만든 할 일을 티켓으로 보냅니다.</li>
+    <li>위 경우 말고는 제3자에게 제공하지 않습니다.</li>
+  </ul>
+
+  <h2>5. 브라우저에 저장하는 것</h2>
+  <p>로그인 열쇠는 그 탭의 세션 저장소(sessionStorage)에만 두며 탭을 닫으면 사라집니다. 음성 인식 언어 선택은 브라우저 저장소(localStorage)에 둡니다. 광고·추적 쿠키는 쓰지 않습니다.</p>
+
+  <h2>6. 권한 철회</h2>
+  <p>서비스 화면의 "로그아웃"을 누르면 서버 메모리의 내 토큰을 지웁니다. Google 계정의 <a href="https://myaccount.google.com/connections">서드 파티 연결</a>에서 이 서비스의 접근 권한을 언제든 취소할 수 있습니다.</p>
+
+  <h2>7. 문의</h2>
+  <p>궁금한 점이나 기록 삭제 요청은 <a href="https://github.com/gitgutgit/LostAI/issues">GitHub 이슈</a>로 남겨 주세요. 이 방침이 바뀌면 이 페이지의 시행일을 고칩니다.</p>
+
+  <h2 id="en">English summary</h2>
+  <p>LostAI Meeting Agent is a hackathon demo that listens to a meeting and edits Google Sheets/Docs, tagging each change with who said it. We receive your display name, the gesture results used to join (not camera images), the text of what you say (speech is transcribed by your browser's Web Speech API, not sent to us as audio), and, if you sign in with Google, your email address and an access token. Tokens are kept only in server memory. Google sign-in requests only <code>drive.file</code>, email and OpenID, so we can access only files you pick in Google Picker or files the service creates. Meeting logs (utterances, names, document changes) are stored on our server without a fixed retention period and are deleted on request. In AI mode, utterances, speaker names and parts of the meeting documents are sent to the Anthropic API to produce edits; they are not provided for model training. We do not sell Google user data, use it for ads, or use it to train AI models. Our use of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements. You can revoke access at <a href="https://myaccount.google.com/connections">myaccount.google.com/connections</a>. Contact: <a href="https://github.com/gitgutgit/LostAI/issues">GitHub issues</a>.</p>
+</main>
+</body>
+</html>
