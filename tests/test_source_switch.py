@@ -98,13 +98,13 @@ def g(monkeypatch, tmp_path):
     monkeypatch.setattr(google_files, "create_sheet", fake_create_sheet)
     monkeypatch.setattr(user_auth, "enabled", lambda: True)
     google_auth.set_owner(None, None)
-    source_api._owner_gsid = None
+    source_api._owner_gsid = source_api._owner_name = source_api._request = None
     gsrc.S = gsrc.SourceState()
     gsrc.pull_baseline()  # 서버 시작: .env 기본 원본 (서버 계정)
     yield DRIVES
     gsrc.S = gsrc.SourceState()
     google_auth.set_owner(None, None)
-    source_api._owner_gsid = None
+    source_api._owner_gsid = source_api._owner_name = source_api._request = None
     user_auth._sessions.clear()
 
 
@@ -141,6 +141,23 @@ def cur(p: Person):
     return source_api.current(p.token, p.gsid)
 
 
+def ans(p: Person, request_id: str, approve: bool):
+    return source_api.answer(source_api.AnswerReq(token=p.token, gsid=p.gsid, request_id=request_id, approve=approve))
+
+
+class Tab:
+    """회의 화면 탭 하나 (WebSocket 대신)."""
+
+    async def send_text(self, data):
+        pass
+
+
+async def enter(room, name) -> Tab:
+    tab = Tab()
+    await room.connect(tab, name)
+    return tab
+
+
 def no_sync_failed(room):
     return [e.payload for e in room.events if e.type == "sync.failed"]
 
@@ -175,10 +192,11 @@ def test_switch_to_my_doc_restores_old_with_old_owner_and_writes_with_mine(g):
 
 
 def test_owner_keeps_unpicked_side_and_next_person_restores_with_owner_token(g):
-    """주인(Ines)이 Sheet만 바꾸면 Doc은 그대로. 그다음 Owen이 바꾸면 Ines 문서는 Ines 토큰으로 회의 전으로."""
+    """주인(Ines)이 Sheet만 바꾸면 Doc은 그대로. 그다음 Owen이 요청 → Ines 승인 → Ines 문서는 Ines 토큰으로 회의 전으로."""
     ines, owen = join("Ines", "ines"), join("Owen", "owen")
 
     async def steps(room):
+        await enter(room, "Ines")
         await sw(ines, sheet="SB", doc="DB")
         await outbox.queue.join()
         await sw(ines, sheet="new", title="2차")  # Doc 안 고름 → 내 거라 그대로
@@ -187,8 +205,11 @@ def test_owner_keeps_unpicked_side_and_next_person_restores_with_owner_token(g):
         await room.changes.propose([{"op": "insert_item", "doc": "notes", "section": "s_risk", "text": "폰트 라이선스"}], "Ines", "u1")
         await outbox.queue.join()
         assert doc_view(g["ines"]["doc"]["DB"]) != DOC_B
-        r = await sw(owen, doc="new", title="주간")  # Sheet도 Owen Drive에 새로
+        req = await sw(owen, doc="new", title="주간")
+        assert req["pending"] and gsrc.S.doc_id == "DB"  # Ines 문서 → 승인 전엔 그대로
+        r = await ans(ines, req["request_id"], True)  # Sheet도 Owen Drive에 새로
         await outbox.queue.join()
+        assert r["status"] == "approved"
         assert r["doc"]["title"] == "주간 — 회의 노트" and r["sheet"]["title"] == "주간 — 보드"
         assert sorted(g["owen"]["doc"]) == ["owen-doc-0"] and sorted(g["owen"]["sheet"]) == ["owen-sheet-0"]
         assert google_auth.owner() == "owen@example.com"
@@ -416,3 +437,204 @@ def test_new_meeting_endpoint_needs_join_token():
     c = TestClient(app)  # with 없이: 서버 시작 안 돎
     assert c.post("/api/meeting/new", json={"token": "fake"}).status_code == 401
     assert c.post("/api/meeting/new", json={}).status_code == 422
+
+
+# ================================================================ 바꾸기 요청 → 주인 승인 (PR2)
+
+async def ines_owns(room, g):
+    """Ines가 회의에 들어와 자기 문서로 바꾸고, 회의 중 변경 하나."""
+    ines = join("Ines", "ines")
+    tab = await enter(room, "Ines")
+    await sw(ines, sheet="SB", doc="DB")
+    await outbox.queue.join()
+    await room.changes.propose([{"op": "insert_item", "doc": "notes", "section": "s_risk", "text": "폰트 라이선스"}], "Ines", "u1")
+    await outbox.queue.join()
+    return ines, tab
+
+
+def test_first_switch_from_server_doc_needs_no_approval(g):
+    """기본 원본(서버 계정)은 주인이 없다 → 처음 바꾸는 사람은 바로."""
+    async def steps(room):
+        await enter(room, "Pat")
+        r = await sw(join("Ines", "ines"), doc="DB")
+        assert r["ok"] and gsrc.S.doc_id == "DB"
+
+    run_meeting(steps)
+
+
+def test_owner_rejects_and_nothing_changes(g):
+    async def steps(room):
+        ines, _ = await ines_owns(room, g)
+        owen = join("Owen", "owen")
+        req = await sw(owen, doc="new", title="주간", doc_name="")
+        assert req["pending"]
+        seen = await cur(ines)
+        assert seen["request"]["by"] == "Owen" and seen["request"]["doc"] == "새로 만들기" and seen["request"]["sheet"] is None
+        assert "request" not in await cur(owen)  # 요청 카드는 주인 탭에만
+        assert (await cur(owen))["my_request"]["status"] == "waiting"
+        assert (await ans(ines, req["request_id"], False))["status"] == "rejected"
+        assert (await cur(owen))["my_request"]["status"] == "rejected"
+        assert "request" not in await cur(ines)
+        assert gsrc.S.doc_id == "DB" and google_auth.owner() == "ines@example.com" and len(room.changes.changes) == 1
+        assert g["owen"]["doc"] == {} and g["owen"]["sheet"] == {}  # 거절되면 Owen Drive에 빈 문서도 안 남는다
+        with pytest.raises(HTTPException) as e:  # 끝난 요청엔 다시 답 못 함
+            await ans(ines, req["request_id"], True)
+        assert e.value.status_code == 409
+
+    run_meeting(steps)
+
+
+def test_no_answer_in_time_is_auto_rejected(g, monkeypatch):
+    monkeypatch.setattr(source_api, "REQUEST_SEC", 0.2)
+
+    async def steps(room):
+        ines, _ = await ines_owns(room, g)
+        owen = join("Owen", "owen")
+        req = await sw(owen, doc="new")
+        await asyncio.sleep(0.3)
+        mine = (await cur(owen))["my_request"]
+        assert mine["status"] == "timeout" and "자동으로 거절" in mine["detail"]
+        assert "request" not in await cur(ines)
+        with pytest.raises(HTTPException) as e:  # 늦은 승인은 안 먹는다
+            await ans(ines, req["request_id"], True)
+        assert e.value.status_code == 409 and "자동으로 거절" in e.value.detail
+        assert gsrc.S.doc_id == "DB"
+        assert (await sw(owen, doc="new"))["pending"]  # 끝났으니 다시 요청할 수 있다
+
+    run_meeting(steps)
+
+
+def test_one_request_at_a_time(g):
+    async def steps(room):
+        ines, _ = await ines_owns(room, g)
+        owen, pat = join("Owen", "owen"), join("Pat", "owen")  # Pat도 owen 계정으로 로그인 (탭이 달라 gsid는 다름)
+        await sw(owen, doc="new")
+        for p, msg in ((pat, "Owen님의 바꾸기 요청"), (owen, "보낸 요청")):
+            with pytest.raises(HTTPException) as e:
+                await sw(p, doc="new")
+            assert e.value.status_code == 409 and msg in e.value.detail
+        assert "my_request" not in await cur(pat)  # 같은 Google 계정이어도 요청한 탭만 결과를 본다
+
+    run_meeting(steps)
+
+
+def test_only_the_owner_tab_can_answer(g):
+    """주인 확인은 gsid로만: 요청한 사람, 같은 이름의 다른 사람(열쇠 없음·다른 로그인)은 403."""
+    async def steps(room):
+        ines, _ = await ines_owns(room, g)
+        owen = join("Owen", "owen")
+        req = await sw(owen, doc="new")
+        same_name = [join("Ines"), join("Ines", "owen")]  # 이름만 같은 사람 (입장 토큰도 같음)
+        assert same_name[0].token == ines.token
+        for p in [owen, *same_name, ines._replace(gsid="추측한-열쇠")]:
+            assert "request" not in await cur(p)
+            with pytest.raises(HTTPException) as e:
+                await ans(p, req["request_id"], True)
+            assert e.value.status_code == 403
+        assert gsrc.S.doc_id == "DB" and (await cur(owen))["my_request"]["status"] == "waiting"
+
+    run_meeting(steps)
+
+
+def test_owner_left_by_button_then_requester_confirms(g):
+    """주인이 🚪 회의 나가기 → 요청 대신 '주인 없음' → 요청한 사람이 확인(force)하면 승인 없이. Ines 문서는 Ines 토큰으로 회의 전으로."""
+    async def steps(room):
+        ines, tab = await ines_owns(room, g)
+        room.disconnect(tab, left_by_button=True)
+        owen = join("Owen", "owen")
+        r = await sw(owen, doc="new", title="주간")
+        assert r == {"ok": False, "owner_absent": True, "owner": "ines@example.com"} and gsrc.S.doc_id == "DB"
+        r = await sw(owen, doc="new", title="주간", force=True)
+        await outbox.queue.join()
+        assert r["ok"] and google_auth.owner() == "owen@example.com"
+        return room
+
+    room = run_meeting(steps)
+    assert doc_view(g["ines"]["doc"]["DB"]) == DOC_B
+    assert not no_sync_failed(room)
+
+
+def test_force_is_ignored_while_owner_is_here(g):
+    async def steps(room):
+        await ines_owns(room, g)
+        r = await sw(join("Owen", "owen"), doc="new", force=True)
+        assert r["pending"] and gsrc.S.doc_id == "DB"
+
+    run_meeting(steps)
+
+
+def test_owner_tab_closed_counts_as_absent_only_after_a_while(g, monkeypatch):
+    """탭 닫기·끊김(🚪 아님)은 ABSENT_SEC 지나야 '주인 없음'. 잠깐 끊겼다 다시 붙으면 그대로 주인."""
+    monkeypatch.setattr(source_api, "ABSENT_SEC", 0.2)
+
+    async def steps(room):
+        ines, tab = await ines_owns(room, g)
+        owen = join("Owen", "owen")
+        room.disconnect(tab)  # 탭 닫힘 (1001/1006)
+        req = await sw(owen, doc="new")
+        assert req["pending"]  # 방금 끊김 → 아직 회의에 있는 걸로
+        await ans(ines, req["request_id"], False)
+        await enter(room, "Ines")  # 다시 붙음
+        await asyncio.sleep(0.3)
+        assert (await sw(owen, doc="new"))["pending"]  # 붙어 있으니 시간이 지나도 주인
+        await ans(ines, (await cur(ines))["request"]["id"], False)
+        room.disconnect(next(t for t, n in room.sockets.items() if n == "Ines"))
+        await asyncio.sleep(0.3)
+        assert (await sw(owen, doc="new"))["owner_absent"]
+
+    run_meeting(steps)
+
+
+def test_owner_switching_own_doc_cancels_the_request(g):
+    async def steps(room):
+        ines, _ = await ines_owns(room, g)
+        owen = join("Owen", "owen")
+        req = await sw(owen, doc="new")
+        await sw(ines, sheet="new", title="2차")  # 주인은 자기 문서를 바로 바꿀 수 있다
+        await outbox.queue.join()
+        mine = (await cur(owen))["my_request"]
+        assert mine["status"] == "canceled" and "바뀌었" in mine["detail"]
+        with pytest.raises(HTTPException) as e:
+            await ans(ines, req["request_id"], True)
+        assert e.value.status_code == 409
+
+    run_meeting(steps)
+
+
+def test_approved_but_unusable_file_keeps_meeting(g):
+    """승인 뒤 파일 확인에서 못 쓰는 문서면 400 → 요청은 failed, 회의·주인 그대로."""
+    async def steps(room):
+        ines, _ = await ines_owns(room, g)
+        owen = join("Owen", "owen")
+        req = await sw(owen, doc="DA", doc_name="서버 문서")  # Owen 토큰으로는 못 여는 파일
+        assert (await cur(ines))["request"]["doc"] == "서버 문서"
+        with pytest.raises(HTTPException) as e:
+            await ans(ines, req["request_id"], True)
+        assert e.value.status_code == 400
+        mine = (await cur(owen))["my_request"]
+        assert mine["status"] == "failed" and "승인됐지만" in mine["detail"]
+        assert gsrc.S.doc_id == "DB" and google_auth.owner() == "ines@example.com" and len(room.changes.changes) == 1
+
+    run_meeting(steps)
+
+
+def test_new_meeting_needs_no_approval_and_cancels_request(g, default_google):
+    """새 회의(회의 끝 화면)는 승인 없이 기본 원본으로. 걸려 있던 요청은 취소."""
+    async def steps(room):
+        ines, _ = await ines_owns(room, g)
+        owen = join("Owen", "owen")
+        await sw(owen, doc="new")
+        assert await source_api.back_to_default() == "switched"
+        await outbox.queue.join()
+        assert (await cur(owen))["my_request"]["status"] == "canceled"
+        assert (await sw(owen, doc="new"))["ok"]  # 다시 서버 계정 원본 → 바로
+
+    run_meeting(steps)
+
+
+def test_answer_endpoint_needs_join_token():
+    from fastapi.testclient import TestClient
+    from server.app import app
+    c = TestClient(app)
+    assert c.post("/api/google/source/answer", json={"token": "fake", "request_id": "x", "approve": True}).status_code == 401
+    assert c.post("/api/google/source/answer", json={"token": join("Owen").token, "request_id": "x", "approve": True}).status_code == 403

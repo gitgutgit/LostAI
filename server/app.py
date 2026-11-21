@@ -167,6 +167,7 @@ async def ws_endpoint(ws: WebSocket, token: str = ""):  # 토큰이 빠져도 �
     room = get_room()  # 리셋은 같은 방 객체를 그 자리에서 비우므로 이 참조는 계속 유효하다
     if await room.connect(ws, name):
         await room.emit("participant.verified", name, {}, {"name": name, "result": "pass", "via": "rejoin"})
+    close_code = None
     try:
         while True:
             raw = await ws.receive_text()
@@ -175,10 +176,11 @@ async def ws_endpoint(ws: WebSocket, token: str = ""):  # 토큰이 빠져도 �
             except Exception as e:  # 잘못된 메시지 하나로 접속을 끊지 않는다. 원인은 서버 로그에 남긴다
                 log.exception("ws message failed name=%s raw=%.200s", name, raw)
                 await _notice(ws, f"요청을 처리하지 못했어요 ({type(e).__name__}: {str(e)[:120]})")
-    except WebSocketDisconnect:
-        pass
+    except WebSocketDisconnect as e:
+        close_code = e.code
     finally:
-        if room.disconnect(ws):  # 같은 이름의 다른 탭이 남아 있으면 나간 게 아니다
+        # 1000 = 화면의 🚪 회의 나가기 (core/ws.ts leave). 탭 닫기 1001, 끊김 1006
+        if room.disconnect(ws, left_by_button=close_code == 1000):  # 같은 이름의 다른 탭이 남아 있으면 나간 게 아니다
             await room.emit("participant.left", name, {}, {"name": name})
 
 

@@ -12,10 +12,16 @@ import "./DocPicker.css";
 
 type Kind = "sheet" | "doc";
 type Config = { enabled: boolean; client_id: string; api_key: string; app_id: string; scope: string; me: { email: string } | null };
+// 바꾸기 요청 (PR2): 주인 탭엔 request(승인/거절), 요청한 탭엔 my_request(결과). 서버가 탭(gsid)별로 골라 준다
+type OwnerRequest = { id: string; by: string; sheet: string | null; doc: string | null; left: number };
+type MyRequest = { id: string; status: "waiting" | "running" | "approved" | "rejected" | "timeout" | "failed" | "canceled"; detail: string; left: number };
 type Current = {
   active: boolean; owner?: string | null; mine?: boolean;
   sheet?: { id: string; title: string }; doc?: { id: string; title: string };
+  request?: OwnerRequest; my_request?: MyRequest;
 };
+type SwitchRes = { ok: boolean; pending?: boolean; owner_absent?: boolean; owner?: string | null };
+const POLL_MS = 2000;
 type Pick = null | "new" | { id: string; name: string }; // null = 안 고름 (내 문서면 그대로, 아니면 새로)
 
 const LABEL: Record<Kind, string> = { sheet: "📊 보드 (Google Sheet)", doc: "📝 노트 (Google Doc)" };
@@ -123,7 +129,31 @@ export function DocPicker({ onSwitched }: { onSwitched?: () => void }) {
   const [busy, setBusy] = useState(false);
   const [picking, setPicking] = useState(false); // Google Picker가 떠 있는 동안 내 창은 숨긴다 (겹침 방지)
   const [err, setErr] = useState("");
+  const [ownerReq, setOwnerReq] = useState<OwnerRequest | null>(null);
+  const [myReq, setMyReq] = useState<MyRequest | null>(null);
+  const [answering, setAnswering] = useState(false);
+  const [answerErr, setAnswerErr] = useState("");
+  const [dismissed, setDismissed] = useState<string | null>(null); // 닫은 결과 카드 (같은 요청 결과를 다시 안 띄움)
   const token = getToken();
+
+  // 로그인한 탭만 2초마다: 내 문서에 걸린 요청 / 내가 보낸 요청 결과 (Google 호출 없음, 서버 메모리만 읽음)
+  useEffect(() => {
+    if (!token) return;
+    let stop = false;
+    const tick = () => {
+      if (!getGsid()) { setOwnerReq(null); setMyReq(null); return; }
+      api<Current>(`/api/google/source${qs(token)}`)
+        .then((s) => { if (!stop) { setOwnerReq(s.request ?? null); setMyReq(s.my_request ?? null); } })
+        .catch(() => { /* 다음 번에 다시 */ });
+    };
+    tick();
+    const id = setInterval(tick, POLL_MS);
+    return () => { stop = true; clearInterval(id); };
+  }, [token]);
+
+  useEffect(() => {
+    if (myReq?.status === "approved" && myReq.id !== dismissed) onSwitched?.();
+  }, [myReq?.status, myReq?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const reload = useCallback(() => {
     if (!token) return;
@@ -193,12 +223,23 @@ export function DocPicker({ onSwitched }: { onSwitched?: () => void }) {
   const submit = async () => {
     setBusy(true); setErr("");
     const id = (p: Pick) => (p === null || p === "new" ? p : p.id);
+    const name = (p: Pick) => (p !== null && p !== "new" ? p.name : "");
+    const send = (force: boolean) => api<SwitchRes>("/api/google/source", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, gsid: getGsid(), sheet: id(sheet), doc: id(doc), title,
+                             sheet_name: name(sheet), doc_name: name(doc), force }),
+    });
     try {
-      await api("/api/google/source", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, gsid: getGsid(), sheet: id(sheet), doc: id(doc), title }),
-      });
+      let r = await send(false);
+      if (r.owner_absent) {
+        if (!confirm(`문서 주인(${r.owner ?? "알 수 없음"})이 회의에 없어요. 승인 없이 바꿀까요?\n주인 문서는 회의 전 상태로 돌아가요.`)) return;
+        r = await send(true);
+      }
       setOpen(false);
+      if (r.pending) { // 주인 화면에 승인 카드가 뜬다. 결과는 아래 카드로
+        setMyReq({ id: "", status: "waiting", detail: "", left: 30 });
+        return;
+      }
       onSwitched?.();
     } catch (e: any) {
       setErr(e.message);
@@ -207,9 +248,62 @@ export function DocPicker({ onSwitched }: { onSwitched?: () => void }) {
     }
   };
 
+  const answer = async (approve: boolean) => {
+    if (!ownerReq) return;
+    setAnswering(true); setAnswerErr("");
+    try {
+      await api("/api/google/source/answer", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, gsid: getGsid(), request_id: ownerReq.id, approve }),
+      });
+      setOwnerReq(null);
+    } catch (e: any) {
+      setAnswerErr(e.message);
+    } finally {
+      setAnswering(false);
+    }
+  };
+
+  const askOwner = !!cur?.active && !!cur.owner && !mine; // 남의 문서 → 바꾸기 = 주인에게 요청
+  const RESULT: Record<string, string> = { approved: "✅", rejected: "❌", timeout: "⌛", failed: "⚠", canceled: "ℹ" };
+  const showMine = myReq && myReq.id !== dismissed;
+
   return (
     <>
       <button className="btn" onClick={() => setOpen(true)} title="회의 문서 고르기 / 새로 만들기">📂 문서 바꾸기</button>
+      {(ownerReq || showMine) && createPortal(
+        <div className="dp-toasts">
+          {ownerReq && (
+            <div className="dp-toast" role="alertdialog" aria-label="문서 바꾸기 요청">
+              <p><b>🔔 {ownerReq.by}</b>님이 회의 문서를 바꾸려고 해요 <span className="dp-sub">{ownerReq.left}초</span></p>
+              <ul>
+                {ownerReq.sheet && <li>📊 보드 → {ownerReq.sheet}</li>}
+                {ownerReq.doc && <li>📝 노트 → {ownerReq.doc}</li>}
+                {(!ownerReq.sheet || !ownerReq.doc) && <li className="dp-muted">안 고른 쪽은 {ownerReq.by}님 Drive에 새로 만들어요</li>}
+              </ul>
+              <p className="dp-warn">승인하면 지금 내 문서는 회의 전 상태로 돌아가고, 회의 내용이 비워져요. 답이 없으면 자동으로 거절돼요.</p>
+              {answerErr && <p className="dp-err">{answerErr}</p>}
+              <div className="dp-actions">
+                <button className="btn" onClick={() => answer(false)} disabled={answering}>거절</button>
+                <button className="btn primary" onClick={() => answer(true)} disabled={answering}>{answering ? "바꾸는 중…" : "승인"}</button>
+              </div>
+            </div>
+          )}
+          {showMine && (
+            <div className="dp-toast" role="status">
+              {myReq.status === "waiting" || myReq.status === "running" ? (
+                <p>⏳ 문서 주인의 승인을 기다리는 중이에요{myReq.status === "waiting" && myReq.id ? <span className="dp-sub">{myReq.left}초</span> : null}</p>
+              ) : (
+                <div className="dp-row">
+                  <p>{RESULT[myReq.status]} {myReq.detail}</p>
+                  <button className="dp-x" onClick={() => setDismissed(myReq.id)} aria-label="닫기">✕</button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>,
+        document.body,
+      )}
       {open && !picking && createPortal( // 창은 body에 바로: 붙인 곳(결정 벽 도구 띠)의 opacity·transform을 물려받지 않게
         <div className="dp-overlay" onClick={() => !busy && setOpen(false)}>
           <div className="dp-modal" role="dialog" aria-modal="true" aria-label="회의 문서 고르기" onClick={(e) => e.stopPropagation()}>
@@ -243,11 +337,14 @@ export function DocPicker({ onSwitched }: { onSwitched?: () => void }) {
               </>
             )}
             <footer>
+              {askOwner && <p className="dp-warn">🔐 지금 문서는 {cur?.owner} 것이라 주인 승인이 필요해요 (30초 안에 답이 없으면 자동 거절). 주인이 회의를 나갔으면 승인 없이 바꿀지 한 번 더 물어봐요.</p>}
               <p className="dp-warn">⚠ 바꾸면 지금 회의 내용(타임라인·변경)이 비워지고, 지금 문서는 회의 전 상태로 돌아가요. 모든 참석자 화면이 같이 바뀌어요. 회의 중 문서 수정은 고른 사람의 Google 계정으로 돼요.</p>
               {err && <p className="dp-err">{err}</p>}
               <div className="dp-actions">
                 <button className="btn" onClick={() => setOpen(false)} disabled={busy}>취소</button>
-                <button className="btn primary" onClick={submit} disabled={!ready || busy}>{busy && me ? "문서 바꾸는 중…" : "이 문서로 회의 시작"}</button>
+                <button className="btn primary" onClick={submit} disabled={!ready || busy}>
+                  {busy && me ? (askOwner ? "요청 보내는 중…" : "문서 바꾸는 중…") : askOwner ? "주인에게 바꾸기 요청" : "이 문서로 회의 시작"}
+                </button>
               </div>
             </footer>
           </div>
